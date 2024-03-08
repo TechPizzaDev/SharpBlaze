@@ -1,46 +1,46 @@
+using System;
+using System.Diagnostics;
 
-#pragma once
-
-
-#include "F24Dot8.h"
-#include "TileBounds.h"
+namespace SharpBlaze;
 
 
 /**
  * Descriptor for linearization into 64×16 pixel tiles.
  */
-struct TileDescriptor_64x16 final {
+public struct TileDescriptor_64x16
+{
 
     /**
      * Tile width in pixels.
      */
-    static constexpr int TileW = 64;
+    public const int TileW = 64;
 
 
     /**
      * Tile height in pixels.
      */
-    static constexpr int TileH = 16;
+    public const int TileH = 16;
 
 
     /**
      * Tile width in 24.8 fixed point format.
      */
-    static constexpr F24Dot8 TileWF24Dot8 = 1 << 14;
+    public static F24Dot8 TileWF24Dot8 => 1 << 14;
 
 
     /**
      * Tile height in 24.8 fixed point format.
      */
-    static constexpr F24Dot8 TileHF24Dot8 = 1 << 12;
+    public static F24Dot8 TileHF24Dot8 => 1 << 12;
 
 
     /**
      * Converts X value expressed as 24.8 fixed point number to horizontal tile
      * index.
      */
-    static constexpr TileIndex F24Dot8ToTileColumnIndex(const F24Dot8 x) {
-        return TileIndex(x >> 14);
+    public static TileIndex F24Dot8ToTileColumnIndex(F24Dot8 x)
+    {
+        return (TileIndex) (x >> 14);
     }
 
 
@@ -48,64 +48,72 @@ struct TileDescriptor_64x16 final {
      * Converts Y value expressed as 24.8 fixed point number to vertical tile
      * index.
      */
-    static constexpr TileIndex F24Dot8ToTileRowIndex(const F24Dot8 y) {
-        return TileIndex(y >> 12);
+    public static TileIndex F24Dot8ToTileRowIndex(F24Dot8 y)
+    {
+        return (TileIndex) (y >> 12);
     }
 
 
     /**
      * Converts X value to horizontal tile index.
      */
-    static constexpr TileIndex PointsToTileColumnIndex(const int x) {
-        return TileIndex(x >> 6);
+    public static TileIndex PointsToTileColumnIndex(int x)
+    {
+        return (TileIndex) (x >> 6);
     }
 
 
     /**
      * Converts Y value to vertical tile index.
      */
-    static constexpr TileIndex PointsToTileRowIndex(const int y) {
-        return TileIndex(y >> 4);
+    public static TileIndex PointsToTileRowIndex(int y)
+    {
+        return (TileIndex) (y >> 4);
     }
 
 
     /**
      * Converts horizontal tile index to X value.
      */
-    static constexpr int TileColumnIndexToPoints(const TileIndex x) {
-        return int(x) << 6;
+    public static int TileColumnIndexToPoints(TileIndex x)
+    {
+        return (int) (x) << 6;
     }
 
 
     /**
      * Converts vertical tile index to Y value.
      */
-    static constexpr int TileRowIndexToPoints(const TileIndex y) {
-        return int(y) << 4;
+    public static int TileRowIndexToPoints(TileIndex y)
+    {
+        return (int) (y) << 4;
     }
 
 
     /**
      * Returns given vertical tile index to position in 24.8 format.
      */
-    static constexpr F24Dot8 TileColumnIndexToF24Dot8(const TileIndex x) {
-        return F24Dot8(x) << 14;
+    public static F24Dot8 TileColumnIndexToF24Dot8(TileIndex x)
+    {
+        return (F24Dot8) (int) (x) << 14;
     }
 
 
     /**
      * Returns given horizontal tile index to position in 24.8 format.
      */
-    static constexpr F24Dot8 TileRowIndexToF24Dot8(const TileIndex y) {
-        return F24Dot8(y) << 12;
+    public static F24Dot8 TileRowIndexToF24Dot8(TileIndex y)
+    {
+        return (F24Dot8) (int) (y) << 12;
     }
 
 
-    static constexpr bool CoverArrayContainsOnlyZeroes(const int32 *t) {
-        ASSERT(t != nullptr);
+    public static unsafe bool CoverArrayContainsOnlyZeroes(int* t)
+    {
+        Debug.Assert(t != null);
 
         // Combine all 16 values.
-        const int32 v =
+        int v =
             t[0] | t[1] | t[2] | t[3] | t[4] | t[5] | t[6] | t[7] |
             t[8] | t[9] | t[10] | t[11] | t[12] | t[13] | t[14] | t[15];
 
@@ -114,8 +122,9 @@ struct TileDescriptor_64x16 final {
     }
 
 
-    static void FillStartCovers(int32 *p, const int32 value) {
-        ASSERT(p != nullptr);
+    public static unsafe void FillStartCovers(int* p, int value)
+    {
+        Debug.Assert(p != null);
 
         p[0] = value;
         p[1] = value;
@@ -136,41 +145,42 @@ struct TileDescriptor_64x16 final {
     }
 
 
-    static void AccumulateStartCovers(int32 *p, const int32 value) {
-        const int32 p0 = p[0];
-        const int32 p1 = p[1];
-        const int32 p2 = p[2];
-        const int32 p3 = p[3];
+    public static unsafe void AccumulateStartCovers(int* p, int value)
+    {
+        int p0 = p[0];
+        int p1 = p[1];
+        int p2 = p[2];
+        int p3 = p[3];
 
         p[0] = value + p0;
         p[1] = value + p1;
         p[2] = value + p2;
         p[3] = value + p3;
 
-        const int32 p4 = p[4];
-        const int32 p5 = p[5];
-        const int32 p6 = p[6];
-        const int32 p7 = p[7];
+        int p4 = p[4];
+        int p5 = p[5];
+        int p6 = p[6];
+        int p7 = p[7];
 
         p[4] = value + p4;
         p[5] = value + p5;
         p[6] = value + p6;
         p[7] = value + p7;
 
-        const int32 p8 = p[8];
-        const int32 p9 = p[9];
-        const int32 p10 = p[10];
-        const int32 p11 = p[11];
+        int p8 = p[8];
+        int p9 = p[9];
+        int p10 = p[10];
+        int p11 = p[11];
 
         p[8] = value + p8;
         p[9] = value + p9;
         p[10] = value + p10;
         p[11] = value + p11;
 
-        const int32 p12 = p[12];
-        const int32 p13 = p[13];
-        const int32 p14 = p[14];
-        const int32 p15 = p[15];
+        int p12 = p[12];
+        int p13 = p[13];
+        int p14 = p[14];
+        int p15 = p[15];
 
         p[12] = value + p12;
         p[13] = value + p13;
@@ -179,10 +189,8 @@ struct TileDescriptor_64x16 final {
     }
 
 
-    static constexpr int32 ZeroCovers[16] ALIGNED(64) = {
-        0
-    };
+    public static ReadOnlySpan<int> ZeroCovers => new int[16];
 
-private:
-    TileDescriptor_64x16() = delete;
-};
+    [Obsolete]
+    public TileDescriptor_64x16() { }
+}

@@ -1,35 +1,33 @@
+using System.Diagnostics;
 
-#pragma once
-
-
-#include "Utils.h"
-
-
-using TileIndex = uint32;
-
+namespace SharpBlaze;
 
 /**
  * Represents a rectangle in destination image coordinates, measured in tiles.
  */
-struct TileBounds final {
-
-    constexpr TileBounds(const TileIndex x, const TileIndex y,
-        const TileIndex horizontalCount, const TileIndex verticalCount)
-    :   X(x),
-        Y(y),
-        ColumnCount(horizontalCount),
-        RowCount(verticalCount)
+public struct TileBounds
+{
+    public TileBounds(
+        TileIndex x,
+        TileIndex y,
+        TileIndex horizontalCount,
+        TileIndex verticalCount)
     {
-        ASSERT(ColumnCount > 0);
-        ASSERT(RowCount > 0);
+        Debug.Assert(ColumnCount > 0);
+        Debug.Assert(RowCount > 0);
+
+        X = x;
+        Y = y;
+        ColumnCount = horizontalCount;
+        RowCount = verticalCount;
     }
 
     // Minimum horizontal and vertical tile indices.
-    TileIndex X = 0;
-    TileIndex Y = 0;
+    public TileIndex X;
+    public TileIndex Y;
 
     // Horizontal and vertical tile counts. Total number of tiles covered
     // by a geometry can be calculated by multiplying these two values.
-    TileIndex ColumnCount = 0;
-    TileIndex RowCount = 0;
+    public TileIndex ColumnCount;
+    public TileIndex RowCount;
 };
