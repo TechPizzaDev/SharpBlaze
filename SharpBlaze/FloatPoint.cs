@@ -1,35 +1,46 @@
 
-#pragma once
+using System.Runtime.CompilerServices;
+
+namespace SharpBlaze;
+
+public struct FloatPoint
+{
+    public double X;
+    public double Y;
+
+    public FloatPoint(double x, double y)
+    {
+        X = x;
+        Y = y;
+    }
 
 
-#include "Utils.h"
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static FloatPoint operator -(FloatPoint a, FloatPoint b)
+    {
+        return new FloatPoint(
+            a.X - b.X,
+            a.Y - b.Y
+        );
+    }
 
 
-struct FloatPoint final {
-    double X = 0;
-    double Y = 0;
-};
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static FloatPoint operator +(FloatPoint a, FloatPoint b)
+    {
+        return new FloatPoint(
+            a.X + b.X,
+            a.Y + b.Y
+        );
+    }
 
 
-FORCE_INLINE FloatPoint operator-(const FloatPoint a, const FloatPoint b) {
-    return FloatPoint {
-        a.X - b.X,
-        a.Y - b.Y
-    };
-}
-
-
-FORCE_INLINE FloatPoint operator+(const FloatPoint a, const FloatPoint b) {
-    return FloatPoint {
-        a.X + b.X,
-        a.Y + b.Y
-    };
-}
-
-
-FORCE_INLINE FloatPoint operator*(const FloatPoint a, const FloatPoint b) {
-    return FloatPoint {
-        a.X * b.X,
-        a.Y * b.Y
-    };
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static FloatPoint operator *(FloatPoint a, FloatPoint b)
+    {
+        return new FloatPoint(
+            a.X * b.X,
+            a.Y * b.Y
+        );
+    }
 }
