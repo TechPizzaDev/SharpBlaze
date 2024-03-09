@@ -1,119 +1,139 @@
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
-#pragma once
+namespace SharpBlaze;
 
-
-#include "Utils.h"
-
-
-#ifdef MACHINE_64
-#include "CompositionOps_64.h"
-#elif defined MACHINE_32
-#include "CompositionOps_32.h"
-#else
-#error I don't know about register size.
-#endif
+using static Utils;
 
 
-static FORCE_INLINE uint32 BlendSourceOver(const uint32 d, const uint32 s) {
-    return s + ApplyAlpha(d, 255 - (s >> 24));
-}
-
-
-static FORCE_INLINE void CompositeSpanSourceOver(const int pos, const int end, uint32 *d, const int32 alpha, const uint32 color) {
-    ASSERT(pos >= 0);
-    ASSERT(pos < end);
-    ASSERT(d != nullptr);
-    ASSERT(alpha <= 255);
-
-    // For opaque colors, use opaque span composition version.
-    ASSERT((color >> 24) < 255);
-
-    const int e = end;
-    const uint32 cba = ApplyAlpha(color, alpha);
-
-    for (int x = pos; x < e; x++) {
-        const uint32 dd = d[x];
-
-        if (dd == 0) {
-            d[x] = cba;
-        } else {
-            d[x] = BlendSourceOver(dd, cba);
+public static unsafe partial class CompositionOps
+{
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static uint ApplyAlpha(uint x, uint a)
+    {
+        if (sizeof(nint) == 8)
+        {
+            return ApplyAlpha64(x, a);
+        }
+        else
+        {
+            return ApplyAlpha32(x, a);
         }
     }
-}
 
 
-static FORCE_INLINE void CompositeSpanSourceOverOpaque(const int pos, const int end, uint32 *d, const int32 alpha, const uint32 color) {
-    ASSERT(pos >= 0);
-    ASSERT(pos < end);
-    ASSERT(d != nullptr);
-    ASSERT(alpha <= 255);
-    ASSERT((color >> 24) == 255);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint BlendSourceOver(uint d, uint s)
+    {
+        return s + ApplyAlpha(d, 255 - (s >> 24));
+    }
 
-    const int e = end;
 
-    if (alpha == 255) {
-        // Solid span, write only.
-        for (int x = pos; x < e; x++) {
-            d[x] = color;
-        }
-    } else {
-        // Transparent span.
-        const uint32 cba = ApplyAlpha(color, alpha);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void CompositeSpanSourceOver(int pos, int end, uint* d, int alpha, uint color)
+    {
+        Debug.Assert(pos >= 0);
+        Debug.Assert(pos < end);
+        Debug.Assert(d != null);
+        Debug.Assert(alpha <= 255);
 
-        for (int x = pos; x < e; x++) {
-            const uint32 dd = d[x];
+        // For opaque colors, use opaque span composition version.
+        Debug.Assert((color >> 24) < 255);
 
-            if (dd == 0) {
+        int e = end;
+        uint cba = ApplyAlpha(color, (uint) alpha);
+
+        for (int x = pos; x < e; x++)
+        {
+            uint dd = d[x];
+
+            if (dd == 0)
+            {
                 d[x] = cba;
-            } else {
+            }
+            else
+            {
                 d[x] = BlendSourceOver(dd, cba);
+            }
+        }
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void CompositeSpanSourceOverOpaque(int pos, int end, uint* d, int alpha, uint color)
+    {
+        Debug.Assert(pos >= 0);
+        Debug.Assert(pos < end);
+        Debug.Assert(d != null);
+        Debug.Assert(alpha <= 255);
+        Debug.Assert((color >> 24) == 255);
+
+        int e = end;
+
+        if (alpha == 255)
+        {
+            // Solid span, write only.
+            for (int x = pos; x < e; x++)
+            {
+                d[x] = color;
+            }
+        }
+        else
+        {
+            // Transparent span.
+            uint cba = ApplyAlpha(color, (uint) alpha);
+
+            for (int x = pos; x < e; x++)
+            {
+                uint dd = d[x];
+
+                if (dd == 0)
+                {
+                    d[x] = cba;
+                }
+                else
+                {
+                    d[x] = BlendSourceOver(dd, cba);
+                }
             }
         }
     }
 }
 
-
-struct SpanBlender final {
-    constexpr explicit SpanBlender(const uint32 color)
-    :   Color(color)
+public readonly unsafe struct SpanBlender: ISpanBlender
+{
+    public SpanBlender(uint color)
     {
+        Color = color;
     }
 
-
-    void CompositeSpan(const int pos, const int end, uint32 *d, const int32 alpha) const;
-
-    const uint32 Color = 0;
-};
+    readonly uint Color = 0;
 
 
-FORCE_INLINE void SpanBlender::CompositeSpan(const int pos, const int end, uint32 *d, const int32 alpha) const {
-    CompositeSpanSourceOver(pos, end, d, alpha, Color);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CompositeSpan(int pos, int end, uint* d, int alpha)
+    {
+        CompositionOps.CompositeSpanSourceOver(pos, end, d, alpha, Color);
+    }
 }
-
-
-STATIC_ASSERT(SIZE_OF(SpanBlender) == 4);
-
 
 /**
  * Span blender which assumes source color is opaque.
  */
-struct SpanBlenderOpaque final {
-    constexpr explicit SpanBlenderOpaque(const uint32 color)
-    :   Color(color)
+public readonly unsafe struct SpanBlenderOpaque : ISpanBlender
+{
+    public SpanBlenderOpaque(uint color)
     {
+        Color = color;
     }
 
-
-    void CompositeSpan(const int pos, const int end, uint32 *d, const int32 alpha) const;
-
-    const uint32 Color = 0;
-};
+    readonly uint Color = 0;
 
 
-FORCE_INLINE void SpanBlenderOpaque::CompositeSpan(const int pos, const int end, uint32 *d, const int32 alpha) const {
-    CompositeSpanSourceOverOpaque(pos, end, d, alpha, Color);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void CompositeSpan(int pos, int end, uint* d, int alpha)
+    {
+        CompositionOps.CompositeSpanSourceOverOpaque(pos, end, d, alpha, Color);
+    }
 }
-
-
-STATIC_ASSERT(SIZE_OF(SpanBlenderOpaque) == 4);

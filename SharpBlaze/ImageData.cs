@@ -1,15 +1,14 @@
+using System.Diagnostics;
 
-#pragma once
-
-
-#include "Utils.h"
+namespace SharpBlaze;
 
 
 /**
  * A simple struct which keeps a pointer to image data and associated
  * properties. It does not allocate or free any memory.
  */
-struct ImageData final {
+public unsafe struct ImageData
+{
 
     /**
      * Construct image data.
@@ -24,23 +23,24 @@ struct ImageData final {
      *
      * @param bytesPerRow Byte stride. Must be at least width × bpp.
      */
-    constexpr ImageData(uint8 *d, const int width, const int height,
-        const int bytesPerRow)
-    :   Data(d),
-        Width(width),
-        Height(height),
-        BytesPerRow(bytesPerRow)
+    public ImageData(byte* d, int width, int height,
+         int bytesPerRow)
     {
-        ASSERT(width > 0);
-        ASSERT(height > 0);
+        Data = d;
+        Width = width;
+        Height = height;
+        BytesPerRow = bytesPerRow;
+
+        Debug.Assert(width > 0);
+        Debug.Assert(height > 0);
 
         // Do not assume any specific bpp, but assume it is at least 1 byte
         // per pixel.
-        ASSERT(bytesPerRow >= width);
+        Debug.Assert(bytesPerRow >= width);
     }
 
-    uint8 *Data = nullptr;
-    const int Width = 0;
-    const int Height = 0;
-    const int BytesPerRow = 0;
-};
+    public byte* Data = null;
+    public readonly int Width = 0;
+    public readonly int Height = 0;
+    public readonly int BytesPerRow = 0;
+}

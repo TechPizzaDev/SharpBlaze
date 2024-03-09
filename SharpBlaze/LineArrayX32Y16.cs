@@ -14,7 +14,7 @@ public unsafe struct LineArrayX32Y16Block : IConstructible<LineArrayX32Y16Block,
     [InlineArray(LinesPerBlock)]
     public struct ArrayF24Dot8
     {
-        private F8Dot8x2 _e0;
+        private F24Dot8 _e0;
     }
 
     public static void Construct(ref LineArrayX32Y16Block instance, in Pointer<LineArrayX32Y16Block> args)
@@ -45,7 +45,7 @@ public unsafe struct LineArrayX32Y16Block : IConstructible<LineArrayX32Y16Block,
 }
 
 
-public unsafe partial struct LineArrayX32Y16 : ILineArray<LineArrayX32Y16>
+public unsafe partial struct LineArrayX32Y16 : ILineArrayBlock<LineArrayX32Y16>
 {
     public LineArrayX32Y16()
     {
@@ -68,6 +68,11 @@ public unsafe partial struct LineArrayX32Y16 : ILineArray<LineArrayX32Y16>
 
     private partial void AppendLine(ThreadMemory memory, F8Dot8x2 y0y1, F24Dot8 x0, F24Dot8 x1);
     private partial void AppendLine(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
+
+    void* ILineArrayBlock<LineArrayX32Y16>.GetFrontBlock()
+    {
+        return GetFrontBlock();
+    }
 
     private LineArrayX32Y16Block* mCurrent = null;
     private int mCount = LineArrayX32Y16Block.LinesPerBlock;

@@ -148,6 +148,16 @@ public static class Utils
 
 
     /**
+     * Returns value clamped to range between minimum and maximum values.
+     */
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TileIndex Clamp(TileIndex val, TileIndex min, TileIndex max)
+    {
+        return Clamp((uint) val, (uint) min, (uint) max);
+    }
+
+
+    /**
      * Returns absolute of a given value.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

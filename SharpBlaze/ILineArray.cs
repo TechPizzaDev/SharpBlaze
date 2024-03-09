@@ -1,6 +1,6 @@
 ﻿namespace SharpBlaze;
 
-public unsafe interface ILineArray<T> 
+public unsafe interface ILineArray<T>
     where T : unmanaged, ILineArray<T>
 {
     static abstract void Construct(ref T placement,

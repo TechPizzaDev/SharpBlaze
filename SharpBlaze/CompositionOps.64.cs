@@ -1,11 +1,19 @@
+using System.Runtime.CompilerServices;
 
-// This must only be included from CompositionOps.h
+namespace SharpBlaze;
+
+public static unsafe partial class CompositionOps
+{
+    // This must only be included from CompositionOps.h
 
 
-static uint32 ApplyAlpha(const uint32 x, const uint32 a) {
-    const uint64 a0 = (((uint64(x)) | ((uint64(x)) << 24)) & 0x00ff00ff00ff00ff) * a;
-    const uint64 a1 = (a0 + ((a0 >> 8) & 0xff00ff00ff00ff) + 0x80008000800080) >> 8;
-    const uint64 a2 = a1 & 0x00ff00ff00ff00ff;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static uint ApplyAlpha64(uint x, uint a)
+    {
+        ulong a0 = ((((ulong) (x)) | (((ulong) (x)) << 24)) & 0x00ff00ff00ff00ff) * a;
+        ulong a1 = (a0 + ((a0 >> 8) & 0xff00ff00ff00ff) + 0x80008000800080) >> 8;
+        ulong a2 = a1 & 0x00ff00ff00ff00ff;
 
-    return (uint32(a2)) | (uint32(a2 >> 24));
+        return ((uint) (a2)) | ((uint) (a2 >> 24));
+    }
 }

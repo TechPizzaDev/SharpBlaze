@@ -1,144 +1,132 @@
 
-#pragma once
+using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
+namespace SharpBlaze;
 
-#include <pthread.h>
-#include <stdatomic.h>
-#include "ThreadMemory.h"
-#include "Utils.h"
-
+using static Utils;
 
 /**
  * Manages a pool of threads used for parallelization of rasterization tasks.
  */
-class Threads final {
-public:
-    Threads();
-   ~Threads();
-public:
-    static int GetHardwareThreadCount();
-public:
-    template <typename F>
-    void ParallelFor(const int count, const F loopBody);
+public unsafe partial class Threads
+{
+    public Threads()
+    {
+    }
 
-    void *MallocMain(const int size);
+    public static partial int GetHardwareThreadCount();
 
-    template <typename T>
-    T *MallocMain();
+    public partial void ParallelFor(int count, Action<int, ThreadMemory> loopBody);
 
-    template <typename T, typename ...Args>
-    T *NewMain(Args&&... args);
+    public partial void* MallocMain(int size);
 
-    void ResetFrameMemory();
-private:
-    void RunThreads();
-private:
+    public partial T* MallocMain<T>() where T : unmanaged;
 
-    struct Function {
-        virtual ~Function() {
-        }
+    public partial T* NewMain<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>;
 
-        virtual void Execute(const int index, ThreadMemory &memory) = 0;
+    public partial void ResetFrameMemory();
+
+    private partial void RunThreads();
+
+    private class TaskList
+    {
+        public int Cursor = 0;
+        public int Count = 0;
+        public Action<int, ThreadMemory>? Fn = null;
+
+        public object CV => Mutex;
+        public object Mutex = new();
+        public int RequiredWorkerCount = 0;
+
+        public object FinalizationCV => FinalizationMutex;
+        public object FinalizationMutex = new();
+        public int FinalizedWorkers = 0;
     };
 
-    template <typename T>
-    struct Fun : public Function {
-        constexpr Fun(const T lambda)
-        :   Lambda(lambda)
+    private class ThreadData
+    {
+        public ThreadData(TaskList tasks)
         {
+            Tasks = tasks;
         }
 
-        void Execute(const int index, ThreadMemory &memory) {
-            Lambda(index, memory);
-        }
+        public ThreadMemory Memory;
+        public TaskList Tasks;
+        public Thread Thread;
+    }
 
-        T Lambda;
-    };
+    private TaskList? mTaskData = null;
+    private ThreadData[]? mThreadData = null;
+    private int mThreadCount = 0;
+    private ThreadMemory mMainMemory;
 
-    struct TaskList final {
-        atomic_int Cursor = 0;
-        int Count = 0;
-        Function *Fn = nullptr;
+    private partial void Run(int count, Action<int, ThreadMemory> loopBody);
 
-        pthread_cond_t CV = PTHREAD_COND_INITIALIZER;
-        pthread_mutex_t Mutex = PTHREAD_MUTEX_INITIALIZER;
-        int RequiredWorkerCount = 0;
+    private static partial void Worker(object? p);
 
-        pthread_cond_t FinalizationCV = PTHREAD_COND_INITIALIZER;
-        pthread_mutex_t FinalizationMutex = PTHREAD_MUTEX_INITIALIZER;
-        int FinalizedWorkers = 0;
-    };
 
-    struct ThreadData final {
-        ThreadData(TaskList *tasks)
-        :   Tasks(tasks)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public partial void ParallelFor(int count, Action<int, ThreadMemory> loopBody)
+    {
+        RunThreads();
+
+        int run = Max(Min(64, count / (mThreadCount * 32)), 1);
+
+        if (run == 1)
         {
-        }
-
-        ThreadMemory Memory;
-        TaskList *Tasks = nullptr;
-        pthread_t Thread = 0;
-    };
-
-    TaskList *mTaskData = nullptr;
-    ThreadData **mThreadData = nullptr;
-    int mThreadCount = 0;
-    ThreadMemory mMainMemory;
-
-private:
-    void Run(const int count, Function *loopBody);
-private:
-    static void *Worker(void *p);
-private:
-    DISABLE_COPY_AND_ASSIGN(Threads);
-};
-
-
-template <typename F>
-FORCE_INLINE void Threads::ParallelFor(const int count, const F loopBody) {
-    RunThreads();
-
-    const int run = Max(Min(64, count / (mThreadCount * 32)), 1);
-
-    if (run == 1) {
-        Fun p([&loopBody](const int index, ThreadMemory &memory) {
-            loopBody(index, memory);
-
-            memory.ResetTaskMemory();
-        });
-
-        Run(count, &p);
-    } else {
-        const int iterationCount = (count / run) + Min(count % run, 1);
-
-        Fun p([run, count, &loopBody](const int index, ThreadMemory &memory) {
-            const int idx = run * index;
-            const int maxidx = Min(count, idx + run);
-
-            for (int i = idx; i < maxidx; i++) {
-                loopBody(i, memory);
+            void p(int index, ThreadMemory memory)
+            {
+                loopBody.Invoke(index, memory);
 
                 memory.ResetTaskMemory();
             }
-        });
 
-        Run(iterationCount, &p);
+            Run(count, p);
+        }
+        else
+        {
+            int iterationCount = (count / run) + Min(count % run, 1);
+
+            void p(int index, ThreadMemory memory)
+            {
+                int idx = run * index;
+                int maxidx = Min(count, idx + run);
+
+                for (int i = idx; i < maxidx; i++)
+                {
+                    loopBody.Invoke(i, memory);
+
+                    memory.ResetTaskMemory();
+                }
+            }
+
+            Run(iterationCount, p);
+        }
     }
-}
 
 
-FORCE_INLINE void *Threads::MallocMain(const int size) {
-    return mMainMemory.FrameMalloc(size);
-}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public partial void* MallocMain(int size)
+    {
+        return mMainMemory.FrameMalloc(size);
+    }
 
 
-template <typename T>
-FORCE_INLINE T *Threads::MallocMain() {
-    return mMainMemory.FrameMalloc<T>();
-}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public partial T* MallocMain<T>() where T : unmanaged
+    {
+        return mMainMemory.FrameMalloc<T>();
+    }
 
 
-template <typename T, typename ...Args>
-FORCE_INLINE T *Threads::NewMain(Args&&... args) {
-    return new (MallocMain<T>()) T(std::forward<Args>(args)...);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public partial T* NewMain<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>
+    {
+        T* instance = MallocMain<T>();
+        T.Construct(ref *instance, args);
+        return instance;
+    }
+
 }

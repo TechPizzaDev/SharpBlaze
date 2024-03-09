@@ -1,6 +1,8 @@
-﻿namespace SharpBlaze;
+﻿using System;
 
-public interface ITileDescriptor
+namespace SharpBlaze;
+
+public unsafe interface ITileDescriptor
 {
     /**
      * Tile width in pixels.
@@ -11,6 +13,8 @@ public interface ITileDescriptor
      * Tile height in pixels.
      */
     static abstract int TileH { get; }
+
+    static abstract ReadOnlySpan<int> ZeroCovers { get; }
 
     /**
      * Tile width in 24.8 fixed point format.
@@ -65,7 +69,9 @@ public interface ITileDescriptor
      */
     static abstract F24Dot8 TileRowIndexToF24Dot8(TileIndex y);
 
-    static abstract unsafe void FillStartCovers(int* p, int value);
+    static abstract bool CoverArrayContainsOnlyZeroes(int* t);
+    
+    static abstract void FillStartCovers(int* p, int value);
 
-    static abstract unsafe void AccumulateStartCovers(int* p, int value);
+    static abstract void AccumulateStartCovers(int* p, int value);
 }

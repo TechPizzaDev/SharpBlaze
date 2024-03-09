@@ -1,79 +1,90 @@
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
-#pragma once
-
-
-#include "ThreadMemory.h"
-#include "Utils.h"
+namespace SharpBlaze;
 
 
-template <typename T>
-struct RowItemList final {
-    RowItemList() {
+public unsafe partial struct RowItemList<T>
+    where T : unmanaged
+{
+    public RowItemList()
+    {
     }
 
 
-    struct Block final {
-        Block() {
+    public struct Block : IConstructible<Block, int>
+    {
+        [InlineArray(ItemsPerBlock)]
+        public struct Array
+        {
+            private T _e0;
         }
 
-        static constexpr int ItemsPerBlock = 32;
+        public static void Construct(ref Block instance, in int args)
+        {
+            instance = new Block();
+        }
 
-        T Items[ItemsPerBlock];
-        Block *Previous = nullptr;
-        Block *Next = nullptr;
+        public Block()
+        {
+        }
+
+        public const int ItemsPerBlock = 32;
+
+        public Array Items;
+        public Block* Previous = null;
+        public Block* Next = null;
 
         // Always start with one. Blocks never sit allocated, but without
         // items.
-        int Count = 1;
-    private:
-        DISABLE_COPY_AND_ASSIGN(Block);
+        public int Count = 1;
     };
 
-    Block *First = nullptr;
+    public Block* First = null;
 
     // While inserting, new items are added to last block.
-    Block *Last = nullptr;
-
-    template <typename ...Args>
-    void Append(ThreadMemory &memory, Args&&... args);
-
-private:
-    DISABLE_COPY_AND_ASSIGN(RowItemList);
-};
+    public Block* Last = null;
 
 
-template <typename T>
-template <typename ...Args>
-FORCE_INLINE void RowItemList<T>::Append(ThreadMemory &memory, Args&&... args) {
-    if (Last == nullptr) {
-        // Adding first item.
-        Block *b = memory.FrameNew<Block>();
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Append(ThreadMemory memory, in T value)
+    {
+        if (Last == null)
+        {
+            // Adding first item.
+            Block* b = memory.FrameNew<Block, int>(0);
 
-        ASSERT(First == nullptr);
+            Debug.Assert(First == null);
 
-        new (b->Items) T(std::forward<Args>(args)...);
+            b->Items[0] = value;
 
-        First = b;
-        Last = b;
-    } else {
-        // Inserting n-th item.
-        Block *current = Last;
-        const int count = current->Count;
-
-        if (count < Block::ItemsPerBlock) {
-            new (current->Items + count) T(std::forward<Args>(args)...);
-
-            current->Count = count + 1;
-        } else {
-            Block *b = memory.FrameNew<Block>();
-
-            new (b->Items) T(std::forward<Args>(args)...);
-
-            // Insert to doubly-linked list.
-            current->Next = b;
-            b->Previous = current;
-
+            First = b;
             Last = b;
+        }
+        else
+        {
+            // Inserting n-th item.
+            Block* current = Last;
+            int count = current->Count;
+
+            if (count < Block.ItemsPerBlock)
+            {
+                current->Items[count] = value;
+
+                current->Count = count + 1;
+            }
+            else
+            {
+                Block* b = memory.FrameNew<Block, int>(0);
+
+                b->Items[0] = value;
+
+                // Insert to doubly-linked list.
+                current->Next = b;
+                b->Previous = current;
+
+                Last = b;
+            }
         }
     }
 }
