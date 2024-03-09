@@ -1,25 +1,19 @@
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
-#pragma once
+namespace SharpBlaze;
 
-
-#include <new>
-#include "Utils.h"
-
-
-class BumpAllocator final {
-public:
-    BumpAllocator() {
+public unsafe partial class BumpAllocator
+{
+    public BumpAllocator()
+    {
     }
-public:
-   ~BumpAllocator();
-public:
 
     /**
      * Allocates memory for one element of type T. Does not zero-fill
      * allocated memory and does not call any constructors.
      */
-    template <typename T>
-    T *Malloc();
+    public partial T* Malloc<T>() where T : unmanaged;
 
 
     /**
@@ -29,8 +23,7 @@ public:
      *
      * @param count A number of pointers to allocate. Must be at least 1.
      */
-    template <typename T>
-    T **MallocPointers(const int count);
+    public partial T** MallocPointers<T>(int count) where T : unmanaged;
 
 
     /**
@@ -40,8 +33,7 @@ public:
      *
      * @param count A number of pointers to allocate. Must be at least 1.
      */
-    template <typename T>
-    T **MallocPointersZeroFill(const int count);
+    public partial T** MallocPointersZeroFill<T>(int count) where T : unmanaged;
 
 
     /**
@@ -50,8 +42,7 @@ public:
      *
      * @param count A number of pointers to allocate. Must be at least 1.
      */
-    template <typename T>
-    T *MallocArray(const int count);
+    public partial T* MallocArray<T>(int count) where T : unmanaged;
 
 
     /**
@@ -60,16 +51,14 @@ public:
      *
      * @param count A number of pointers to allocate. Must be at least 1.
      */
-    template <typename T>
-    T *MallocArrayZeroFill(const int count);
+    public partial T* MallocArrayZeroFill<T>(int count) where T : unmanaged;
 
 
     /**
      * Allocates memory for one element of type T and calls constructor with
      * given parameters. Returns fully constructed object of type T.
      */
-    template <typename T, typename ...Args>
-    T *New(Args&&... args);
+    public partial T* New<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>;
 
 
     /**
@@ -77,128 +66,131 @@ public:
      *
      * @param size A number of bytes to allocate. Must be at least 1.
      */
-    void *Malloc(const int size);
+    public partial void* Malloc(int size);
 
 
     /**
      * Resets this allocator to the initial state.
      */
-    void Free();
-
-private:
+    public partial void Free();
 
     /**
      * Represents a single block of raw memory in a linked list. One such
      * block manages relatively large amount of memory.
      */
-    struct Block final {
+    private struct Block
+    {
         // Entire arena.
-        uint8 *Bytes = nullptr;
+        public byte* Bytes;
 
         // Next block in all block list.
-        Block *Next = nullptr;
+        public Block* Next;
 
-        int Position = 0;
-        int BlockSize = 0;
-    };
+        public int Position;
+        public int BlockSize;
+    }
 
-    Block *mMasterActiveList = nullptr;
-    Block *mMasterFreeList = nullptr;
+    Block* mMasterActiveList = null;
+    Block* mMasterFreeList = null;
 
-private:
-    void *MallocFromNewBlock(const int size);
-private:
 
-    static void FreeBlockChain(Block *block);
+    private partial void* MallocFromNewBlock(int size);
+
+    private partial void FreeBlockChain(Block* block);
 
 
     /**
      * Returns allocation size rounded up so that the next allocation from the
      * same block will be aligned oto 16 byte boundary.
      */
-    static constexpr int RoundUpAllocationSizeForNextAllocation(const int size) {
-        ASSERT(size > 0);
+    private static int RoundUpAllocationSizeForNextAllocation(int size)
+    {
+        Debug.Assert(size > 0);
 
-        const int m = size + 15;
+        int m = size + 15;
 
         return m & ~15;
     }
 
-private:
-    DISABLE_COPY_AND_ASSIGN(BumpAllocator);
-};
 
 
-template <typename T>
-FORCE_INLINE T *BumpAllocator::Malloc() {
-    return static_cast<T *>(Malloc(SIZE_OF(T)));
-}
-
-
-template <typename T>
-FORCE_INLINE T **BumpAllocator::MallocPointers(const int count) {
-    ASSERT(count > 0);
-
-    return static_cast<T **>(Malloc(SIZE_OF(T *) * count));
-}
-
-
-template <typename T>
-FORCE_INLINE T **BumpAllocator::MallocPointersZeroFill(const int count) {
-    ASSERT(count > 0);
-
-    const int b = SIZE_OF(T *) * count;
-
-    T **p = static_cast<T **>(Malloc(b));
-
-    memset(p, 0, b);
-
-    return p;
-}
-
-
-template <typename T>
-FORCE_INLINE T *BumpAllocator::MallocArray(const int count) {
-    ASSERT(count > 0);
-
-    return static_cast<T *>(Malloc(SIZE_OF(T) * count));
-}
-
-
-template <typename T>
-FORCE_INLINE T *BumpAllocator::MallocArrayZeroFill(const int count) {
-    ASSERT(count > 0);
-
-    const int b = SIZE_OF(T) * count;
-
-    T *p = static_cast<T *>(Malloc(b));
-
-    memset(p, 0, b);
-
-    return p;
-}
-
-
-template <typename T, typename ...Args>
-FORCE_INLINE T *BumpAllocator::New(Args&&... args) {
-    return new (Malloc<T>()) T(std::forward<Args>(args)...);
-}
-
-
-FORCE_INLINE void *BumpAllocator::Malloc(const int size) {
-    Block *mal = mMasterActiveList;
-
-    if (LIKELY(mal != nullptr)) {
-        const int remainingSize = mal->BlockSize - mal->Position;
-
-        if (LIKELY(remainingSize >= size)) {
-            void *p = mal->Bytes + mal->Position;
-
-            mal->Position += RoundUpAllocationSizeForNextAllocation(size);
-
-            return p;
-        }
+    public partial T* Malloc<T>() where T : unmanaged
+    {
+        return (T*) (Malloc(sizeof(T)));
     }
 
-    return MallocFromNewBlock(size);
+
+    public partial T** MallocPointers<T>(int count) where T : unmanaged
+    {
+        Debug.Assert(count > 0);
+
+        return (T**) (Malloc(sizeof(T*) * count));
+    }
+
+
+    public partial T** MallocPointersZeroFill<T>(int count) where T : unmanaged
+    {
+        Debug.Assert(count > 0);
+
+        int b = sizeof(T*) * count;
+
+        T** p = (T**) (Malloc(b));
+
+        NativeMemory.Clear(p, (nuint) b);
+
+        return p;
+    }
+
+
+    public partial T* MallocArray<T>(int count) where T : unmanaged
+    {
+        Debug.Assert(count > 0);
+
+        return (T*) (Malloc(sizeof(T) * count));
+    }
+
+
+    public partial T* MallocArrayZeroFill<T>(int count) where T : unmanaged
+    {
+        Debug.Assert(count > 0);
+
+        int b = sizeof(T) * count;
+
+        T* p = (T*) (Malloc(b));
+
+        NativeMemory.Clear(p, (nuint) b);
+
+        return p;
+    }
+
+
+    public partial T* New<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>
+    {
+        T* instance = Malloc<T>();
+        T.Construct(ref *instance, args);
+        return instance;
+    }
+
+
+    public partial void* Malloc(int size)
+    {
+        Block* mal = mMasterActiveList;
+
+        if (mal != null)
+        {
+            int remainingSize = mal->BlockSize - mal->Position;
+
+            if (remainingSize >= size)
+            {
+                void* p = mal->Bytes + mal->Position;
+
+                mal->Position += RoundUpAllocationSizeForNextAllocation(size);
+
+                return p;
+            }
+        }
+
+        return MallocFromNewBlock(size);
+    }
+
 }

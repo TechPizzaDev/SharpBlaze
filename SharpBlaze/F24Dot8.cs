@@ -28,7 +28,7 @@ public struct F24Dot8
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 DoubleToF24Dot8(double v)
     {
-        return (F24Dot8) Utils.Round(v * 256.0);
+        return (F24Dot8) (int) Utils.Round(v * 256.0);
     }
 
 
@@ -42,13 +42,11 @@ public struct F24Dot8
         return (v + mask) ^ mask;
     }
 
-    public static implicit operator int(F24Dot8 value)
-    {
-        return value._value;
-    }
+    public static implicit operator int(F24Dot8 value) => value._value;
 
-    public static implicit operator F24Dot8(int value)
-    {
-        return new F24Dot8() { _value = value };
-    }
+    public static implicit operator uint(F24Dot8 value) => (uint) value._value;
+
+    public static implicit operator F24Dot8(int value) => new F24Dot8() { _value = value };
+
+    public static implicit operator F24Dot8(uint value) => new F24Dot8() { _value = (int) value };
 }

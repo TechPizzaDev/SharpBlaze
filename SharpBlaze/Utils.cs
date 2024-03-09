@@ -7,9 +7,9 @@ namespace SharpBlaze;
 
 public static class Utils
 {
-    const float FLT_EPSILON = 1.1920929e-07F;
+    internal const float FLT_EPSILON = 1.1920929e-07F;
 
-    const double DBL_EPSILON = 2.2204460492503131e-16;
+    internal const double DBL_EPSILON = 2.2204460492503131e-16;
 
     public static int BIT_SIZE_OF<T>() => Unsafe.SizeOf<T>() << 3;
 

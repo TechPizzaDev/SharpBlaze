@@ -1,135 +1,132 @@
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
-#pragma once
+namespace SharpBlaze;
 
-
-#include "LineArrayTiled.h"
-#include "LineArrayX16Y16.h"
-#include "LineArrayX32Y16.h"
-#include <new>
-#include "Utils.h"
-
-
-class LineBlockAllocator final {
-public:
-
-    LineBlockAllocator() {
+public unsafe partial class LineBlockAllocator
+{
+    public LineBlockAllocator()
+    {
     }
-
-
-   ~LineBlockAllocator();
 
 
     /**
      * Returns new tiled line array block. Returned memory is not zero-filled.
      */
-    LineArrayTiledBlock *NewTiledBlock(LineArrayTiledBlock *next);
+    public partial LineArrayTiledBlock* NewTiledBlock(LineArrayTiledBlock* next);
 
 
     /**
      * Returns new narrow line array block. Returned memory is not
      * zero-filled.
      */
-    LineArrayX16Y16Block *NewX16Y16Block(LineArrayX16Y16Block *next);
+    public partial LineArrayX16Y16Block* NewX16Y16Block(LineArrayX16Y16Block* next);
 
 
     /**
      * Returns new wide line array block. Returned memory is not zero-filled.
      */
-    LineArrayX32Y16Block *NewX32Y16Block(LineArrayX32Y16Block *next);
+    public partial LineArrayX32Y16Block* NewX32Y16Block(LineArrayX32Y16Block* next);
 
 
     /**
      * Resets this allocator to initial state. Should be called
      * after frame ends.
      */
-    void Clear();
-
-private:
+    public partial void Clear();
 
     // If these get bigger, there is probably too much wasted memory for most
     // input paths.
-    STATIC_ASSERT(SIZE_OF(LineArrayTiledBlock) <= 1024);
-    STATIC_ASSERT(SIZE_OF(LineArrayX16Y16Block) <= 1024);
-    STATIC_ASSERT(SIZE_OF(LineArrayX32Y16Block) <= 1024);
+    static LineBlockAllocator()
+    {
+        Debug.Assert(sizeof(LineArrayTiledBlock) <= 1024);
+        Debug.Assert(sizeof(LineArrayX16Y16Block) <= 1024);
+        Debug.Assert(sizeof(LineArrayX32Y16Block) <= 1024);
 
-    // Points to the current arena.
-    uint8 *mCurrent = nullptr;
-    uint8 *mEnd = nullptr;
-
-    struct Arena final {
-        // Each arena is 32 kilobytes.
-        static constexpr int Size = 1024 * 32;
-
-        union {
-            uint8 Memory[Size];
-
-            struct {
-                // Points to the next item in free list.
-                Arena *NextFree;
-
-                // Points to the next item in all block list.
-                Arena *NextAll;
-            } Links;
-        };
-    };
-
-    STATIC_ASSERT(SIZE_OF(Arena) == Arena::Size);
-    STATIC_ASSERT(SIZE_OF(Arena::Links) == (SIZE_OF(void *) * 2));
-
-    Arena *mAllArenas = nullptr;
-    Arena *mFreeArenas = nullptr;
-
-private:
-    template <typename T>
-    T *NewBlock(T *next);
-
-    template <typename T>
-    T *NewBlockFromNewArena(T *next);
-private:
-    void NewArena();
-private:
-    DISABLE_COPY_AND_ASSIGN(LineBlockAllocator);
-};
-
-
-FORCE_INLINE LineArrayTiledBlock *LineBlockAllocator::NewTiledBlock(LineArrayTiledBlock *next) {
-    return NewBlock<LineArrayTiledBlock>(next);
-}
-
-
-FORCE_INLINE LineArrayX16Y16Block *LineBlockAllocator::NewX16Y16Block(LineArrayX16Y16Block *next) {
-    return NewBlock<LineArrayX16Y16Block>(next);
-}
-
-
-FORCE_INLINE LineArrayX32Y16Block *LineBlockAllocator::NewX32Y16Block(LineArrayX32Y16Block *next) {
-    return NewBlock<LineArrayX32Y16Block>(next);
-}
-
-
-template <typename T>
-FORCE_INLINE T *LineBlockAllocator::NewBlock(T *next) {
-    uint8 *current = mCurrent;
-
-    if (LIKELY(current < mEnd)) {
-        T *b = reinterpret_cast<T *>(current);
-
-        mCurrent = reinterpret_cast<uint8 *>(b + 1);
-
-        return new (b) T(next);
+        Debug.Assert(sizeof(Arena) == Arena.Size);
+        Debug.Assert(sizeof(ArenaLinks) == (sizeof(void*) * 2));
     }
 
-    return NewBlockFromNewArena<T>(next);
-}
+    // Points to the current arena.
+    private byte* mCurrent = null;
+    private byte* mEnd = null;
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct Arena
+    {
+        // Each arena is 32 kilobytes.
+        public const int Size = 1024 * 32;
+
+        [FieldOffset(0)]
+        public fixed byte Memory[Size];
+
+        [FieldOffset(0)]
+        public ArenaLinks Links;
+    }
+
+    private struct ArenaLinks
+    {
+        // Points to the next item in free list.
+        public Arena* NextFree;
+
+        // Points to the next item in all block list.
+        public Arena* NextAll;
+    }
+
+    private Arena* mAllArenas = null;
+    private Arena* mFreeArenas = null;
+
+    private partial T* NewBlock<T>(T* next) where T : unmanaged, IConstructible<T, Pointer<T>>;
+
+    private partial T* NewBlockFromNewArena<T>(T* next) where T : unmanaged, IConstructible<T, Pointer<T>>;
+
+    private partial void NewArena();
 
 
-template <typename T>
-FORCE_INLINE T * LineBlockAllocator::NewBlockFromNewArena(T *next) {
-    NewArena();
+    public partial LineArrayTiledBlock* NewTiledBlock(LineArrayTiledBlock* next)
+    {
+        return NewBlock<LineArrayTiledBlock>(next);
+    }
 
-    T *b = reinterpret_cast<T *>(mCurrent);
 
-    mCurrent = reinterpret_cast<uint8 *>(b + 1);
+    public partial LineArrayX16Y16Block* NewX16Y16Block(LineArrayX16Y16Block* next)
+    {
+        return NewBlock<LineArrayX16Y16Block>(next);
+    }
 
-    return new (b) T(next);
+
+    public partial LineArrayX32Y16Block* NewX32Y16Block(LineArrayX32Y16Block* next)
+    {
+        return NewBlock<LineArrayX32Y16Block>(next);
+    }
+
+
+    private partial T* NewBlock<T>(T* next) where T : unmanaged, IConstructible<T, Pointer<T>>
+    {
+        byte* current = mCurrent;
+
+        if (current < mEnd)
+        {
+            T* b = (T*) (current);
+
+            mCurrent = (byte*) (b + 1);
+
+            T.Construct(ref *b, next);
+            return b;
+        }
+
+        return NewBlockFromNewArena(next);
+    }
+
+    private partial T* NewBlockFromNewArena<T>(T* next) where T : unmanaged, IConstructible<T, Pointer<T>>
+    {
+        NewArena();
+
+        T* b = (T*) (mCurrent);
+
+        mCurrent = (byte*) (b + 1);
+
+        T.Construct(ref *b, next);
+        return b;
+    }
 }

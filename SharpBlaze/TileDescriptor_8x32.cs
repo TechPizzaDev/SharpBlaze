@@ -7,19 +7,19 @@ namespace SharpBlaze;
 /**
  * Descriptor for linearization into 8×32 pixel tiles.
  */
-public struct TileDescriptor_8x32
+public struct TileDescriptor_8x32 : ITileDescriptor
 {
 
     /**
      * Tile width in pixels.
      */
-    public const int TileW = 8;
+    public static int TileW => 8;
 
 
     /**
      * Tile height in pixels.
      */
-    public const int TileH = 32;
+    public static int TileH => 32;
 
 
     /**

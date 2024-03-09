@@ -1,67 +1,68 @@
+using System;
+using System.Runtime.CompilerServices;
 
-#pragma once
-
-
-#include "F8Dot8.h"
-#include "F24Dot8.h"
+namespace SharpBlaze;
 
 
-class ThreadMemory;
-
-
-struct LineArrayX16Y16Block final {
-    constexpr explicit LineArrayX16Y16Block(LineArrayX16Y16Block *next)
-    :   Next(next)
+public unsafe partial struct LineArrayX16Y16Block : IConstructible<LineArrayX16Y16Block, Pointer<LineArrayX16Y16Block>>
+{
+    [InlineArray(LinesPerBlock)]
+    public struct Array
     {
+        private F8Dot8x2 _e0;
+    }
+    
+    public static void Construct(ref LineArrayX16Y16Block instance, in Pointer<LineArrayX16Y16Block> args)
+    {
+        instance = new LineArrayX16Y16Block(args.Value);
+    }
+
+    public LineArrayX16Y16Block(LineArrayX16Y16Block* next)
+    {
+        Next = next;
     }
 
 
-    static constexpr int LinesPerBlock = 32;
+    public const int LinesPerBlock = 32;
 
 
     // Y0 and Y1 encoded as two 8.8 fixed point numbers packed into one 32 bit
     // integer.
-    F8Dot8x2 Y0Y1[LinesPerBlock];
-    F8Dot8x2 X0X1[LinesPerBlock];
+    public Array Y0Y1;
+    public Array X0X1;
 
     // Pointer to the next block of lines in the same row.
-    LineArrayX16Y16Block *Next = nullptr;
-private:
-    LineArrayX16Y16Block() = delete;
-private:
-    DISABLE_COPY_AND_ASSIGN(LineArrayX16Y16Block);
+    public LineArrayX16Y16Block* Next;
+
+    [Obsolete]
+    public LineArrayX16Y16Block() { }
 };
 
 
-struct LineArrayX16Y16 final {
-    LineArrayX16Y16() {
+public unsafe partial struct LineArrayX16Y16
+{
+    public LineArrayX16Y16()
+    {
     }
 
-public:
+    public static partial void Construct(LineArrayX16Y16* placement,
+        TileIndex rowCount, TileIndex columnCount,
+        ThreadMemory memory);
 
-    static void Construct(LineArrayX16Y16 *placement,
-        const TileIndex rowCount, const TileIndex columnCount,
-        ThreadMemory &memory);
+    public partial LineArrayX16Y16Block* GetFrontBlock();
+    public partial int GetFrontBlockLineCount();
 
-    LineArrayX16Y16Block *GetFrontBlock() const;
-    int GetFrontBlockLineCount() const;
+    public partial void AppendVerticalLine(ThreadMemory memory, F24Dot8 x, F24Dot8 y0, F24Dot8 y1);
+    public partial void AppendLineDownR_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
+    public partial void AppendLineUpR_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
+    public partial void AppendLineDownL_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
+    public partial void AppendLineUpL_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
+    public partial void AppendLineDownRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
+    public partial void AppendLineUpRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
 
-public:
+    private partial void AppendLine(ThreadMemory memory, F8Dot8x2 y0y1, F8Dot8x2 x0x1);
+    private partial void AppendLine(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
 
-    void AppendVerticalLine(ThreadMemory &memory, const F24Dot8 x, const F24Dot8 y0, const F24Dot8 y1);
-    void AppendLineDownR_V(ThreadMemory &memory, const F24Dot8 x0, const F24Dot8 y0, const F24Dot8 x1, const F24Dot8 y1);
-    void AppendLineUpR_V(ThreadMemory &memory, const F24Dot8 x0, const F24Dot8 y0, const F24Dot8 x1, const F24Dot8 y1);
-    void AppendLineDownL_V(ThreadMemory &memory, const F24Dot8 x0, const F24Dot8 y0, const F24Dot8 x1, const F24Dot8 y1);
-    void AppendLineUpL_V(ThreadMemory &memory, const F24Dot8 x0, const F24Dot8 y0, const F24Dot8 x1, const F24Dot8 y1);
-    void AppendLineDownRL(ThreadMemory &memory, const F24Dot8 x0, const F24Dot8 y0, const F24Dot8 x1, const F24Dot8 y1);
-    void AppendLineUpRL(ThreadMemory &memory, const F24Dot8 x0, const F24Dot8 y0, const F24Dot8 x1, const F24Dot8 y1);
-
-private:
-    void AppendLine(ThreadMemory &memory, const F8Dot8x2 y0y1, const F8Dot8x2 x0x1);
-    void AppendLine(ThreadMemory &memory, const F24Dot8 x0, const F24Dot8 y0, const F24Dot8 x1, const F24Dot8 y1);
-private:
-    LineArrayX16Y16Block *mCurrent = nullptr;
-    int mCount = LineArrayX16Y16Block::LinesPerBlock;
-private:
-    DISABLE_COPY_AND_ASSIGN(LineArrayX16Y16);
+    private LineArrayX16Y16Block* mCurrent = null;
+    private int mCount = LineArrayX16Y16Block.LinesPerBlock;
 };

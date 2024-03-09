@@ -1,62 +1,71 @@
+using System.Runtime.InteropServices;
 
-#include "LineBlockAllocator.h"
+namespace SharpBlaze;
 
-
-LineBlockAllocator::~LineBlockAllocator()
+public unsafe partial class LineBlockAllocator
 {
-    Arena *p = mAllArenas;
+    ~LineBlockAllocator()
+    {
+        Arena* p = mAllArenas;
 
-    while (p != nullptr) {
-        Arena *next = p->Links.NextAll;
+        while (p != null)
+        {
+            Arena* next = p->Links.NextAll;
 
-        free(p);
+            NativeMemory.Free(p);
 
-        p = next;
-    }
-}
-
-
-void LineBlockAllocator::Clear()
-{
-    Arena *l = nullptr;
-
-    Arena *p = mAllArenas;
-
-    while (p != nullptr) {
-        Arena *next = p->Links.NextAll;
-
-        p->Links.NextFree = l;
-
-        l = p;
-
-        p = next;
+            p = next;
+        }
     }
 
-    mCurrent = nullptr;
-    mEnd = nullptr;
-    mFreeArenas = l;
-}
 
+    public partial void Clear()
+    {
+        Arena* l = null;
 
-void LineBlockAllocator::NewArena()
-{
-    Arena *p = mFreeArenas;
+        Arena* p = mAllArenas;
 
-    if (p != nullptr) {
-        mFreeArenas = p->Links.NextFree;
-    } else {
-        p = static_cast<Arena *>(malloc(SIZE_OF(Arena)));
+        while (p != null)
+        {
+            Arena* next = p->Links.NextAll;
 
-        p->Links.NextAll = mAllArenas;
+            p->Links.NextFree = l;
 
-        mAllArenas = p;
+            l = p;
+
+            p = next;
+        }
+
+        mCurrent = null;
+        mEnd = null;
+        mFreeArenas = l;
     }
 
-    p->Links.NextFree = nullptr;
 
-    mCurrent = p->Memory + SIZE_OF(Arena::Links);
-    mEnd = p->Memory + Arena::Size -
-        Max3(SIZE_OF(LineArrayX32Y16Block),
-             SIZE_OF(LineArrayX16Y16Block),
-             SIZE_OF(LineArrayTiledBlock));
+    private partial void NewArena()
+    {
+        Arena* p = mFreeArenas;
+
+        if (p != null)
+        {
+            mFreeArenas = p->Links.NextFree;
+        }
+        else
+        {
+            p = (Arena*) (NativeMemory.Alloc((nuint) sizeof(Arena)));
+
+            p->Links.NextAll = mAllArenas;
+
+            mAllArenas = p;
+        }
+
+        p->Links.NextFree = null;
+
+        mCurrent = p->Memory + sizeof(ArenaLinks);
+        mEnd = p->Memory + Arena.Size -
+            Utils.Max3(
+                sizeof(LineArrayX32Y16Block),
+                sizeof(LineArrayX16Y16Block),
+                sizeof(LineArrayTiledBlock));
+    }
 }

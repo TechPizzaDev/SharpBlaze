@@ -1,57 +1,72 @@
+using System.Diagnostics;
 
-#pragma once
-
-
-#include "Utils.h"
-#include "F24Dot8.h"
+namespace SharpBlaze;
 
 
 /**
  * 8.8 fixed point number.
  */
-using F8Dot8 = int16;
+public partial struct F8Dot8
+{
+    private short _value;
 
-using F8Dot8x2 = uint32;
-using F8Dot8x4 = uint64;
+    public static implicit operator short(F8Dot8 value) => value._value;
 
+    public static implicit operator F8Dot8(short value) => new() { _value = value };
+}
 
-STATIC_ASSERT(SIZE_OF(F8Dot8) == 2);
-STATIC_ASSERT(SIZE_OF(F8Dot8x2) == 4);
-STATIC_ASSERT(SIZE_OF(F8Dot8x4) == 8);
+public struct F8Dot8x2
+{
+    private uint _value;
 
+    public static implicit operator uint(F8Dot8x2 value) => value._value;
 
-static constexpr F8Dot8x2 PackF24Dot8ToF8Dot8x2(const F24Dot8 a, const F24Dot8 b) {
-    STATIC_ASSERT(SIZE_OF(F24Dot8) == 4);
+    public static implicit operator F8Dot8x2(uint value) => new() { _value = value };
+}
 
-    // Values must be small enough.
-    ASSERT((a & 0xffff0000) == 0);
-    ASSERT((b & 0xffff0000) == 0);
+public struct F8Dot8x4
+{
+    private ulong _value;
 
-    return F8Dot8x2(a) | (F8Dot8x2(b) << 16);
+    public static implicit operator ulong(F8Dot8x4 value) => value._value;
+
+    public static implicit operator F8Dot8x4(ulong value) => new() { _value = value };
 }
 
 
-static constexpr F8Dot8x4 PackF24Dot8ToF8Dot8x4(const F24Dot8 a, const F24Dot8 b, const F24Dot8 c, const F24Dot8 d) {
-    STATIC_ASSERT(SIZE_OF(F24Dot8) == 4);
+public partial struct F8Dot8
+{
+    public static F8Dot8x2 PackF24Dot8ToF8Dot8x2(F24Dot8 a, F24Dot8 b)
+    {
+        // Values must be small enough.
+        Debug.Assert((a & 0xffff0000) == 0);
+        Debug.Assert((b & 0xffff0000) == 0);
 
-    // Values must be small enough.
-    ASSERT((a & 0xffff0000) == 0);
-    ASSERT((b & 0xffff0000) == 0);
-    ASSERT((c & 0xffff0000) == 0);
-    ASSERT((d & 0xffff0000) == 0);
-
-    return F8Dot8x4(a) | (F8Dot8x4(b) << 16) |
-        (F8Dot8x4(c) << 32) | (F8Dot8x4(d) << 48);
-}
+        return (F8Dot8x2) (uint) (a) | ((F8Dot8x2) (uint) (b) << 16);
+    }
 
 
-static constexpr F24Dot8 UnpackLoFromF8Dot8x2(const F8Dot8x2 a) {
-    return F24Dot8(a & 0xffff);
-}
+    public static F8Dot8x4 PackF24Dot8ToF8Dot8x4(F24Dot8 a, F24Dot8 b, F24Dot8 c, F24Dot8 d)
+    {
+        // Values must be small enough.
+        Debug.Assert((a & 0xffff0000) == 0);
+        Debug.Assert((b & 0xffff0000) == 0);
+        Debug.Assert((c & 0xffff0000) == 0);
+        Debug.Assert((d & 0xffff0000) == 0);
+
+        return (F8Dot8x4) (uint) (a) | ((F8Dot8x4) (uint) (b) << 16) |
+            ((F8Dot8x4) (uint) (c) << 32) | ((F8Dot8x4) (uint) (d) << 48);
+    }
 
 
-static constexpr F24Dot8 UnpackHiFromF8Dot8x2(const F8Dot8x2 a) {
-    STATIC_ASSERT_UNSIGNED_TYPE(F8Dot8x2);
+    public static F24Dot8 UnpackLoFromF8Dot8x2(F8Dot8x2 a)
+    {
+        return (F24Dot8) (a & 0xffff);
+    }
 
-    return F24Dot8(a >> 16);
+
+    public static F24Dot8 UnpackHiFromF8Dot8x2(F8Dot8x2 a)
+    {
+        return (F24Dot8) (a >> 16);
+    }
 }

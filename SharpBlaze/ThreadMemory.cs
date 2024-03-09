@@ -1,10 +1,5 @@
 
-#pragma once
-
-
-#include "BumpAllocator.h"
-#include "LineBlockAllocator.h"
-
+namespace SharpBlaze;
 
 /**
  * Maintains per-thread memory.
@@ -38,15 +33,15 @@
  * The system automatically releases both frame and task
  * memory at appropriate times.
  */
-class ThreadMemory final {
-public:
+public unsafe partial class ThreadMemory
+{
 
-    ThreadMemory() {
+    public ThreadMemory()
+    {
     }
 
-public:
 
-    void *TaskMalloc(const int size);
+    public partial void* TaskMalloc(int size);
 
 
     /**
@@ -55,8 +50,7 @@ public:
      *
      * This method allocates from frame memory.
      */
-    template <typename T>
-    T *TaskMalloc();
+    public partial T* TaskMalloc<T>() where T : unmanaged;
 
 
     /**
@@ -65,8 +59,7 @@ public:
       *
       * This method allocates from frame memory.
       */
-    template <typename T>
-    T *FrameMalloc();
+    public partial T* FrameMalloc<T>() where T : unmanaged;
 
 
     /**
@@ -78,8 +71,7 @@ public:
      *
      * @param count A number of pointers to allocate. Must be at least 1.
      */
-    template <typename T>
-    T **TaskMallocPointers(const int count);
+    public partial T** TaskMallocPointers<T>(int count) where T : unmanaged;
 
 
     /**
@@ -91,8 +83,7 @@ public:
      *
      * @param count A number of pointers to allocate. Must be at least 1.
      */
-    template <typename T>
-    T **FrameMallocPointers(const int count);
+    public partial T** FrameMallocPointers<T>(int count) where T : unmanaged;
 
 
     /**
@@ -104,8 +95,7 @@ public:
      *
      * @param count A number of pointers to allocate. Must be at least 1.
      */
-    template <typename T>
-    T **FrameMallocPointersZeroFill(const int count);
+    public partial T** FrameMallocPointersZeroFill<T>(int count) where T : unmanaged;
 
 
     /**
@@ -116,8 +106,7 @@ public:
      *
      * @param count A number of pointers to allocate. Must be at least 1.
      */
-    template <typename T>
-    T *FrameMallocArray(const int count);
+    public partial T* FrameMallocArray<T>(int count) where T : unmanaged;
 
 
     /**
@@ -128,8 +117,7 @@ public:
      *
      * @param count A number of elements to allocate. Must be at least 1.
      */
-    template <typename T>
-    T *TaskMallocArrayZeroFill(const int count);
+    public partial T* TaskMallocArrayZeroFill<T>(int count) where T : unmanaged;
 
 
     /**
@@ -140,8 +128,7 @@ public:
      *
      * @param count A number of pointers to allocate. Must be at least 1.
      */
-    template <typename T>
-    T *FrameMallocArrayZeroFill(const int count);
+    public partial T* FrameMallocArrayZeroFill<T>(int count) where T : unmanaged;
 
 
     /**
@@ -150,8 +137,7 @@ public:
      *
      * This method allocates from task memory.
      */
-    template <typename T, typename ...Args>
-    T *TaskNew(Args&&... args);
+    public partial T* TaskNew<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>;
 
 
     /**
@@ -160,8 +146,7 @@ public:
      *
      * This method allocates from frame memory.
      */
-    template <typename T, typename ...Args>
-    T *FrameNew(Args&&... args);
+    public partial T* FrameNew<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>;
 
 
     /**
@@ -171,7 +156,7 @@ public:
      *
      * @param size A number of bytes to allocate. Must be at least 1.
      */
-    void *FrameMalloc(const int size);
+    public partial void* FrameMalloc(int size);
 
 
     /**
@@ -179,7 +164,7 @@ public:
      *
      * Line blocks are always allocated from frame memory.
      */
-    LineArrayTiledBlock *FrameNewTiledBlock(LineArrayTiledBlock *next);
+    public partial LineArrayTiledBlock* FrameNewTiledBlock(LineArrayTiledBlock* next);
 
 
     /**
@@ -188,7 +173,7 @@ public:
      *
      * Line blocks are always allocated from frame memory.
      */
-    LineArrayX16Y16Block *FrameNewX16Y16Block(LineArrayX16Y16Block *next);
+    public partial LineArrayX16Y16Block* FrameNewX16Y16Block(LineArrayX16Y16Block* next);
 
 
     /**
@@ -197,7 +182,7 @@ public:
      *
      * Line blocks are always allocated from frame memory.
      */
-    LineArrayX32Y16Block *FrameNewX32Y16Block(LineArrayX32Y16Block *next);
+    public partial LineArrayX32Y16Block* FrameNewX32Y16Block(LineArrayX32Y16Block* next);
 
 
     /**
@@ -205,7 +190,7 @@ public:
      * by thread this memory belongs to will become invalid once
      * this method returns.
      */
-    void ResetFrameMemory();
+    public partial void ResetFrameMemory();
 
 
     /**
@@ -217,108 +202,117 @@ public:
      * which manages execution of tasks, but task can call it as
      * well.
      */
-    void ResetTaskMemory();
+    public partial void ResetTaskMemory();
 
-private:
-    LineBlockAllocator mFrameLineBlockAllocator;
-    BumpAllocator mFrameAllocator;
-    BumpAllocator mTaskAllocator;
-private:
-    DISABLE_COPY_AND_ASSIGN(ThreadMemory);
-};
+    private LineBlockAllocator mFrameLineBlockAllocator;
+    private BumpAllocator mFrameAllocator;
+    private BumpAllocator mTaskAllocator;
 
 
-FORCE_INLINE void *ThreadMemory::TaskMalloc(const int size) {
-    return mTaskAllocator.Malloc(size);
-}
+    public partial void* TaskMalloc(int size)
+    {
+        return mTaskAllocator.Malloc(size);
+    }
 
 
-template <typename T>
-FORCE_INLINE T *ThreadMemory::TaskMalloc() {
-    return mTaskAllocator.Malloc<T>();
-}
+    public partial T* TaskMalloc<T>() where T : unmanaged
+    {
+        return mTaskAllocator.Malloc<T>();
+    }
 
 
-template <typename T>
-FORCE_INLINE T *ThreadMemory::FrameMalloc() {
-    return mFrameAllocator.Malloc<T>();
-}
+    public partial T* FrameMalloc<T>() where T : unmanaged
+    {
+        return mFrameAllocator.Malloc<T>();
+    }
 
 
-template <typename T>
-FORCE_INLINE T **ThreadMemory::TaskMallocPointers(const int count) {
-    return mTaskAllocator.MallocPointers<T>(count);
-}
+    public partial T** TaskMallocPointers<T>(int count) where T : unmanaged
+    {
+        return mTaskAllocator.MallocPointers<T>(count);
+    }
 
 
-template <typename T>
-FORCE_INLINE T **ThreadMemory::FrameMallocPointers(const int count) {
-    return mFrameAllocator.MallocPointers<T>(count);
-}
+    public partial T** FrameMallocPointers<T>(int count) where T : unmanaged
+    {
+        return mFrameAllocator.MallocPointers<T>(count);
+    }
 
 
-template <typename T>
-FORCE_INLINE T **ThreadMemory::FrameMallocPointersZeroFill(const int count) {
-    return mFrameAllocator.MallocPointersZeroFill<T>(count);
-}
+    public partial T** FrameMallocPointersZeroFill<T>(int count) where T : unmanaged
+    {
+        return mFrameAllocator.MallocPointersZeroFill<T>(count);
+    }
 
 
-template <typename T>
-FORCE_INLINE T *ThreadMemory::FrameMallocArray(const int count) {
-    return mFrameAllocator.MallocArray<T>(count);
-}
+    public partial T* FrameMallocArray<T>(int count) where T : unmanaged
+    {
+        return mFrameAllocator.MallocArray<T>(count);
+    }
 
 
-template <typename T>
-FORCE_INLINE T *ThreadMemory::TaskMallocArrayZeroFill(const int count) {
-    return mTaskAllocator.MallocArrayZeroFill<T>(count);
-}
+    public partial T* TaskMallocArrayZeroFill<T>(int count) where T : unmanaged
+    {
+        return mTaskAllocator.MallocArrayZeroFill<T>(count);
+    }
 
 
-template <typename T>
-FORCE_INLINE T *ThreadMemory::FrameMallocArrayZeroFill(const int count) {
-    return mFrameAllocator.MallocArrayZeroFill<T>(count);
-}
+    public partial T* FrameMallocArrayZeroFill<T>(int count) where T : unmanaged
+    {
+        return mFrameAllocator.MallocArrayZeroFill<T>(count);
+    }
 
 
-template <typename T, typename ...Args>
-FORCE_INLINE T *ThreadMemory::TaskNew(Args&&... args) {
-    return new (TaskMalloc<T>()) T(std::forward<Args>(args)...);
-}
+    public partial T* TaskNew<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>
+    {
+        T* instance = TaskMalloc<T>();
+        T.Construct(ref *instance, args);
+        return instance;
+    }
 
 
-template <typename T, typename ...Args>
-FORCE_INLINE T *ThreadMemory::FrameNew(Args&&... args) {
-    return new (FrameMalloc<T>()) T(std::forward<Args>(args)...);
-}
+    public partial T* FrameNew<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>
+    {
+        T* instance = FrameMalloc<T>();
+        T.Construct(ref *instance, args);
+        return instance;
+    }
 
 
-FORCE_INLINE void *ThreadMemory::FrameMalloc(const int size) {
-    return mFrameAllocator.Malloc(size);
-}
+    public partial void* FrameMalloc(int size)
+    {
+        return mFrameAllocator.Malloc(size);
+    }
 
 
-FORCE_INLINE LineArrayTiledBlock *ThreadMemory::FrameNewTiledBlock(LineArrayTiledBlock *next) {
-    return mFrameLineBlockAllocator.NewTiledBlock(next);
-}
+    public partial LineArrayTiledBlock* FrameNewTiledBlock(LineArrayTiledBlock* next)
+    {
+        return mFrameLineBlockAllocator.NewTiledBlock(next);
+    }
 
 
-FORCE_INLINE LineArrayX16Y16Block *ThreadMemory::FrameNewX16Y16Block(LineArrayX16Y16Block *next) {
-    return mFrameLineBlockAllocator.NewX16Y16Block(next);
-}
+    public partial LineArrayX16Y16Block* FrameNewX16Y16Block(LineArrayX16Y16Block* next)
+    {
+        return mFrameLineBlockAllocator.NewX16Y16Block(next);
+    }
 
 
-FORCE_INLINE LineArrayX32Y16Block *ThreadMemory::FrameNewX32Y16Block(LineArrayX32Y16Block *next) {
-    return mFrameLineBlockAllocator.NewX32Y16Block(next);
-}
+    public partial LineArrayX32Y16Block* FrameNewX32Y16Block(LineArrayX32Y16Block* next)
+    {
+        return mFrameLineBlockAllocator.NewX32Y16Block(next);
+    }
 
 
-FORCE_INLINE void ThreadMemory::ResetFrameMemory() {
-    mFrameLineBlockAllocator.Clear();
-    mFrameAllocator.Free();
-}
+    public partial void ResetFrameMemory()
+    {
+        mFrameLineBlockAllocator.Clear();
+        mFrameAllocator.Free();
+    }
 
 
-FORCE_INLINE void ThreadMemory::ResetTaskMemory() {
-    mTaskAllocator.Free();
+    public partial void ResetTaskMemory()
+    {
+        mTaskAllocator.Free();
+    }
+
 }
