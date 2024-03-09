@@ -1,141 +1,128 @@
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
-#pragma once
-
-
-#include "VectorImage.h"
-#include "Geometry.h"
-#include "ImageData.h"
-#include "IntSize.h"
-#include "Linearizer.h"
-#include "Rasterizer.h"
-#include "Threads.h"
-#include "Utils.h"
+namespace SharpBlaze;
 
 
 /**
  * A helper class for managing an image to draw on.
  */
-template <typename T>
-class DestinationImage final {
-public:
-
-    DestinationImage() {
+public unsafe partial class DestinationImage<T>
+    where T : unmanaged, ITileDescriptor
+{
+    public DestinationImage()
+    {
     }
 
-   ~DestinationImage();
+    public partial IntSize UpdateSize(IntSize size);
 
-public:
+    public partial void ClearImage();
 
-    IntSize UpdateSize(const IntSize &size);
+    public partial void DrawImage(VectorImage image, in Matrix matrix);
 
-    void ClearImage();
+    public partial IntSize GetImageSize();
+    public partial int GetImageWidth();
+    public partial int GetImageHeight();
+    public partial byte* GetImageData();
+    public partial int GetBytesPerRow();
 
-    void DrawImage(const VectorImage &image, const Matrix &matrix);
-
-    IntSize GetImageSize() const;
-    int GetImageWidth() const;
-    int GetImageHeight() const;
-    uint8 *GetImageData() const;
-    int GetBytesPerRow() const;
-
-private:
-    uint8 *mImageData = nullptr;
-    IntSize mImageSize;
-    int mBytesPerRow = 0;
-    int mImageDataSize = 0;
-    Threads mThreads;
-private:
-    DISABLE_COPY_AND_ASSIGN(DestinationImage);
-};
+    private byte* mImageData = null;
+    private IntSize mImageSize;
+    private int mBytesPerRow = 0;
+    private int mImageDataSize = 0;
+    private Threads mThreads;
 
 
-template <typename T>
-FORCE_INLINE DestinationImage<T>::~DestinationImage() {
-    free(mImageData);
-}
-
-
-template <typename T>
-FORCE_INLINE IntSize DestinationImage<T>::UpdateSize(const IntSize &size) {
-    ASSERT(size.Width > 0);
-    ASSERT(size.Height > 0);
-
-    // Round-up width to tile width.
-    const TileIndex w = CalculateColumnCount<T>(size.Width) * T::TileW;
-
-    // Calculate how many bytes are required for the image.
-    const int bytes = w * 4 * size.Height;
-
-    if (mImageDataSize < bytes) {
-        static constexpr int ImageSizeRounding = 1024 * 32;
-        static constexpr int ImageSizeRoundingMask = ImageSizeRounding - 1;
-
-        const int m = bytes + ImageSizeRoundingMask;
-
-        const int bytesRounded = m & ~ImageSizeRoundingMask;
-
-        free(mImageData);
-
-        mImageData = static_cast<uint8 *>(malloc(bytesRounded));
-        mImageDataSize = bytesRounded;
+    ~DestinationImage()
+    {
+        NativeMemory.Free(mImageData);
     }
 
-    mImageSize.Width = w;
-    mImageSize.Height = size.Height;
-    mBytesPerRow = w * 4;
 
-    return mImageSize;
-}
+    public partial IntSize UpdateSize(IntSize size)
+    {
+        Debug.Assert(size.Width > 0);
+        Debug.Assert(size.Height > 0);
 
+        // Round-up width to tile width.
+        TileIndex w = Linearizer.CalculateColumnCount<T>(size.Width) * (TileIndex) T.TileW;
 
-template <typename T>
-FORCE_INLINE void DestinationImage<T>::ClearImage() {
-    memset(mImageData, 0, mImageSize.Width * 4 * mImageSize.Height);
-}
+        // Calculate how many bytes are required for the image.
+        int bytes = (int) w * 4 * size.Height;
 
+        if (mImageDataSize < bytes)
+        {
+            const int ImageSizeRounding = 1024 * 32;
+            const int ImageSizeRoundingMask = ImageSizeRounding - 1;
 
-template <typename T>
-FORCE_INLINE void DestinationImage<T>::DrawImage(const VectorImage &image, const Matrix &matrix) {
-    if (image.GetGeometryCount() < 1) {
-        return;
+            int m = bytes + ImageSizeRoundingMask;
+
+            int bytesRounded = m & ~ImageSizeRoundingMask;
+
+            NativeMemory.Free(mImageData);
+
+            mImageData = (byte*) (NativeMemory.Alloc((nuint) bytesRounded));
+            mImageDataSize = bytesRounded;
+        }
+
+        mImageSize.Width = (int) w;
+        mImageSize.Height = size.Height;
+        mBytesPerRow = (int) (w * 4);
+
+        return mImageSize;
     }
 
-    const ImageData d(mImageData, mImageSize.Width, mImageSize.Height,
-        mBytesPerRow);
 
-    Rasterize<T>(image.GetGeometries(), image.GetGeometryCount(), matrix,
-        mThreads, d);
-
-    // Free all the memory allocated by threads.
-    mThreads.ResetFrameMemory();
-}
+    public partial void ClearImage()
+    {
+        NativeMemory.Clear(mImageData, (nuint) (mImageSize.Width * 4 * mImageSize.Height));
+    }
 
 
-template <typename T>
-FORCE_INLINE IntSize DestinationImage<T>::GetImageSize() const {
-    return mImageSize;
-}
+    public partial void DrawImage(VectorImage image, in Matrix matrix)
+    {
+        if (image.GetGeometryCount() < 1)
+        {
+            return;
+        }
+
+        ImageData d = new(mImageData, mImageSize.Width, mImageSize.Height,
+           mBytesPerRow);
+
+        Rasterizer<T>.Rasterize(image.GetGeometries(), image.GetGeometryCount(), matrix,
+            mThreads, d);
+
+        // Free all the memory allocated by threads.
+        mThreads.ResetFrameMemory();
+    }
 
 
-template <typename T>
-FORCE_INLINE int DestinationImage<T>::GetImageWidth() const {
-    return mImageSize.Width;
-}
+    public partial IntSize GetImageSize()
+    {
+        return mImageSize;
+    }
 
 
-template <typename T>
-FORCE_INLINE int DestinationImage<T>::GetImageHeight() const {
-    return mImageSize.Height;
-}
+    public partial int GetImageWidth()
+    {
+        return mImageSize.Width;
+    }
 
 
-template <typename T>
-FORCE_INLINE uint8 *DestinationImage<T>::GetImageData() const {
-    return mImageData;
-}
+    public partial int GetImageHeight()
+    {
+        return mImageSize.Height;
+    }
 
 
-template <typename T>
-FORCE_INLINE int DestinationImage<T>::GetBytesPerRow() const {
-    return mBytesPerRow;
+    public partial byte* GetImageData()
+    {
+        return mImageData;
+    }
+
+
+    public partial int GetBytesPerRow()
+    {
+        return mBytesPerRow;
+    }
 }

@@ -1,211 +1,238 @@
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
-#include "VectorImage.h"
-#include <new>
+namespace SharpBlaze;
 
 
-struct BinaryReader final {
-    constexpr BinaryReader(const uint8 *binary, const uint64 length)
-    :   Bytes(binary),
-        End(binary + length)
+internal unsafe partial struct BinaryReader
+{
+    public BinaryReader(byte* binary, ulong length)
     {
+        Bytes = binary;
+        End = binary + length;
     }
 
-    const uint8 *Bytes = nullptr;
-    const uint8 *End = nullptr;
+    byte* Bytes;
+    readonly byte* End;
 
-    uint64 GetRemainingByteCount() const;
-    int8 ReadInt8();
-    uint8 ReadUInt8();
-    int32 ReadInt32();
-    uint32 ReadUInt32();
-    void ReadBinary(uint8 *d, const uint64 length);
-};
-
-
-FORCE_INLINE uint64 BinaryReader::GetRemainingByteCount() const {
-    return static_cast<uint64>(End - Bytes);
-}
+    public readonly partial ulong GetRemainingByteCount();
+    public partial sbyte ReadInt8();
+    public partial byte ReadUInt8();
+    public partial int ReadInt32();
+    public partial uint ReadUInt32();
+    public partial void ReadBinary(byte* d, ulong length);
 
 
-FORCE_INLINE uint32 BinaryReader::ReadUInt32() {
-    const uint64 r = static_cast<uint64>(End - Bytes);
-
-    if (r >= 4) {
-        const uint32 n = *reinterpret_cast<const uint32 *>(Bytes);
-
-        Bytes += 4;
-
-        return n;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly partial ulong GetRemainingByteCount()
+    {
+        return (ulong) (End - Bytes);
     }
 
-    return 0;
-}
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public partial uint ReadUInt32()
+    {
+        ulong r = (ulong) (End - Bytes);
 
-FORCE_INLINE int8 BinaryReader::ReadInt8() {
-    if (Bytes < End) {
-        const int8 n = *reinterpret_cast<const int8 *>(Bytes);
+        if (r >= 4)
+        {
+            uint n = Unsafe.ReadUnaligned<uint>(Bytes);
 
-        Bytes++;
+            Bytes += 4;
 
-        return n;
-    }
-
-    return 0;
-}
-
-
-FORCE_INLINE uint8 BinaryReader::ReadUInt8() {
-    if (Bytes < End) {
-        const uint8 n = *reinterpret_cast<const uint8 *>(Bytes);
-
-        Bytes++;
-
-        return n;
-    }
-
-    return 0;
-}
-
-
-FORCE_INLINE int32 BinaryReader::ReadInt32() {
-    const uint64 r = static_cast<uint64>(End - Bytes);
-
-    if (r >= 4) {
-        const int32 n = *reinterpret_cast<const int32 *>(Bytes);
-
-        Bytes += 4;
-
-        return n;
-    }
-
-    return 0;
-}
-
-
-FORCE_INLINE void BinaryReader::ReadBinary(uint8 *d, const uint64 length) {
-    ASSERT(GetRemainingByteCount() >= length);
-
-    memcpy(d, Bytes, length);
-
-    Bytes += length;
-}
-
-
-VectorImage::VectorImage()
-:   mBounds(0, 0, 0, 0)
-{
-}
-
-
-VectorImage::~VectorImage()
-{
-    Free();
-}
-
-
-void VectorImage::Parse(const uint8 *binary, const uint64 length)
-{
-    ASSERT(binary != nullptr);
-    ASSERT(length > 0);
-
-    Free();
-
-    BinaryReader br(binary, length);
-
-    // Read signature.
-    const uint8 B = br.ReadUInt8();
-    const uint8 v = br.ReadUInt8();
-    const uint8 e = br.ReadUInt8();
-    const uint8 c = br.ReadUInt8();
-
-    if (B != 'B' or v != 'v' or e != 'e' or c != 'c') {
-        return;
-    }
-
-    // Read version.
-    const uint32 version = br.ReadUInt32();
-
-    if (version != 1) {
-        return;
-    }
-
-    // 4 bytes, total path count.
-    const uint32 count = br.ReadUInt32();
-
-    // 16 bytes, full bounds.
-    const int iminx = br.ReadInt32();
-    const int iminy = br.ReadInt32();
-    const int imaxx = br.ReadInt32();
-    const int imaxy = br.ReadInt32();
-
-    mBounds = IntRect(iminx, iminy, imaxx - iminx, imaxy - iminy);
-
-    // Each path entry is at least 32 bytes plus 4 bytes indicating path count
-    // plus 16 bytes indicating full bounds plus 8 bytes for signature and
-    // version.
-    if (length < ((count * 32) + 4 + 16 + 8)) {
-        // File is smaller than it says it has paths in it.
-        return;
-    }
-
-    mGeometries = static_cast<Geometry *>(malloc(SIZE_OF(Geometry) * count));
-
-    for (uint32 i = 0; i < count; i++) {
-        // 4 bytes, color as premultiplied RGBA8.
-        const uint32 color = br.ReadUInt32();
-
-        // 16 bytes, path bounds.
-        const int pminx = br.ReadInt32();
-        const int pminy = br.ReadInt32();
-        const int pmaxx = br.ReadInt32();
-        const int pmaxy = br.ReadInt32();
-
-        // 4 bytes, fill rule.
-        const FillRule fillRule = static_cast<FillRule>(br.ReadUInt32() & 1);
-
-        // 4 bytes, tag count.
-        const uint32 tagCount = br.ReadUInt32();
-
-        // 4 bytes, point count.
-        const uint32 pointCount = br.ReadUInt32();
-
-        const uint64 memoryNeeded = tagCount + (pointCount * 16);
-
-        if (br.GetRemainingByteCount() < memoryNeeded) {
-            // Less bytes left to read than the file says there are tags and
-            // points stored.
-            break;
+            return n;
         }
 
-        PathTag *tags = static_cast<PathTag *>(malloc(tagCount));
-        FloatPoint *points = static_cast<FloatPoint *>(malloc(pointCount * 16));
+        return 0;
+    }
 
-        br.ReadBinary(reinterpret_cast<uint8 *>(tags), tagCount);
-        br.ReadBinary(reinterpret_cast<uint8 *>(points), pointCount * 16);
 
-        Geometry *geometry = mGeometries + mGeometryCount;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public partial sbyte ReadInt8()
+    {
+        if (Bytes < End)
+        {
+            sbyte n = (sbyte) *Bytes;
 
-        new (geometry) Geometry(IntRect(pminx, pminy, pmaxx - pminx, pmaxy - pminy),
-            tags, points, Matrix::Identity, tagCount, pointCount, color,
-            fillRule);
+            Bytes++;
 
-        mGeometryCount++;
+            return n;
+        }
+
+        return 0;
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public partial byte ReadUInt8()
+    {
+        if (Bytes < End)
+        {
+            byte n = *Bytes;
+
+            Bytes++;
+
+            return n;
+        }
+
+        return 0;
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public partial int ReadInt32()
+    {
+        ulong r = (ulong) (End - Bytes);
+
+        if (r >= 4)
+        {
+            int n = Unsafe.ReadUnaligned<int>(Bytes);
+
+            Bytes += 4;
+
+            return n;
+        }
+
+        return 0;
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public partial void ReadBinary(byte* d, ulong length)
+    {
+        Debug.Assert(GetRemainingByteCount() >= length);
+
+        NativeMemory.Copy(Bytes, d, (nuint) length);
+
+        Bytes += length;
     }
 }
 
-
-void VectorImage::Free()
+public unsafe partial class VectorImage
 {
-    const int count = mGeometryCount;
-
-    for (int i = 0; i < count; i++) {
-        free((void *)mGeometries[i].Tags);
-        free((void *)mGeometries[i].Points);
+    public VectorImage()
+    {
+        mBounds = new(0, 0, 0, 0);
     }
 
-    free(mGeometries);
 
-    mGeometries = nullptr;
-    mGeometryCount = 0;
+    ~VectorImage()
+    {
+        Free();
+    }
+
+
+    public partial void Parse(byte* binary, ulong length)
+    {
+        Debug.Assert(binary != null);
+        Debug.Assert(length > 0);
+
+        Free();
+
+        BinaryReader br = new(binary, length);
+
+        // Read signature.
+        byte B = br.ReadUInt8();
+        byte v = br.ReadUInt8();
+        byte e = br.ReadUInt8();
+        byte c = br.ReadUInt8();
+
+        if (B != 'B' || v != 'v' || e != 'e' || c != 'c')
+        {
+            return;
+        }
+
+        // Read version.
+        uint version = br.ReadUInt32();
+
+        if (version != 1)
+        {
+            return;
+        }
+
+        // 4 bytes, total path count.
+        uint count = br.ReadUInt32();
+
+        // 16 bytes, full bounds.
+        int iminx = br.ReadInt32();
+        int iminy = br.ReadInt32();
+        int imaxx = br.ReadInt32();
+        int imaxy = br.ReadInt32();
+
+        mBounds = new IntRect(iminx, iminy, imaxx - iminx, imaxy - iminy);
+
+        // Each path entry is at least 32 bytes plus 4 bytes indicating path count
+        // plus 16 bytes indicating full bounds plus 8 bytes for signature and
+        // version.
+        if (length < ((count * 32) + 4 + 16 + 8))
+        {
+            // File is smaller than it says it has paths in it.
+            return;
+        }
+
+        mGeometries = (Geometry*) NativeMemory.Alloc((nuint) (sizeof(Geometry) * count));
+
+        for (uint i = 0; i < count; i++)
+        {
+            // 4 bytes, color as premultiplied RGBA8.
+            uint color = br.ReadUInt32();
+
+            // 16 bytes, path bounds.
+            int pminx = br.ReadInt32();
+            int pminy = br.ReadInt32();
+            int pmaxx = br.ReadInt32();
+            int pmaxy = br.ReadInt32();
+
+            // 4 bytes, fill rule.
+            FillRule fillRule = (FillRule) (br.ReadUInt32() & 1);
+
+            // 4 bytes, tag count.
+            uint tagCount = br.ReadUInt32();
+
+            // 4 bytes, point count.
+            uint pointCount = br.ReadUInt32();
+
+            ulong memoryNeeded = tagCount + (pointCount * 16);
+
+            if (br.GetRemainingByteCount() < memoryNeeded)
+            {
+                // Less bytes left to read than the file says there are tags and
+                // points stored.
+                break;
+            }
+
+            PathTag* tags = (PathTag*) NativeMemory.Alloc(tagCount);
+            FloatPoint* points = (FloatPoint*) NativeMemory.Alloc(pointCount * 16);
+
+            br.ReadBinary((byte*) tags, tagCount);
+            br.ReadBinary((byte*) points, pointCount * 16);
+
+            Geometry* geometry = mGeometries + mGeometryCount;
+
+            *geometry = new Geometry(new IntRect(pminx, pminy, pmaxx - pminx, pmaxy - pminy),
+                tags, points, Matrix.Identity, (int) tagCount, (int) pointCount, color,
+                fillRule);
+
+            mGeometryCount++;
+        }
+    }
+
+
+    private partial void Free()
+    {
+        int count = mGeometryCount;
+
+        for (int i = 0; i < count; i++)
+        {
+            NativeMemory.Free((void*) mGeometries[i].Tags);
+            NativeMemory.Free((void*) mGeometries[i].Points);
+        }
+
+        NativeMemory.Free(mGeometries);
+
+        mGeometries = null;
+        mGeometryCount = 0;
+    }
 }

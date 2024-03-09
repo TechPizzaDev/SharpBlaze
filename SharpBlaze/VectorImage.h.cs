@@ -1,54 +1,48 @@
+using System.Diagnostics;
 
-#pragma once
-
-
-#include "Geometry.h"
-#include "IntRect.h"
-#include "Utils.h"
+namespace SharpBlaze;
 
 
 /**
  * Parser and maintainer of vector image.
  */
-class VectorImage final {
-public:
-    VectorImage();
-   ~VectorImage();
-public:
-    void Parse(const uint8 *binary, const uint64 length);
-    int GetGeometryCount() const;
-    IntRect GetBounds() const;
-    const Geometry *GetGeometryAt(const int index) const;
-    const Geometry *GetGeometries() const;
-private:
-    void Free();
-private:
-    int mGeometryCount = 0;
-    IntRect mBounds;
-    Geometry *mGeometries = nullptr;
-private:
-    DISABLE_COPY_AND_ASSIGN(VectorImage);
-};
+public unsafe partial class VectorImage
+{
+    public partial void Parse(byte* binary, ulong length);
+    public partial int GetGeometryCount();
+    public partial IntRect GetBounds();
+    public partial Geometry* GetGeometryAt(int index);
+    public partial Geometry* GetGeometries();
+
+    private partial void Free();
+
+    private int mGeometryCount = 0;
+    private IntRect mBounds;
+    private Geometry* mGeometries = null;
 
 
-FORCE_INLINE int VectorImage::GetGeometryCount() const {
-    return mGeometryCount;
-}
+    public partial int GetGeometryCount()
+    {
+        return mGeometryCount;
+    }
+
+    public partial IntRect GetBounds()
+    {
+        return mBounds;
+    }
 
 
-FORCE_INLINE IntRect VectorImage::GetBounds() const {
-    return mBounds;
-}
+    public partial Geometry* GetGeometryAt(int index)
+    {
+        Debug.Assert(index >= 0);
+        Debug.Assert(index < mGeometryCount);
+
+        return mGeometries + index;
+    }
 
 
-FORCE_INLINE const Geometry *VectorImage::GetGeometryAt(const int index) const {
-    ASSERT(index >= 0);
-    ASSERT(index < mGeometryCount);
-
-    return mGeometries + index;
-}
-
-
-FORCE_INLINE const Geometry *VectorImage::GetGeometries() const {
-    return mGeometries;
+    public partial Geometry* GetGeometries()
+    {
+        return mGeometries;
+    }
 }
