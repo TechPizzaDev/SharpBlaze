@@ -64,4 +64,8 @@ public interface ITileDescriptor
      * Returns given horizontal tile index to position in 24.8 format.
      */
     static abstract F24Dot8 TileRowIndexToF24Dot8(TileIndex y);
+
+    static abstract unsafe void FillStartCovers(int* p, int value);
+
+    static abstract unsafe void AccumulateStartCovers(int* p, int value);
 }

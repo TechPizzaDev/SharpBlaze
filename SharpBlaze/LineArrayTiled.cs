@@ -34,11 +34,11 @@ public unsafe struct LineArrayTiledBlock : IConstructible<LineArrayTiledBlock, P
 }
 
 
-public unsafe partial struct LineArrayTiled<T>
+public unsafe partial struct LineArrayTiled<T> : ILineArray<LineArrayTiled<T>>
     where T : ITileDescriptor
 {
 
-    public static partial void Construct(LineArrayTiled<T>* placement,
+    public static partial void Construct(ref LineArrayTiled<T> placement,
         TileIndex rowCount, TileIndex columnCount,
         ThreadMemory memory);
 

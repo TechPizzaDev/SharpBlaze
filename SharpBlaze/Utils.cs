@@ -27,7 +27,7 @@ public static class Utils
         return MathF.Round(v);
     }
 
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T Min<T>(T a, T b)
         where T : INumber<T>
@@ -35,7 +35,7 @@ public static class Utils
         return T.Min(a, b);
     }
 
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T Max<T>(T a, T b)
         where T : INumber<T>
@@ -134,6 +134,16 @@ public static class Utils
         where T : INumber<T>
     {
         return val > max ? max : val < min ? min : val;
+    }
+
+
+    /**
+     * Returns value clamped to range between minimum and maximum values.
+     */
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8 Clamp(F24Dot8 val, F24Dot8 min, F24Dot8 max)
+    {
+        return Clamp((int) val, (int) min, (int) max);
     }
 
 

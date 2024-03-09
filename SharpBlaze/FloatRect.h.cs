@@ -1,35 +1,33 @@
 
-#pragma once
+namespace SharpBlaze;
 
 
-#include "IntRect.h"
-
-
-struct FloatRect final {
-    constexpr FloatRect(const double x, const double y, const double width,
-        const double height)
-    :   MinX(x),
-        MinY(y),
-        MaxX(x + width),
-        MaxY(y + height)
+public partial struct FloatRect
+{
+    public FloatRect(double x, double y, double width,
+        double height)
     {
+        MinX = (x);
+        MinY = (y);
+        MaxX = (x + width);
+        MaxY = (y + height);
     }
 
 
-    constexpr FloatRect(const IntRect &r)
-    :   MinX(r.MinX),
-        MinY(r.MinY),
-        MaxX(r.MaxX),
-        MaxY(r.MaxY)
+    public FloatRect(in IntRect r)
     {
+        MinX = (r.MinX);
+        MinY = (r.MinY);
+        MaxX = (r.MaxX);
+        MaxY = (r.MaxY);
     }
 
 
-    IntRect ToExpandedIntRect() const;
+    public readonly partial IntRect ToExpandedIntRect();
 
 
-    double MinX = 0;
-    double MinY = 0;
-    double MaxX = 0;
-    double MaxY = 0;
-};
+    public double MinX;
+    public double MinY;
+    public double MaxX;
+    public double MaxY;
+}

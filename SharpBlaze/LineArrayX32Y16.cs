@@ -45,13 +45,13 @@ public unsafe struct LineArrayX32Y16Block : IConstructible<LineArrayX32Y16Block,
 }
 
 
-public unsafe partial struct LineArrayX32Y16
+public unsafe partial struct LineArrayX32Y16 : ILineArray<LineArrayX32Y16>
 {
     public LineArrayX32Y16()
     {
     }
 
-    public static partial void Construct(LineArrayX32Y16* placement,
+    public static partial void Construct(ref LineArrayX32Y16 placement,
         TileIndex rowCount, TileIndex columnCount,
         ThreadMemory memory);
 

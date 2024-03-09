@@ -1,8 +1,15 @@
 
-#pragma once
+namespace SharpBlaze;
 
 
-struct IntSize final {
-    int Width = 0;
-    int Height = 0;
-};
+public struct IntSize 
+{
+    public int Width;
+    public int Height;
+
+    public IntSize(int width, int height)
+    {
+        Width = width;
+        Height = height;
+    }
+}

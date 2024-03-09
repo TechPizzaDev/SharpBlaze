@@ -1,8 +1,31 @@
-using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
+
+[InlineArray(3)]
+public struct F24Dot8PointX3
+{
+    private F24Dot8Point _e0;
+}
+
+[InlineArray(4)]
+public struct F24Dot8PointX4
+{
+    private F24Dot8Point _e0;
+}
+
+[InlineArray(5)]
+public struct F24Dot8PointX5
+{
+    private F24Dot8Point _e0;
+}
+
+[InlineArray(7)]
+public struct F24Dot8PointX7
+{
+    private F24Dot8Point _e0;
+}
 
 public static unsafe class LinearizerUtils
 {
@@ -106,10 +129,10 @@ public static unsafe class LinearizerUtils
      * @param s Source curve defined by three points.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void SplitQuadratic(F24Dot8Point* r/*[5]*/, F24Dot8Point* s/*[3]*/)
+    public static void SplitQuadratic(ref F24Dot8PointX5 r, in F24Dot8PointX3 s)
     {
-        Debug.Assert(r != null);
-        Debug.Assert(s != null);
+        //Debug.Assert(r != null);
+        //Debug.Assert(s != null);
 
         F24Dot8 m0x = (s[0].X + s[1].X) >> 1;
         F24Dot8 m0y = (s[0].Y + s[1].Y) >> 1;
@@ -139,10 +162,10 @@ public static unsafe class LinearizerUtils
      * @param s Source curve defined by four points.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void SplitCubic(F24Dot8Point* r/*[7]*/, F24Dot8Point* s/*[4]*/)
+    public static void SplitCubic(ref F24Dot8PointX7 r, in F24Dot8PointX4 s)
     {
-        Debug.Assert(r != null);
-        Debug.Assert(s != null);
+        //Debug.Assert(r != null);
+        //Debug.Assert(s != null);
 
         F24Dot8 m0x = (s[0].X + s[1].X) >> 1;
         F24Dot8 m0y = (s[0].Y + s[1].Y) >> 1;
@@ -195,7 +218,7 @@ public static unsafe class LinearizerUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static bool CutMonotonicQuadraticAtX(in FloatPointX3 quadratic, double x, ref double t)
+    public static bool CutMonotonicQuadraticAtX(in FloatPointX3 quadratic, double x, ref double t)
     {
         //Debug.Assert(quadratic != null);
 
@@ -273,7 +296,7 @@ public static unsafe class LinearizerUtils
                 positive = m;
             }
         } 
-        while (Math.Abs(positive - negative) > Tolerance);
+        while (Utils.Abs(positive - negative) > Tolerance);
 
         t = (negative + positive) / 2.0;
 
@@ -314,9 +337,9 @@ public static unsafe class LinearizerUtils
      * line for rasterizer.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsQuadraticFlatEnough(F24Dot8Point* q/*[3]*/)
+    public static bool IsQuadraticFlatEnough(in F24Dot8PointX3 q)
     {
-        Debug.Assert(q != null);
+        //Debug.Assert(q != null);
 
         if (q[0].X == q[2].X && q[0].Y == q[2].Y)
         {
@@ -340,9 +363,9 @@ public static unsafe class LinearizerUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsCubicFlatEnough(F24Dot8Point* c/*[4]*/)
+    public static bool IsCubicFlatEnough(in F24Dot8PointX4 c)
     {
-        Debug.Assert(c != null);
+        //Debug.Assert(c != null);
 
         F24Dot8 Tolerance = F24Dot8.F24Dot8_1 >> 1;
 

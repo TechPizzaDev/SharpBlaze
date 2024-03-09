@@ -1,14 +1,16 @@
 
-#include "FloatRect.h"
-#include "Utils.h"
+namespace SharpBlaze;
 
 
-IntRect FloatRect::ToExpandedIntRect() const
+public partial struct FloatRect
 {
-    const int minx = int(Floor(MinX));
-    const int miny = int(Floor(MinY));
-    const int maxx = int(Ceil(MaxX));
-    const int maxy = int(Ceil(MaxY));
+    public readonly partial IntRect ToExpandedIntRect()
+    {
+        int minx = (int) (Utils.Floor(MinX));
+        int miny = (int) (Utils.Floor(MinY));
+        int maxx = (int) (Utils.Ceil(MaxX));
+        int maxy = (int) (Utils.Ceil(MaxY));
 
-    return IntRect(minx, miny, maxx - minx, maxy - miny);
+        return new IntRect(minx, miny, maxx - minx, maxy - miny);
+    }
 }

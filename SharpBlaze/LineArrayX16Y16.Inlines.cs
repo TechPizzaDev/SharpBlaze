@@ -7,17 +7,17 @@ public unsafe partial struct LineArrayX16Y16
 {
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static partial void Construct(LineArrayX16Y16* placement,
+    public static partial void Construct(ref LineArrayX16Y16 placement,
         TileIndex rowCount, TileIndex columnCount,
         ThreadMemory memory)
     {
-        Debug.Assert(placement != null);
+        //Debug.Assert(placement != null);
         Debug.Assert(rowCount > 0);
         Debug.Assert(columnCount > 0);
 
         for (TileIndex i = 0; i < rowCount; i++)
         {
-            *(placement + i) = new LineArrayX16Y16();
+            Unsafe.Add(ref placement, i) = new LineArrayX16Y16();
         }
     }
 

@@ -1,17 +1,15 @@
 
-#pragma once
-
-
-#include "Utils.h"
+namespace SharpBlaze;
 
 
 /**
  * Bézier path command.
  */
-enum class PathTag : uint8 {
+public enum PathTag : byte
+{
     Move = 0,
     Line,
     Quadratic,
     Cubic,
     Close
-};
+}

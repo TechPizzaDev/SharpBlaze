@@ -1,18 +1,13 @@
+using System.Diagnostics;
 
-#pragma once
-
-
-#include "FillRule.h"
-#include "FloatPoint.h"
-#include "IntRect.h"
-#include "Matrix.h"
-#include "PathTag.h"
+namespace SharpBlaze;
 
 
 /**
  * One renderable item.
  */
-struct Geometry final {
+public readonly unsafe partial struct Geometry
+{
 
     /**
      * Constructs geometry.
@@ -34,17 +29,32 @@ struct Geometry final {
      *
      * @param rule Fill rule to use.
      */
-    Geometry(const IntRect &pathBounds, const PathTag *tags,
-        const FloatPoint *points, const Matrix &tm, const int tagCount,
-        const int pointCount, const uint32 color, const FillRule rule);
+    public Geometry(IntRect pathBounds, PathTag* tags,
+         FloatPoint* points, in Matrix tm, int tagCount,
+         int pointCount, uint color, FillRule rule)
+    {
+        PathBounds = pathBounds;
+        Tags = tags;
+        Points = points;
+        TM = tm;
+        TagCount = tagCount;
+        PointCount = pointCount;
+        Color = color;
+        Rule = rule;
+
+        Debug.Assert(tags != null);
+        Debug.Assert(points != null);
+        Debug.Assert(tagCount > 0);
+        Debug.Assert(pointCount > 0);
+    }
 
 
-    const IntRect PathBounds;
-    const PathTag *Tags = nullptr;
-    const FloatPoint *Points = nullptr;
-    const Matrix TM;
-    const int TagCount = 0;
-    const int PointCount = 0;
-    const uint32 Color = 0;
-    const FillRule Rule = FillRule::NonZero;
+    public readonly IntRect PathBounds;
+    public readonly PathTag* Tags = null;
+    public readonly FloatPoint* Points = null;
+    public readonly Matrix TM;
+    public readonly int TagCount = 0;
+    public readonly int PointCount = 0;
+    public readonly uint Color = 0;
+    public readonly FillRule Rule = FillRule.NonZero;
 };

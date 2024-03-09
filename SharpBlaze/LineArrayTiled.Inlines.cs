@@ -6,11 +6,11 @@ namespace SharpBlaze;
 public unsafe partial struct LineArrayTiled<T>
     where T : ITileDescriptor
 {
-    public static partial void Construct(LineArrayTiled<T>* placement,
+    public static partial void Construct(ref LineArrayTiled<T> placement,
         TileIndex rowCount, TileIndex columnCount,
         ThreadMemory memory)
     {
-        Debug.Assert(placement != null);
+        //Debug.Assert(placement != null);
         Debug.Assert(rowCount > 0);
         Debug.Assert(columnCount > 0);
 
@@ -30,7 +30,7 @@ public unsafe partial struct LineArrayTiled<T>
 
         for (TileIndex i = 0; i < rowCount; i++)
         {
-            *(placement + i) = new LineArrayTiled<T>(bitVectors, blocks,
+            Unsafe.Add(ref placement, i) = new LineArrayTiled<T>(bitVectors, blocks,
                 covers, counts);
 
             bitVectors += bitVectorsPerRow;
