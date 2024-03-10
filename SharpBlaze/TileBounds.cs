@@ -13,13 +13,13 @@ public struct TileBounds
         TileIndex horizontalCount,
         TileIndex verticalCount)
     {
-        Debug.Assert(ColumnCount > 0);
-        Debug.Assert(RowCount > 0);
-
         X = x;
         Y = y;
         ColumnCount = horizontalCount;
         RowCount = verticalCount;
+
+        Debug.Assert(ColumnCount > 0);
+        Debug.Assert(RowCount > 0);
     }
 
     // Minimum horizontal and vertical tile indices.

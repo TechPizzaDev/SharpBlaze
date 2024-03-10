@@ -36,7 +36,7 @@ public unsafe partial class Threads
         public int Count = 0;
         public Action<int, ThreadMemory>? Fn = null;
 
-        public object CV => Mutex;
+        public object CV = new();
         public object Mutex = new();
         public int RequiredWorkerCount = 0;
 
@@ -52,7 +52,7 @@ public unsafe partial class Threads
             Tasks = tasks;
         }
 
-        public ThreadMemory Memory;
+        public ThreadMemory Memory = new();
         public TaskList Tasks;
         public Thread Thread;
     }
@@ -60,7 +60,7 @@ public unsafe partial class Threads
     private TaskList? mTaskData = null;
     private ThreadData[]? mThreadData = null;
     private int mThreadCount = 0;
-    private ThreadMemory mMainMemory;
+    private ThreadMemory mMainMemory = new();
 
     private partial void Run(int count, Action<int, ThreadMemory> loopBody);
 

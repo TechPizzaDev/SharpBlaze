@@ -42,11 +42,17 @@ public unsafe partial class Threads
         Monitor.Enter(mTaskData.FinalizationMutex);
 
         // Wake all threads waiting on this condition variable.
-        Monitor.PulseAll(mTaskData.CV);
+        lock (mTaskData.CV)
+        {
+            Monitor.PulseAll(mTaskData.CV);
+        }
 
         while (mTaskData.FinalizedWorkers < threadCount)
         {
-            Monitor.Wait(mTaskData.FinalizationCV);
+            lock (mTaskData.FinalizationCV)
+            {
+                Monitor.Wait(mTaskData.FinalizationCV);
+            }
         }
 
         Monitor.Exit(mTaskData.FinalizationMutex);
@@ -123,7 +129,10 @@ public unsafe partial class Threads
             while (items.RequiredWorkerCount < 1)
             {
                 // Wait until required worker count becomes greater than zero.
-                Monitor.Wait(items.CV);
+                lock (items.CV)
+                {
+                    Monitor.Wait(items.CV);
+                }
             }
 
             items.RequiredWorkerCount--;
@@ -134,7 +143,7 @@ public unsafe partial class Threads
 
             for (; ; )
             {
-                int index = Interlocked.Increment(ref items.Cursor);
+                int index = Interlocked.Increment(ref items.Cursor) - 1;
 
                 if (index >= count)
                 {
@@ -150,7 +159,10 @@ public unsafe partial class Threads
 
             Monitor.Exit(items.FinalizationMutex);
 
-            Monitor.Pulse(items.FinalizationCV);
+            lock (items.FinalizationCV)
+            {
+                Monitor.Pulse(items.FinalizationCV);
+            }
         }
     }
 

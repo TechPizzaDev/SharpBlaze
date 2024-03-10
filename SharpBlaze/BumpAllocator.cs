@@ -46,7 +46,7 @@ public unsafe partial class BumpAllocator
     {
         Debug.Assert(size > 0);
 
-        Block* ptr = mMasterFreeList;
+        ref Block* ptr = ref mMasterFreeList;
 
         while (ptr != null)
         {
@@ -70,7 +70,7 @@ public unsafe partial class BumpAllocator
                 return p;
             }
 
-            ptr = b->Next;
+            ptr = ref b->Next;
         }
 
         // A new block is needed.

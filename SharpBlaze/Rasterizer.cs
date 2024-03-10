@@ -365,7 +365,7 @@ public unsafe partial struct Rasterizer<T>
         // are copied to it.
 
         RasterizableGeometry** visibleRasterizables = (RasterizableGeometry**) (
-                threads.MallocMain(sizeof(RasterizableGeometry*) * inputGeometryCount));
+            threads.MallocMain(sizeof(RasterizableGeometry*) * inputGeometryCount));
 
         int visibleRasterizableCount = 0;
 
@@ -1963,7 +1963,7 @@ public unsafe partial struct Rasterizer<T>
         {
             int count = b->Count;
             RasterizableItem* itm = &b->Items[0];
-            RasterizableItem* e = &b->Items[count];
+            RasterizableItem* e = itm + count;
 
             while (itm < e)
             {

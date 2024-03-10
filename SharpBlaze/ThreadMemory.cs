@@ -204,9 +204,9 @@ public unsafe partial class ThreadMemory
      */
     public partial void ResetTaskMemory();
 
-    private LineBlockAllocator mFrameLineBlockAllocator;
-    private BumpAllocator mFrameAllocator;
-    private BumpAllocator mTaskAllocator;
+    private LineBlockAllocator mFrameLineBlockAllocator = new();
+    private BumpAllocator mFrameAllocator = new();
+    private BumpAllocator mTaskAllocator = new();
 
 
     public partial void* TaskMalloc(int size)

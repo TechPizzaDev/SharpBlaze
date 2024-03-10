@@ -30,7 +30,7 @@ public unsafe partial class DestinationImage<T>
     private IntSize mImageSize;
     private int mBytesPerRow = 0;
     private int mImageDataSize = 0;
-    private Threads mThreads;
+    private Threads mThreads = new();
 
 
     ~DestinationImage()
