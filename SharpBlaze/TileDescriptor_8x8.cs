@@ -158,9 +158,6 @@ public struct TileDescriptor_8x8 : ITileDescriptor
         p[7] = value + p7;
     }
 
-
-    public static ReadOnlySpan<int> ZeroCovers => new int[8];
-
     [Obsolete]
     public TileDescriptor_8x8() { }
 }

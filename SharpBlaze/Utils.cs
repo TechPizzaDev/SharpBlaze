@@ -405,4 +405,23 @@ public static class Utils
     {
         return Math.Tan(v);
     }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static unsafe int* ZeroCoverX32()
+    {
+        return ZeroCoverHelper.mZeroCoverX32;
+    }
+
+    private static unsafe class ZeroCoverHelper
+    {
+        public static readonly int* mZeroCoverX32;
+
+        static ZeroCoverHelper()
+        {
+            nuint byteCount = sizeof(int) * 32;
+            mZeroCoverX32 = (int*) NativeMemory.AlignedAlloc(byteCount, 64);
+            NativeMemory.Clear(mZeroCoverX32, byteCount);
+        }
+    }
 }

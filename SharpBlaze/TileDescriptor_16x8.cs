@@ -160,8 +160,6 @@ public struct TileDescriptor_16x8 : ITileDescriptor
     }
 
 
-    public static ReadOnlySpan<int> ZeroCovers => new int[8];
-
     [Obsolete]
     public TileDescriptor_16x8() { }
 }

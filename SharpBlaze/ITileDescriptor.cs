@@ -14,7 +14,7 @@ public unsafe interface ITileDescriptor
      */
     static abstract int TileH { get; }
 
-    static abstract ReadOnlySpan<int> ZeroCovers { get; }
+    static virtual int* ZeroCovers => Utils.ZeroCoverX32();
 
     /**
      * Tile width in 24.8 fixed point format.
@@ -70,7 +70,7 @@ public unsafe interface ITileDescriptor
     static abstract F24Dot8 TileRowIndexToF24Dot8(TileIndex y);
 
     static abstract bool CoverArrayContainsOnlyZeroes(int* t);
-    
+
     static abstract void FillStartCovers(int* p, int value);
 
     static abstract void AccumulateStartCovers(int* p, int value);

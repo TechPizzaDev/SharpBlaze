@@ -74,7 +74,7 @@ public unsafe partial struct Rasterizer<T>
         public readonly partial void* GetLinesForRow(int rowIndex);
         public readonly partial int GetFirstBlockLineCountForRow(int rowIndex);
         public readonly partial int* GetCoversForRow(int rowIndex);
-        public readonly partial ref int GetActualCoversForRow(int rowIndex);
+        public readonly partial int* GetActualCoversForRow(int rowIndex);
 
         public readonly Geometry* Geometry = null;
         public readonly LineIterationFunction IterationFunction = default;
@@ -101,7 +101,7 @@ public unsafe partial struct Rasterizer<T>
 
         public readonly partial int GetFirstBlockLineCount();
         public readonly partial void* GetLineArray();
-        public readonly partial ref int GetActualCovers();
+        public readonly partial int* GetActualCovers();
 
         // Do not initialize these since they are allocated in bunches.
         public readonly RasterizableGeometry* Rasterizable;
@@ -501,7 +501,7 @@ public unsafe partial struct Rasterizer<T>
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly partial ref int GetActualCoversForRow(int rowIndex)
+        public readonly partial int* GetActualCoversForRow(int rowIndex)
         {
             Debug.Assert(rowIndex >= 0);
             Debug.Assert(rowIndex < Bounds.RowCount);
@@ -509,17 +509,17 @@ public unsafe partial struct Rasterizer<T>
             if (StartCoverTable == null)
             {
                 // No table at all.
-                return ref MemoryMarshal.GetReference(T.ZeroCovers);
+                return T.ZeroCovers;
             }
 
             int* covers = StartCoverTable[rowIndex];
 
             if (covers == null)
             {
-                return ref MemoryMarshal.GetReference(T.ZeroCovers);
+                return T.ZeroCovers;
             }
 
-            return ref *covers;
+            return covers;
         }
     }
 
@@ -541,9 +541,9 @@ public unsafe partial struct Rasterizer<T>
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly partial ref int GetActualCovers()
+        public readonly partial int* GetActualCovers()
         {
-            return ref Rasterizable->GetActualCoversForRow(LocalRowIndex);
+            return Rasterizable->GetActualCoversForRow(LocalRowIndex);
         }
     }
 
@@ -1839,7 +1839,7 @@ public unsafe partial struct Rasterizer<T>
         item->Rasterizable->IterationFunction.value(item, bitVectorTable, coverAreaTable);
 
         // Pointer to backdrop.
-        ref int coversStart = ref item->GetActualCovers();
+        int* coversStart = item->GetActualCovers();
 
         int x = (int) item->Rasterizable->Bounds.X * T.TileW;
 
@@ -1872,7 +1872,7 @@ public unsafe partial struct Rasterizer<T>
                 {
                     RenderOneLine<SpanBlenderOpaque, AreaToAlphaNonZeroFn>(ptr,
                         bitVectorTable[i], bitVectorsPerRow, coverAreaTable[i], x,
-                        image.Width, Unsafe.Add(ref coversStart, i), new(color));
+                        image.Width, coversStart[i], new(color));
 
                     ptr += image.BytesPerRow;
                 }
@@ -1883,7 +1883,7 @@ public unsafe partial struct Rasterizer<T>
                 {
                     RenderOneLine<SpanBlenderOpaque, AreaToAlphaEvenOddFn>(ptr,
                         bitVectorTable[i], bitVectorsPerRow, coverAreaTable[i], x,
-                        image.Width, Unsafe.Add(ref coversStart, i), new(color));
+                        image.Width, coversStart[i], new(color));
 
                     ptr += image.BytesPerRow;
                 }
@@ -1897,7 +1897,7 @@ public unsafe partial struct Rasterizer<T>
                 {
                     RenderOneLine<SpanBlender, AreaToAlphaNonZeroFn>(ptr,
                         bitVectorTable[i], bitVectorsPerRow, coverAreaTable[i], x,
-                        image.Width, Unsafe.Add(ref coversStart, i), new(color));
+                        image.Width, coversStart[i], new(color));
 
                     ptr += image.BytesPerRow;
                 }
@@ -1908,7 +1908,7 @@ public unsafe partial struct Rasterizer<T>
                 {
                     RenderOneLine<SpanBlender, AreaToAlphaEvenOddFn>(ptr,
                         bitVectorTable[i], bitVectorsPerRow, coverAreaTable[i], x,
-                        image.Width, Unsafe.Add(ref coversStart, i), new(color));
+                        image.Width, coversStart[i], new(color));
 
                     ptr += image.BytesPerRow;
                 }
