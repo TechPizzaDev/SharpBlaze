@@ -829,7 +829,7 @@ public unsafe partial struct Rasterizer<T>
         int index = (int) px << 1;
         int* ca = coverAreaTable[py];
 
-        if (ConditionalSetBit(bitVectorTable[py], (int) px))
+        if (ConditionalSetBit(bitVectorTable[py], px))
         {
             // New.
             ca[index] = delta;
@@ -860,7 +860,7 @@ public unsafe partial struct Rasterizer<T>
         int index = (int) px << 1;
         int* ca = coverAreaTable[py];
 
-        if (ConditionalSetBit(bitVectorTable[py], (int) px))
+        if (ConditionalSetBit(bitVectorTable[py], px))
         {
             // New.
             ca[index] = delta;

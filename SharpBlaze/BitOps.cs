@@ -1,5 +1,7 @@
+using System;
 using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
 
@@ -107,19 +109,20 @@ public static class BitOps
      *
      * @param index Bit index to test and set. Must be at least 0.
      */
-    public static unsafe bool ConditionalSetBit<T>(T* vec, int index)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe bool ConditionalSetBit<T>(T* vec, uint index)
         where T : unmanaged, IBinaryInteger<T>
     {
         Debug.Assert(vec != null);
         Debug.Assert(index >= 0);
 
-        int vecIndex = index / Utils.BIT_SIZE_OF<T>();
+        uint vecIndex = index / (uint) Utils.BIT_SIZE_OF<T>();
 
         T* v = vec + vecIndex;
 
-        int localIndex = index % Utils.BIT_SIZE_OF<T>();
+        uint localIndex = index % (uint) Utils.BIT_SIZE_OF<T>();
         T current = *v;
-        T bit = T.One << localIndex;
+        T bit = T.One << (int) localIndex;
 
         if ((current & bit) == T.Zero)
         {
@@ -130,7 +133,8 @@ public static class BitOps
         return false;
     }
 
-    public static unsafe bool ConditionalSetBit(BitVector* vec, int index)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe bool ConditionalSetBit(BitVector* vec, uint index)
     {
         return ConditionalSetBit((nuint*) vec, index);
     }

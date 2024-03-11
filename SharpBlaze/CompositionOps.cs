@@ -1,11 +1,7 @@
-using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
-
-using static Utils;
-
 
 public static unsafe partial class CompositionOps
 {
