@@ -699,10 +699,10 @@ public unsafe partial struct Rasterizer<T>
                 geometry->PathBounds.MaxX <= imageSize.Width &&
                 geometry->PathBounds.MaxY <= imageSize.Height;
 
-        Linearizer<T, L>* linearizer =
+        Linearizer<T, L> linearizer =
             Linearizer<T, L>.Create(memory, bounds, contains, geometry);
 
-        Debug.Assert(linearizer != null);
+        //Debug.Assert(linearizer != null);
 
         // Finalize.
         void** lineBlocks = (void**) memory.FrameMallocArray<nint>((int) bounds.RowCount);
@@ -712,7 +712,7 @@ public unsafe partial struct Rasterizer<T>
 
         for (TileIndex i = 0; i < bounds.RowCount; i++)
         {
-            ref L la = ref linearizer->GetLineArrayAtIndex(i);
+            ref L la = ref linearizer.GetLineArrayAtIndex(i);
 
             //Debug.Assert(la != null);
 
@@ -730,7 +730,7 @@ public unsafe partial struct Rasterizer<T>
         linearized->Lines = lineBlocks;
         linearized->FirstBlockLineCounts = firstLineBlockCounts;
 
-        int** startCoverTable = linearizer->GetStartCoverTable();
+        int** startCoverTable = linearizer.GetStartCoverTable();
 
         if (startCoverTable != null)
         {

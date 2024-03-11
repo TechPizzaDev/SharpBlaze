@@ -52,7 +52,7 @@ public unsafe partial struct Linearizer<T, L>
     where T : unmanaged, ITileDescriptor
     where L : unmanaged, ILineArray<L>
 {
-    public static partial Linearizer<T, L>* Create(ThreadMemory memory, in TileBounds bounds,
+    public static partial Linearizer<T, L> Create(ThreadMemory memory, in TileBounds bounds,
         bool contains, Geometry* geometry);
 
 
@@ -316,20 +316,17 @@ public unsafe partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static partial Linearizer<T, L>* Create(ThreadMemory memory, in TileBounds bounds, bool contains, Geometry* geometry)
+    public static partial Linearizer<T, L> Create(ThreadMemory memory, in TileBounds bounds, bool contains, Geometry* geometry)
     {
-        Linearizer<T, L>* linearizer = (Linearizer<T, L>*)
-            memory.TaskMalloc(sizeof(Linearizer<T, L>));
-
         L* lineArray = (L*) memory.TaskMalloc(sizeof(L) * (int) bounds.RowCount);
 
-        *linearizer = new Linearizer<T, L>(bounds, lineArray);
+        var linearizer = new Linearizer<T, L>(bounds, lineArray);
 
-        L.Construct(ref *linearizer->mLA, bounds.RowCount, bounds.ColumnCount, memory);
+        L.Construct(ref *linearizer.mLA, bounds.RowCount, bounds.ColumnCount, memory);
 
         if (contains)
         {
-            linearizer->ProcessContained(geometry, memory);
+            linearizer.ProcessContained(geometry, memory);
         }
         else
         {
@@ -343,7 +340,7 @@ public unsafe partial struct Linearizer<T, L>
             Matrix matrix = new(geometry->TM);
             matrix.PreTranslate(-tx, -ty);
 
-            linearizer->ProcessUncontained(geometry, memory, clip, matrix);
+            linearizer.ProcessUncontained(geometry, memory, clip, matrix);
         }
 
         return linearizer;
