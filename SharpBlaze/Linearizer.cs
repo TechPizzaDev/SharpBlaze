@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace SharpBlaze;
 
@@ -85,9 +84,10 @@ public unsafe partial struct Linearizer<T, L>
     /**
      * Constructs Linearizer with bounds.
      */
-    private Linearizer(TileBounds bounds)
+    private Linearizer(TileBounds bounds, L* lineArray)
     {
         mBounds = bounds;
+        mLA = lineArray;
     }
 
 
@@ -302,7 +302,7 @@ public unsafe partial struct Linearizer<T, L>
     private const int FullPixelCoverNegative = -256;
 
 
-    private partial ref L LA(int verticalIndex);
+    private readonly partial ref L LA(TileIndex verticalIndex);
 
     // Initialized at the beginning, does not change later.
     private readonly TileBounds mBounds;
@@ -312,25 +312,20 @@ public unsafe partial struct Linearizer<T, L>
     // requested. Each entry is then allocated on demand in frame memory.
     private int** mStartCoverTable = null;
 
-    // Zero length trailing array.
-    [StructLayout(LayoutKind.Sequential, Pack = 64)]
-    private struct TrailArray
-    {
-        public L _e0;
-    }
-
-    TrailArray mLA;
+    private readonly L* mLA;
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial Linearizer<T, L>* Create(ThreadMemory memory, in TileBounds bounds, bool contains, Geometry* geometry)
     {
-        Linearizer<T, L>* linearizer = (Linearizer<T, L>*) (
-            memory.TaskMalloc(sizeof(Linearizer<T, L>) + (sizeof(L) * (int) bounds.RowCount)));
+        Linearizer<T, L>* linearizer = (Linearizer<T, L>*)
+            memory.TaskMalloc(sizeof(Linearizer<T, L>));
 
-        *linearizer = new Linearizer<T, L>(bounds);
+        L* lineArray = (L*) memory.TaskMalloc(sizeof(L) * (int) bounds.RowCount);
 
-        L.Construct(ref linearizer->mLA._e0, bounds.RowCount, bounds.ColumnCount, memory);
+        *linearizer = new Linearizer<T, L>(bounds, lineArray);
+
+        L.Construct(ref *linearizer->mLA, bounds.RowCount, bounds.ColumnCount, memory);
 
         if (contains)
         {
@@ -376,7 +371,7 @@ public unsafe partial struct Linearizer<T, L>
         Debug.Assert(index >= 0);
         Debug.Assert(index < mBounds.RowCount);
 
-        return ref Unsafe.Add(ref mLA._e0, index);
+        return ref *(mLA + index);
     }
 
 
@@ -465,7 +460,7 @@ public unsafe partial struct Linearizer<T, L>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void ProcessUncontained(Geometry* geometry, ThreadMemory memory,
-    in ClipBounds clip, in Matrix matrix)
+        in ClipBounds clip, in Matrix matrix)
     {
         int tagCount = geometry->TagCount;
         PathTag* tags = geometry->Tags;
@@ -516,7 +511,7 @@ public unsafe partial struct Linearizer<T, L>
 
                     points += 2;
 
-                    AddUncontainedQuadratic(memory, clip, ref Unsafe.As<FloatPointX4, FloatPointX3>(ref segment));
+                    AddUncontainedQuadratic(memory, clip, in Unsafe.As<FloatPointX4, FloatPointX3>(ref segment));
 
                     segment[0] = segment[2];
 
@@ -2565,19 +2560,11 @@ public unsafe partial struct Linearizer<T, L>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [UnscopedRef]
-    private partial ref L LA(int verticalIndex)
+    private readonly partial ref L LA(TileIndex verticalIndex)
     {
         Debug.Assert(verticalIndex >= 0);
         Debug.Assert(verticalIndex < mBounds.RowCount);
 
-        return ref Unsafe.Add(ref mLA._e0, verticalIndex);
-    }
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [UnscopedRef]
-    private ref L LA(TileIndex verticalIndex)
-    {
-        return ref LA((int) verticalIndex);
+        return ref *(mLA + verticalIndex);
     }
 }
