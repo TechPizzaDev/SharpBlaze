@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
 
@@ -199,19 +200,16 @@ public static unsafe partial class CurveUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void InterpolateQuadraticCoordinates(ref double src, ref double dst, double t)
+    public static void InterpolateQuadraticCoordinates(in FloatPointX3 src, ref FloatPointX5 dst, Vector128<double> t)
     {
-        Debug.Assert(t >= 0.0);
-        Debug.Assert(t <= 1.0);
+        Vector128<double> ab = InterpolateLinear(src[0].AsVector128(), src[1].AsVector128(), t);
+        Vector128<double> bc = InterpolateLinear(src[1].AsVector128(), src[2].AsVector128(), t);
 
-        double ab = InterpolateLinear(Unsafe.Add(ref src, 0), Unsafe.Add(ref src, 2), t);
-        double bc = InterpolateLinear(Unsafe.Add(ref src, 2), Unsafe.Add(ref src, 4), t);
-
-        Unsafe.Add(ref dst, 0) = Unsafe.Add(ref src, 0);
-        Unsafe.Add(ref dst, 2) = ab;
-        Unsafe.Add(ref dst, 4) = InterpolateLinear(ab, bc, t);
-        Unsafe.Add(ref dst, 6) = bc;
-        Unsafe.Add(ref dst, 8) = Unsafe.Add(ref src, 4);
+        dst[0] = src[0];
+        dst[1] = new FloatPoint(ab);
+        dst[2] = new FloatPoint(InterpolateLinear(ab, bc, t));
+        dst[3] = new FloatPoint(bc);
+        dst[4] = src[2];
     }
 
 
@@ -221,31 +219,27 @@ public static unsafe partial class CurveUtils
         Debug.Assert(t >= 0.0);
         Debug.Assert(t <= 1.0);
 
-        InterpolateQuadraticCoordinates(ref Unsafe.AsRef(in src[0].X), ref dst[0].X, t);
-        InterpolateQuadraticCoordinates(ref Unsafe.AsRef(in src[0].Y), ref dst[0].Y, t);
+        InterpolateQuadraticCoordinates(src, ref dst, Vector128.Create(t));
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void InterpolateCubicCoordinates(ref double src, ref double dst, double t)
+    private static void InterpolateCubicCoordinates(in FloatPointX4 src, ref FloatPointX7 dst, Vector128<double> t)
     {
-        Debug.Assert(t >= 0.0);
-        Debug.Assert(t <= 1.0);
+        Vector128<double> ab = InterpolateLinear(src[0].AsVector128(), src[1].AsVector128(), t);
+        Vector128<double> bc = InterpolateLinear(src[1].AsVector128(), src[2].AsVector128(), t);
+        Vector128<double> cd = InterpolateLinear(src[2].AsVector128(), src[3].AsVector128(), t);
+        Vector128<double> abc = InterpolateLinear(ab, bc, t);
+        Vector128<double> bcd = InterpolateLinear(bc, cd, t);
+        Vector128<double> abcd = InterpolateLinear(abc, bcd, t);
 
-        double ab = InterpolateLinear(Unsafe.Add(ref src, 0), Unsafe.Add(ref src, 2), t);
-        double bc = InterpolateLinear(Unsafe.Add(ref src, 2), Unsafe.Add(ref src, 4), t);
-        double cd = InterpolateLinear(Unsafe.Add(ref src, 4), Unsafe.Add(ref src, 6), t);
-        double abc = InterpolateLinear(ab, bc, t);
-        double bcd = InterpolateLinear(bc, cd, t);
-        double abcd = InterpolateLinear(abc, bcd, t);
-
-        Unsafe.Add(ref dst, 0) = Unsafe.Add(ref src, 0);
-        Unsafe.Add(ref dst, 2) = ab;
-        Unsafe.Add(ref dst, 4) = abc;
-        Unsafe.Add(ref dst, 6) = abcd;
-        Unsafe.Add(ref dst, 8) = bcd;
-        Unsafe.Add(ref dst, 10) = cd;
-        Unsafe.Add(ref dst, 12) = Unsafe.Add(ref src, 6);
+        dst[0] = src[0];
+        dst[1] = new FloatPoint(ab);
+        dst[2] = new FloatPoint(abc);
+        dst[3] = new FloatPoint(abcd);
+        dst[4] = new FloatPoint(bcd);
+        dst[5] = new FloatPoint(cd);
+        dst[6] = src[3];
     }
 
 
@@ -255,8 +249,7 @@ public static unsafe partial class CurveUtils
         Debug.Assert(t >= 0.0);
         Debug.Assert(t <= 1.0);
 
-        InterpolateCubicCoordinates(ref Unsafe.AsRef(in src[0].X), ref dst[0].X, t);
-        InterpolateCubicCoordinates(ref Unsafe.AsRef(in src[0].Y), ref dst[0].Y, t);
+        InterpolateCubicCoordinates(src, ref dst, Vector128.Create(t));
     }
 
 }

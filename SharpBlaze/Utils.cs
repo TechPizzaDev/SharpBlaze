@@ -2,6 +2,8 @@ using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
 
@@ -210,7 +212,6 @@ public static class Utils
      * If t is 1, returns B.
      * If t is something else, returns value linearly interpolated between A and B.
      */
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T InterpolateLinear<T, V>(T A, T B, V t)
         where T : INumber<T>
@@ -220,6 +221,15 @@ public static class Utils
         Debug.Assert(t <= V.One);
 
         return A + ((B - A) * T.CreateTruncating(t));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<double> InterpolateLinear(Vector128<double> A, Vector128<double> B, Vector128<double> t)
+    {
+        Debug.Assert(Vector128.GreaterThanOrEqualAll(t, Vector128.Create(0.0)));
+        Debug.Assert(Vector128.LessThanOrEqualAll(t, Vector128.Create(1.0)));
+
+        return A + ((B - A) * t);
     }
 
 
