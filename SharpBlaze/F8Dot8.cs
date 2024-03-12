@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 
 namespace SharpBlaze;
 
@@ -6,35 +7,76 @@ namespace SharpBlaze;
 /**
  * 8.8 fixed point number.
  */
-public partial struct F8Dot8
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
+public readonly partial struct F8Dot8
 {
-    private short _value;
+    private readonly short _value;
+
+    private F8Dot8(short value) => _value = value;
 
     public static implicit operator short(F8Dot8 value) => value._value;
 
-    public static implicit operator F8Dot8(short value) => new() { _value = value };
+    public static implicit operator F8Dot8(short value) => new(value);
+
+    public override string ToString()
+    {
+        return $"{_value / 256.0:F}";
+    }
+
+    private readonly string GetDebuggerDisplay()
+    {
+        return $"{_value} ({ToString()})";
+    }
 }
 
-public struct F8Dot8x2
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
+public readonly struct F8Dot8x2
 {
-    private uint _value;
+    private readonly uint _value;
+
+    private F8Dot8x2(uint value) => _value = value;
+
+    public F8Dot8 X => (short) _value;
+    public F8Dot8 Y => (short) (_value >> 16);
 
     public static implicit operator uint(F8Dot8x2 value) => value._value;
 
-    public static implicit operator F8Dot8x2(uint value) => new() { _value = value };
+    public static implicit operator F8Dot8x2(uint value) => new(value);
+
+    private readonly string GetDebuggerDisplay()
+    {
+        string separator = NumberFormatInfo.GetInstance(null).NumberGroupSeparator;
+
+        return $"<{X}{separator} {Y}>";
+    }
 }
 
-public struct F8Dot8x4
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
+public readonly struct F8Dot8x4
 {
-    private ulong _value;
+    private readonly ulong _value;
+    
+    private F8Dot8x4(ulong value) => _value = value;
+
+    public F8Dot8 X => (short) _value;
+    public F8Dot8 Y => (short) (_value >> 16);
+    public F8Dot8 Z => (short) (_value >> 32);
+    public F8Dot8 W => (short) (_value >> 48);
 
     public static implicit operator ulong(F8Dot8x4 value) => value._value;
 
-    public static implicit operator F8Dot8x4(ulong value) => new() { _value = value };
+    public static implicit operator F8Dot8x4(ulong value) => new(value);
+    
+    private readonly string GetDebuggerDisplay()
+    {
+        string separator = NumberFormatInfo.GetInstance(null).NumberGroupSeparator;
+
+        return $"<{X}{separator} {Y}{separator} {Z}{separator} {W}>";
+    }
 }
 
 
-public partial struct F8Dot8
+public readonly partial struct F8Dot8
 {
     public static F8Dot8x2 PackF24Dot8ToF8Dot8x2(F24Dot8 a, F24Dot8 b)
     {
@@ -42,7 +84,7 @@ public partial struct F8Dot8
         Debug.Assert((a & 0xffff0000) == 0);
         Debug.Assert((b & 0xffff0000) == 0);
 
-        return (F8Dot8x2) (uint) (a) | ((F8Dot8x2) (uint) (b) << 16);
+        return (uint) a | ((uint) b << 16);
     }
 
 
@@ -54,19 +96,19 @@ public partial struct F8Dot8
         Debug.Assert((c & 0xffff0000) == 0);
         Debug.Assert((d & 0xffff0000) == 0);
 
-        return (F8Dot8x4) (uint) (a) | ((F8Dot8x4) (uint) (b) << 16) |
-            ((F8Dot8x4) (uint) (c) << 32) | ((F8Dot8x4) (uint) (d) << 48);
+        return (uint) a | ((uint) b << 16) |
+            ((uint) c << 32) | ((uint) d << 48);
     }
 
 
     public static F24Dot8 UnpackLoFromF8Dot8x2(F8Dot8x2 a)
     {
-        return (F24Dot8) (a & 0xffff);
+        return ((uint) a & 0xffff);
     }
 
 
     public static F24Dot8 UnpackHiFromF8Dot8x2(F8Dot8x2 a)
     {
-        return (F24Dot8) (a >> 16);
+        return ((uint) a >> 16);
     }
 }

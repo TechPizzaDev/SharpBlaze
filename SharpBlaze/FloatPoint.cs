@@ -1,8 +1,10 @@
-
+using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
 
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
 public struct FloatPoint
 {
     public double X;
@@ -42,5 +44,12 @@ public struct FloatPoint
             a.X * b.X,
             a.Y * b.Y
         );
+    }
+
+    private readonly string GetDebuggerDisplay()
+    {
+        string separator = NumberFormatInfo.GetInstance(null).NumberGroupSeparator;
+
+        return $"<{X}{separator} {Y}>";
     }
 }

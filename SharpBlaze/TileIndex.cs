@@ -9,7 +9,7 @@ public struct TileIndex
     {
         return value._value;
     }
-    
+
     public static explicit operator int(TileIndex value)
     {
         return (int) value._value;
@@ -23,5 +23,10 @@ public struct TileIndex
     public static explicit operator TileIndex(int value)
     {
         return new TileIndex() { _value = (uint) value };
+    }
+
+    public override string ToString()
+    {
+        return _value.ToString();
     }
 }

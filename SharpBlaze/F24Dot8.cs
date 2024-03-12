@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
@@ -5,9 +6,12 @@ namespace SharpBlaze;
 /**
  * 24.8 fixed point number.
  */
-public struct F24Dot8
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
+public readonly struct F24Dot8
 {
-    int _value;
+    private readonly int _value;
+
+    private F24Dot8(int value) => _value = value;
 
     /**
      * Value equivalent to one in 24.8 fixed point format.
@@ -46,7 +50,17 @@ public struct F24Dot8
 
     public static implicit operator uint(F24Dot8 value) => (uint) value._value;
 
-    public static implicit operator F24Dot8(int value) => new F24Dot8() { _value = value };
+    public static implicit operator F24Dot8(int value) => new(value);
 
-    public static implicit operator F24Dot8(uint value) => new F24Dot8() { _value = (int) value };
+    public static implicit operator F24Dot8(uint value) => new((int) value);
+    
+    public override string ToString()
+    {
+        return $"{_value / 256.0:F}";
+    }
+
+    private readonly string GetDebuggerDisplay()
+    {
+        return $"{_value} ({ToString()})";
+    }
 }
