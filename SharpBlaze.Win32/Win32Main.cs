@@ -103,12 +103,12 @@ public unsafe class Win32Main : Main
 
                 BITMAPINFO info = new();
                 info.bmiHeader.biSize = (uint) sizeof(BITMAPINFOHEADER);
-                info.bmiHeader.biWidth = (int) main.WindowWidth;
-                info.bmiHeader.biHeight = (int) main.WindowHeight;
+                info.bmiHeader.biWidth = main.mImage.GetImageWidth();
+                info.bmiHeader.biHeight = -main.mImage.GetImageHeight();
                 info.bmiHeader.biPlanes = 1;
                 info.bmiHeader.biBitCount = 32;
                 info.bmiHeader.biCompression = BI.BI_RGB;
-                SetDIBits(hdcMem, main.g_hBitmap, 0, main.WindowHeight, main.g_rawData, &info, DIB_RGB_COLORS);
+                SetDIBits(hdcMem, main.g_hBitmap, 0, (uint) main.mImage.GetImageHeight(), main.mImage.GetImageData(), &info, DIB_RGB_COLORS);
 
                 BITMAP bm;
                 HGDIOBJ hbmOld = SelectObject(hdcMem, main.g_hBitmap);
@@ -124,10 +124,10 @@ public unsafe class Win32Main : Main
 
                 long now = Stopwatch.GetTimestamp();
 
-                //Vector3 right = Vector3.Normalize(Vector3.Cross(main.g_cameraDirection, main.g_upVector));
                 float deltaTime = (float) Stopwatch.GetElapsedTime(main.lastPaint, now).TotalMilliseconds;
-                float translateSpeed = 0.01f * deltaTime;
+                float translateSpeed = 0.1f * deltaTime;
                 float rotateSpeed = 0.002f * deltaTime;
+                float zoomSpeed = 0.001f * deltaTime;
 
                 main.lastPaint = now;
 
@@ -137,35 +137,24 @@ public unsafe class Win32Main : Main
                 if (GetAsyncKeyState(VK_CONTROL) != 0)
                     translateSpeed *= 0.1f;
 
-                //if (GetAsyncKeyState('W') != 0)
-                //    main.g_cameraPosition = Vector3.Add(main.g_cameraPosition, Vector3.Multiply(main.g_cameraDirection, translateSpeed));
-                //
-                //if (GetAsyncKeyState('S') != 0)
-                //    main.g_cameraPosition = Vector3.Add(main.g_cameraPosition, Vector3.Multiply(main.g_cameraDirection, -translateSpeed));
-                //
-                //if (GetAsyncKeyState('A') != 0)
-                //    main.g_cameraPosition = Vector3.Add(main.g_cameraPosition, Vector3.Multiply(right, translateSpeed));
-                //
-                //if (GetAsyncKeyState('D') != 0)
-                //    main.g_cameraPosition = Vector3.Add(main.g_cameraPosition, Vector3.Multiply(right, -translateSpeed));
-                //
-                //if (GetAsyncKeyState(VK_UP) != 0)
-                //    main.g_cameraDirection = Vector3.Transform(main.g_cameraDirection, Quaternion.CreateFromAxisAngle(right, rotateSpeed));
-                //
-                //if (GetAsyncKeyState(VK_DOWN) != 0)
-                //    main.g_cameraDirection = Vector3.Transform(main.g_cameraDirection, Quaternion.CreateFromAxisAngle(right, -rotateSpeed));
-                //
-                //if (GetAsyncKeyState(VK_LEFT) != 0)
-                //    main.g_cameraDirection = Vector3.Transform(main.g_cameraDirection, Quaternion.CreateFromAxisAngle(main.g_upVector, -rotateSpeed));
-                //
-                //if (GetAsyncKeyState(VK_RIGHT) != 0)
-                //    main.g_cameraDirection = Vector3.Transform(main.g_cameraDirection, Quaternion.CreateFromAxisAngle(main.g_upVector, rotateSpeed));
-                //
-                //if ((GetAsyncKeyState('R') & 1) != 0)
-                //{
-                //    main.CycleRasterizerImpl();
-                //}
+                if (GetAsyncKeyState('W') != 0)
+                    main.mViewData.Translation += new FloatPoint(0, translateSpeed);
 
+                if (GetAsyncKeyState('S') != 0)
+                    main.mViewData.Translation -= new FloatPoint(0, translateSpeed);
+
+                if (GetAsyncKeyState('A') != 0)
+                    main.mViewData.Translation += new FloatPoint(translateSpeed, 0);
+
+                if (GetAsyncKeyState('D') != 0)
+                    main.mViewData.Translation -= new FloatPoint(translateSpeed, 0);
+                
+                if (GetAsyncKeyState(VK_UP) != 0)
+                    main.mViewData.Scale += zoomSpeed;
+
+                if (GetAsyncKeyState(VK_DOWN) != 0)
+                    main.mViewData.Scale -= zoomSpeed;
+                
                 InvalidateRect(hWnd, default, FALSE);
             }
             break;

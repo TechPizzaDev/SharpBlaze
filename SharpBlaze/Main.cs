@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 
 namespace SharpBlaze;
 
@@ -11,7 +11,9 @@ public unsafe class Main
     public uint WindowWidth { get; }
     public uint WindowHeight { get; }
 
-    protected byte* g_rawData;
+    public ViewData mViewData;
+    public DestinationImage<TileDescriptor_8x16> mImage;
+    VectorImage mVectorImage;
 
     protected Queue<double> samples = new();
 
@@ -20,17 +22,49 @@ public unsafe class Main
         WindowWidth = width;
         WindowHeight = height;
 
-        g_rawData = (byte*) NativeMemory.Alloc(WindowWidth * WindowHeight * 4);
+        mVectorImage = new VectorImage();
+
+        byte[] bytes = File.ReadAllBytes("../../../../Images/Paris-30k.vectorimage");
+        fixed (byte* pBytes = bytes)
+        {
+            mVectorImage.Parse(pBytes, (ulong) bytes.Length);
+        }
+
+        mImage = new DestinationImage<TileDescriptor_8x16>();
+
+        mViewData = new ViewData();
+        mViewData.SetupCoordinateSystem((int) WindowWidth, (int) WindowHeight, mVectorImage);
     }
 
     public void Rasterize()
     {
+        IntSize imageSize = mImage.UpdateSize(new IntSize(
+            (int) WindowWidth, (int) WindowHeight
+        ));
+
         long raster_start = Stopwatch.GetTimestamp();
 
+        Matrix matrix = mViewData.GetMatrix();
 
+        mImage.ClearImage();
+        mImage.DrawImage(mVectorImage, matrix);
 
         long raster_end = Stopwatch.GetTimestamp();
         //Console.WriteLine(clips + " - " + notClips + " - " + misses);
+
+        int pixelCount = mImage.GetBytesPerRow() * mImage.GetImageHeight();
+        byte* pixels = mImage.GetImageData();
+        byte* pixelsEnd = pixels + pixelCount;
+        while (pixels < pixelsEnd)
+        {
+            byte r = pixels[2];
+            byte b = pixels[0];
+
+            pixels[0] = r;
+            pixels[2] = b;
+
+            pixels += 4;
+        }
 
         double rasterTime = Stopwatch.GetElapsedTime(raster_start, raster_end).TotalMilliseconds;
 
@@ -52,24 +86,4 @@ public unsafe class Main
 
         return (avgRasterTime, median, stDev);
     }
-
-    //public void CycleRasterizerImpl()
-    //{
-    //    var previousRasterizer = g_rasterizer;
-    //    if (previousRasterizer is Avx2Rasterizer<FmaIntrinsic> or Avx2Rasterizer<FmaX86>)
-    //    {
-    //        g_rasterizer = V128Rasterizer<FmaX86>.Create(g_rasterizationTable, WindowWidth, WindowHeight);
-    //    }
-    //    else if (previousRasterizer is V128Rasterizer<FmaIntrinsic> or V128Rasterizer<FmaX86>)
-    //    {
-    //        g_rasterizer = ScalarRasterizer.Create(g_rasterizationTable, WindowWidth, WindowHeight);
-    //    }
-    //    else
-    //    {
-    //        g_rasterizer = Avx2Rasterizer<FmaX86>.Create(g_rasterizationTable, WindowWidth, WindowHeight);
-    //    }
-    //
-    //    previousRasterizer.Dispose();
-    //    Console.WriteLine($"Changed to {g_rasterizer}  (from {previousRasterizer})");
-    //}
 }
