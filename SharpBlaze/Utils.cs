@@ -242,6 +242,12 @@ public static class Utils
         return (Math.Abs(a - b) < DBL_EPSILON);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<double> FuzzyIsEqual(Vector128<double> a, Vector128<double> b)
+    {
+        return Vector128.LessThan(Vector128.Abs(a - b), Vector128.Create(DBL_EPSILON));
+    }
+
 
     /**
      * Returns true if two given numbers are considered equal.
@@ -272,6 +278,12 @@ public static class Utils
         return (Math.Abs(a - b) >= DBL_EPSILON);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<double> FuzzyNotEqual(Vector128<double> a, Vector128<double> b)
+    {
+        return Vector128.GreaterThanOrEqual(Vector128.Abs(a - b), Vector128.Create(DBL_EPSILON));
+    }
+
 
     /**
      * Returns true if two given numbers are not considered equal.
@@ -300,6 +312,12 @@ public static class Utils
     public static bool FuzzyNotZero(double d)
     {
         return Math.Abs(d) >= DBL_EPSILON;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool FuzzyNotZero(Vector128<double> d)
+    {
+        return Vector128.GreaterThanOrEqualAll(Vector128.Abs(d), Vector128.Create(DBL_EPSILON));
     }
 
 

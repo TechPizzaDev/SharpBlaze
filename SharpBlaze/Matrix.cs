@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
 
@@ -12,23 +13,17 @@ public partial struct Matrix
      */
     public Matrix(in Matrix matrix1, in Matrix matrix2)
     {
-        m[0][0] = matrix2.m[0][0] * matrix1.m[0][0] + matrix2.m[0][1] *
-            matrix1.m[1][0];
+        m[0] = Vector128.Create(
+            matrix2.m[0][0] * matrix1.m[0][0] + matrix2.m[0][1] * matrix1.m[1][0],
+            matrix2.m[0][0] * matrix1.m[0][1] + matrix2.m[0][1] * matrix1.m[1][1]);
 
-        m[0][1] = matrix2.m[0][0] * matrix1.m[0][1] + matrix2.m[0][1] *
-            matrix1.m[1][1];
+        m[1] = Vector128.Create(
+            matrix2.m[1][0] * matrix1.m[0][0] + matrix2.m[1][1] * matrix1.m[1][0],
+            matrix2.m[1][0] * matrix1.m[0][1] + matrix2.m[1][1] * matrix1.m[1][1]);
 
-        m[1][0] = matrix2.m[1][0] * matrix1.m[0][0] + matrix2.m[1][1] *
-            matrix1.m[1][0];
-
-        m[1][1] = matrix2.m[1][0] * matrix1.m[0][1] + matrix2.m[1][1] *
-            matrix1.m[1][1];
-
-        m[2][0] = matrix2.m[2][0] * matrix1.m[0][0] + matrix2.m[2][1] *
-            matrix1.m[1][0] + matrix1.m[2][0];
-
-        m[2][1] = matrix2.m[2][0] * matrix1.m[0][1] + matrix2.m[2][1] *
-            matrix1.m[1][1] + matrix1.m[2][1];
+        m[2] = Vector128.Create(
+            matrix2.m[2][0] * matrix1.m[0][0] + matrix2.m[2][1] * matrix1.m[1][0] + matrix1.m[2][0],
+            matrix2.m[2][0] * matrix1.m[0][1] + matrix2.m[2][1] * matrix1.m[1][1] + matrix1.m[2][1]);
     }
 
 
@@ -39,12 +34,9 @@ public partial struct Matrix
     {
         Matrix r;
         Unsafe.SkipInit(out r);
-        r.m[0][0] = 1;
-        r.m[0][1] = 0;
-        r.m[1][0] = 0;
-        r.m[1][1] = 1;
-        r.m[2][0] = translation.X;
-        r.m[2][1] = translation.Y;
+        r.m[0] = Vector128.Create(1.0, 0);
+        r.m[1] = Vector128.Create(0.0, 1);
+        r.m[2] = Vector128.Create(translation.X, translation.Y);
         return r;
     }
 
@@ -97,7 +89,7 @@ public partial struct Matrix
     }
 
 
-    public readonly partial bool Invert(ref Matrix result)
+    public readonly partial bool Invert(out Matrix result)
     {
         double det = GetDeterminant();
 
@@ -121,40 +113,22 @@ public partial struct Matrix
 
     public readonly partial Matrix Inverse()
     {
-        double det = GetDeterminant();
-
-        if (FuzzyIsZero(det))
-        {
-            return Identity;
-        }
-
-        return new Matrix(
-             m[1][1] / det,
-            -m[0][1] / det,
-            -m[1][0] / det,
-             m[0][0] / det,
-            (m[1][0] * m[2][1] - m[1][1] * m[2][0]) / det,
-            (m[0][1] * m[2][0] - m[0][0] * m[2][1]) / det);
+        Invert(out Matrix result);
+        return result;
     }
 
 
     public readonly partial FloatRect Map(in FloatRect rect)
     {
-        FloatPoint topLeft = Map(rect.MinX, rect.MinY);
-        FloatPoint topRight = Map(rect.MaxX, rect.MinY);
-        FloatPoint bottomLeft = Map(rect.MinX, rect.MaxY);
-        FloatPoint bottomRight = Map(rect.MaxX, rect.MaxY);
+        Vector128<double> topLeft = Map(rect.Min).AsVector128();
+        Vector128<double> topRight = Map(rect.Max.X, rect.Min.Y).AsVector128();
+        Vector128<double> bottomLeft = Map(rect.Min.X, rect.Max.Y).AsVector128();
+        Vector128<double> bottomRight = Map(rect.Max).AsVector128();
 
-        double minX = Min(topLeft.X, Min(topRight.X, Min(bottomLeft.X,
-            bottomRight.X)));
-        double maxX = Max(topLeft.X, Max(topRight.X, Max(bottomLeft.X,
-            bottomRight.X)));
-        double minY = Min(topLeft.Y, Min(topRight.Y, Min(bottomLeft.Y,
-            bottomRight.Y)));
-        double maxY = Max(topLeft.Y, Max(topRight.Y, Max(bottomLeft.Y,
-            bottomRight.Y)));
+        Vector128<double> min = Vector128.Min(topLeft, Vector128.Min(topRight, Vector128.Min(bottomLeft, bottomRight)));
+        Vector128<double> max = Vector128.Max(topLeft, Vector128.Max(topRight, Vector128.Max(bottomLeft, bottomRight)));
 
-        return new FloatRect(minX, minY, maxX - minX, maxY - minY);
+        return new FloatRect(new FloatPoint(min), new FloatPoint(max));
     }
 
 
@@ -170,24 +144,18 @@ public partial struct Matrix
     {
         // Look at diagonal elements first to return if scale is not 1.
         return
-            m[0][0] == 1 &&
-            m[1][1] == 1 &&
-            m[0][1] == 0 &&
-            m[1][0] == 0 &&
-            m[2][0] == 0 &&
-            m[2][1] == 0;
+            Vector128.EqualsAll(m[0], Vector128.Create(1.0, 0)) &&
+            Vector128.EqualsAll(m[1], Vector128.Create(0, 1.0)) &&
+            Vector128.EqualsAll(m[2], Vector128<double>.Zero);
     }
 
 
     public readonly partial bool IsEqual(in Matrix matrix)
     {
         return
-            FuzzyIsEqual(m[0][0], matrix.m[0][0]) &&
-            FuzzyIsEqual(m[0][1], matrix.m[0][1]) &&
-            FuzzyIsEqual(m[1][0], matrix.m[1][0]) &&
-            FuzzyIsEqual(m[1][1], matrix.m[1][1]) &&
-            FuzzyIsEqual(m[2][0], matrix.m[2][0]) &&
-            FuzzyIsEqual(m[2][1], matrix.m[2][1]);
+            Vector128.EqualsAll(FuzzyIsEqual(m[0], matrix.m[0]), Vector128<double>.AllBitsSet) &&
+            Vector128.EqualsAll(FuzzyIsEqual(m[1], matrix.m[1]), Vector128<double>.AllBitsSet) &&
+            Vector128.EqualsAll(FuzzyIsEqual(m[2], matrix.m[2]), Vector128<double>.AllBitsSet);
     }
 
 
@@ -282,51 +250,55 @@ public partial struct Matrix
         double m10 = m[1][0];
         double m11 = m[1][1];
 
-        m[0][0] = matrix.m[0][0] * m00 + matrix.m[0][1] * m10;
-        m[0][1] = matrix.m[0][0] * m01 + matrix.m[0][1] * m11;
-        m[1][0] = matrix.m[1][0] * m00 + matrix.m[1][1] * m10;
-        m[1][1] = matrix.m[1][0] * m01 + matrix.m[1][1] * m11;
-        m[2][0] = matrix.m[2][0] * m00 + matrix.m[2][1] * m10 + m[2][0];
-        m[2][1] = matrix.m[2][0] * m01 + matrix.m[2][1] * m11 + m[2][1];
+        m[0] = Vector128.Create(
+            matrix.m[0][0] * m00 + matrix.m[0][1] * m10,
+            matrix.m[0][0] * m01 + matrix.m[0][1] * m11);
+        m[1] = Vector128.Create(
+            matrix.m[1][0] * m00 + matrix.m[1][1] * m10,
+            matrix.m[1][0] * m01 + matrix.m[1][1] * m11);
+        m[2] = Vector128.Create(
+            matrix.m[2][0] * m00 + matrix.m[2][1] * m10 + m[2][0],
+            matrix.m[2][0] * m01 + matrix.m[2][1] * m11 + m[2][1]);
     }
 
 
     public partial void PreMultiply(in Matrix matrix)
     {
-        double m00 = m[0][0];
-        double m01 = m[0][1];
-        double m10 = m[1][0];
-        double m11 = m[1][1];
+        Vector128<double> o0 = matrix.m[0];
+        Vector128<double> o1 = matrix.m[1];
 
-        m[0][0] = m00 * matrix.m[0][0] + m01 * matrix.m[1][0];
-        m[0][1] = m00 * matrix.m[0][1] + m01 * matrix.m[1][1];
-        m[1][0] = m10 * matrix.m[0][0] + m11 * matrix.m[1][0];
-        m[1][1] = m10 * matrix.m[0][1] + m11 * matrix.m[1][1];
-        m[2][0] = m[2][0] * matrix.m[0][0] + m[2][1] * matrix.m[1][0] + matrix.m[2][0];
-        m[2][1] = m[2][0] * matrix.m[0][1] + m[2][1] * matrix.m[1][1] + matrix.m[2][1];
+        Vector128<double> m00 = Vector128.Create(m[0][0]);
+        Vector128<double> m01 = Vector128.Create(m[0][1]);
+        m[0] = m00 * o0 + m01 * o1;
+
+        Vector128<double> m10 = Vector128.Create(m[1][0]);
+        Vector128<double> m11 = Vector128.Create(m[1][1]);
+        m[1] = m10 * o0 + m11 * o1;
+
+        Vector128<double> m20 = Vector128.Create(m[2][0]);
+        Vector128<double> m21 = Vector128.Create(m[2][1]);
+        m[2] = m20 * o0 + m21 * o1 + matrix.m[2];
     }
 
 
     public readonly partial MatrixComplexity DetermineComplexity()
     {
-        bool m00 = FuzzyNotEqual(m[0][0], 1.0);
-        bool m01 = FuzzyNotZero(m[0][1]);
-        bool m10 = FuzzyNotZero(m[1][0]);
-        bool m11 = FuzzyNotEqual(m[1][1], 1.0);
-        bool m20 = FuzzyNotZero(m[2][0]);
-        bool m21 = FuzzyNotZero(m[2][1]);
+        Vector128<double> m0 = FuzzyNotEqual(m[0], Vector128.Create(1.0, 0));
+        Vector128<double> m1 = FuzzyNotEqual(m[1], Vector128.Create(0, 1.0));
+        uint m01 = (m0 | Vector128.Shuffle(m1, Vector128.Create(1, 0))).ExtractMostSignificantBits();
+        bool m2 = FuzzyNotZero(m[2]);
 
-        bool translation = m20 | m21;
-        bool scale = m00 | m11;
-        bool complex = m01 | m10;
+        bool translation = m2;
+        bool scale = (m01 & 0b01) != 0;
+        bool complex = (m01 & 0b10) != 0;
 
         const int TranslationBit = 2;
         const int ScaleBit = 1;
         const int ComplexBit = 0;
 
         int mask =
-            ((translation ? 1 : 0) << 2) |
-            ((scale ? 1 : 0) << 1) |
+            ((translation ? 1 : 0) << TranslationBit) |
+            ((scale ? 1 : 0) << ScaleBit) |
             ((complex ? 1 : 0) << ComplexBit);
 
         switch (mask)

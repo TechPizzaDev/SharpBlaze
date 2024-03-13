@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
 
@@ -10,10 +11,24 @@ public struct FloatPoint
     public double X;
     public double Y;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FloatPoint(double x, double y)
     {
         X = x;
         Y = y;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public FloatPoint(Vector128<double> xy)
+    {
+        this = Unsafe.BitCast<Vector128<double>, FloatPoint>(xy);
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector128<double> AsVector128()
+    {
+        return Unsafe.BitCast<FloatPoint, Vector128<double>>(this);
     }
 
 

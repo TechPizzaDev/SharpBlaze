@@ -1,4 +1,6 @@
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
 
@@ -124,7 +126,7 @@ public partial struct Matrix
      * Otherwise, identity matrix is stored in the result parameter and false
      * is returned.
      */
-    public readonly partial bool Invert(ref Matrix result);
+    public readonly partial bool Invert(out Matrix result);
 
 
     /**
@@ -345,21 +347,15 @@ public partial struct Matrix
     public readonly partial MatrixComplexity DetermineComplexity();
 
 
-    [InlineArray(2)]
-    private struct Row
-    {
-        private double _e0;
-    }
-
     [InlineArray(3)]
     private struct Rows
     {
-        private Row _e0;
+        private Vector128<double> _e0;
     }
 
     private Rows m;
 
-    
+
 
     /**
      * Constructs identity 3x2 matrix.
@@ -367,12 +363,9 @@ public partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Matrix()
     {
-        m[0][0] = 1;
-        m[0][1] = 0;
-        m[1][0] = 0;
-        m[1][1] = 1;
-        m[2][0] = 0;
-        m[2][1] = 0;
+        m[0] = Vector128.Create(1.0, 0);
+        m[1] = Vector128.Create(0.0, 1);
+        m[2] = Vector128<double>.Zero;
     }
 
 
@@ -382,12 +375,7 @@ public partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Matrix(in Matrix matrix)
     {
-        m[0][0] = matrix.m[0][0];
-        m[0][1] = matrix.m[0][1];
-        m[1][0] = matrix.m[1][0];
-        m[1][1] = matrix.m[1][1];
-        m[2][0] = matrix.m[2][0];
-        m[2][1] = matrix.m[2][1];
+        this = matrix;
     }
 
 
@@ -398,12 +386,9 @@ public partial struct Matrix
     public Matrix(double m11, double m12, double m21,
         double m22, double m31, double m32)
     {
-        m[0][0] = m11;
-        m[0][1] = m12;
-        m[1][0] = m21;
-        m[1][1] = m22;
-        m[2][0] = m31;
-        m[2][1] = m32;
+        m[0] = Vector128.Create(m11, m12);
+        m[1] = Vector128.Create(m21, m22);
+        m[2] = Vector128.Create(m31, m32);
     }
 
 
@@ -460,7 +445,10 @@ public partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial double GetDeterminant()
     {
-        return m[0][0] * m[1][1] - m[0][1] * m[1][0];
+        Vector128<double> m0 = m[0];
+        Vector128<double> m1 = Vector128.Shuffle(m[1], Vector128.Create(1, 0));
+        Vector128<double> d = m0 * m1;
+        return d[0] - d[1];
     }
 
 
@@ -468,19 +456,14 @@ public partial struct Matrix
     public readonly partial FloatPoint Map(FloatPoint point)
     {
         return new FloatPoint(
-            m[0][0] * point.X + m[1][0] * point.Y + m[2][0],
-            m[0][1] * point.X + m[1][1] * point.Y + m[2][1]
-        );
+            m[0] * Vector128.Create(point.X) + m[1] * Vector128.Create(point.Y) + m[2]);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial FloatPoint Map(double x, double y)
     {
-        return new FloatPoint(
-            m[0][0] * x + m[1][0] * y + m[2][0],
-            m[0][1] * x + m[1][1] * y + m[2][1]
-        );
+        return Map(new FloatPoint(x, y));
     }
 
 
@@ -494,7 +477,7 @@ public partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public partial void SetM11(double value)
     {
-        m[0][0] = value;
+        m[0] = m[0].WithElement(0, value);
     }
 
 
@@ -508,7 +491,7 @@ public partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public partial void SetM12(double value)
     {
-        m[0][1] = value;
+        m[0] = m[0].WithElement(1, value);
     }
 
 
@@ -522,7 +505,7 @@ public partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public partial void SetM21(double value)
     {
-        m[1][0] = value;
+        m[1] = m[1].WithElement(0, value);
     }
 
 
@@ -536,7 +519,7 @@ public partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public partial void SetM22(double value)
     {
-        m[1][1] = value;
+        m[1] = m[1].WithElement(1, value);
     }
 
 
@@ -550,7 +533,7 @@ public partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public partial void SetM31(double value)
     {
-        m[2][0] = value;
+        m[2] = m[2].WithElement(0, value);
     }
 
 
@@ -565,16 +548,16 @@ public partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public partial void SetM32(double value)
     {
-        m[2][1] = value;
+        m[2] = m[2].WithElement(1, value);
     }
 
-   
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(in Matrix self, in Matrix matrix)
     {
         return self.IsEqual(matrix);
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(in Matrix self, in Matrix matrix)
     {
