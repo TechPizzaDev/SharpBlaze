@@ -16,19 +16,6 @@ public unsafe partial class Threads
     {
     }
 
-    public static partial int GetHardwareThreadCount();
-
-    public partial void ParallelFor(int count, Action<int, ThreadMemory> loopBody);
-
-    public partial void* MallocMain(int size);
-
-    public partial T* MallocMain<T>() where T : unmanaged;
-
-    public partial T* NewMain<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>;
-
-    public partial void ResetFrameMemory();
-
-    private partial void RunThreads();
 
     private class TaskList
     {
@@ -62,13 +49,9 @@ public unsafe partial class Threads
     private int mThreadCount = 0;
     private ThreadMemory mMainMemory = new();
 
-    private partial void Run(int count, Action<int, ThreadMemory> loopBody);
-
-    private static partial void Worker(object? p);
-
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void ParallelFor(int count, Action<int, ThreadMemory> loopBody)
+    public void ParallelFor(int count, Action<int, ThreadMemory> loopBody)
     {
         RunThreads();
 
@@ -108,21 +91,21 @@ public unsafe partial class Threads
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void* MallocMain(int size)
+    public void* MallocMain(int size)
     {
         return mMainMemory.FrameMalloc(size);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial T* MallocMain<T>() where T : unmanaged
+    public T* MallocMain<T>() where T : unmanaged
     {
         return mMainMemory.FrameMalloc<T>();
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial T* NewMain<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>
+    public T* NewMain<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>
     {
         T* instance = MallocMain<T>();
         T.Construct(ref *instance, args);

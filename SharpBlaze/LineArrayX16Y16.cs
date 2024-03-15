@@ -45,24 +45,6 @@ public unsafe partial struct LineArrayX16Y16 : ILineArrayBlock<LineArrayX16Y16>
     {
     }
 
-    public static partial void Construct(ref LineArrayX16Y16 placement,
-        TileIndex rowCount, TileIndex columnCount,
-        ThreadMemory memory);
-
-    public partial LineArrayX16Y16Block* GetFrontBlock();
-    public partial int GetFrontBlockLineCount();
-
-    public partial void AppendVerticalLine(ThreadMemory memory, F24Dot8 x, F24Dot8 y0, F24Dot8 y1);
-    public partial void AppendLineDownR_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    public partial void AppendLineUpR_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    public partial void AppendLineDownL_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    public partial void AppendLineUpL_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    public partial void AppendLineDownRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    public partial void AppendLineUpRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-
-    private partial void AppendLine(ThreadMemory memory, F8Dot8x2 y0y1, F8Dot8x2 x0x1);
-    private partial void AppendLine(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-
     void* ILineArrayBlock<LineArrayX16Y16>.GetFrontBlock()
     {
         return GetFrontBlock();

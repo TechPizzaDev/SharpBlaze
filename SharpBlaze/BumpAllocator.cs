@@ -28,7 +28,7 @@ public unsafe partial class BumpAllocator
     }
 
 
-    private partial void FreeBlockChain(Block* block)
+    private void FreeBlockChain(Block* block)
     {
         while (block != null)
         {
@@ -42,7 +42,7 @@ public unsafe partial class BumpAllocator
     }
 
 
-    private partial void* MallocFromNewBlock(int size)
+    private void* MallocFromNewBlock(int size)
     {
         Debug.Assert(size > 0);
 

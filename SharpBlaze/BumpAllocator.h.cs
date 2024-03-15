@@ -94,11 +94,6 @@ public unsafe partial class BumpAllocator
     Block* mMasterFreeList = null;
 
 
-    private partial void* MallocFromNewBlock(int size);
-
-    private partial void FreeBlockChain(Block* block);
-
-
     /**
      * Returns allocation size rounded up so that the next allocation from the
      * same block will be aligned oto 16 byte boundary.

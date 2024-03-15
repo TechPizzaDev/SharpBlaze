@@ -6,7 +6,7 @@ namespace SharpBlaze;
 public unsafe partial struct LineArrayTiled<T>
     where T : ITileDescriptor
 {
-    public static partial void Construct(ref LineArrayTiled<T> placement,
+    public static void Construct(ref LineArrayTiled<T> placement,
         TileIndex rowCount, TileIndex columnCount,
         ThreadMemory memory)
     {
@@ -41,32 +41,32 @@ public unsafe partial struct LineArrayTiled<T>
     }
 
 
-    public partial BitVector* GetTileAllocationBitVectors()
+    public BitVector* GetTileAllocationBitVectors()
     {
         return mBitVectors;
     }
 
 
-    public partial LineArrayTiledBlock* GetFrontBlockForColumn(TileIndex columnIndex)
+    public LineArrayTiledBlock* GetFrontBlockForColumn(TileIndex columnIndex)
     {
         return mBlocks[columnIndex];
     }
 
 
-    public partial int* GetCoversForColumn(TileIndex columnIndex)
+    public int* GetCoversForColumn(TileIndex columnIndex)
     {
         return mCovers[columnIndex];
     }
 
 
-    public partial int GetTotalLineCountForColumn(TileIndex columnIndex)
+    public int GetTotalLineCountForColumn(TileIndex columnIndex)
     {
         return mCounts[columnIndex];
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendVerticalLine(ThreadMemory memory, F24Dot8 x, F24Dot8 y0, F24Dot8 y1)
+    public void AppendVerticalLine(ThreadMemory memory, F24Dot8 x, F24Dot8 y0, F24Dot8 y1)
     {
         TileIndex columnIndex = T.F24Dot8ToTileColumnIndex(x - FindTileColumnAdjustment(x));
         F24Dot8 ex = x - T.TileColumnIndexToF24Dot8(columnIndex);
@@ -76,7 +76,7 @@ public unsafe partial struct LineArrayTiled<T>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendLineDownR_V(ThreadMemory memory,
+    public void AppendLineDownR_V(ThreadMemory memory,
         F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x,
         F24Dot8 p1y)
     {
@@ -99,7 +99,7 @@ public unsafe partial struct LineArrayTiled<T>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendLineUpR_V(ThreadMemory memory,
+    public void AppendLineUpR_V(ThreadMemory memory,
         F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x,
         F24Dot8 p1y)
     {
@@ -122,7 +122,7 @@ public unsafe partial struct LineArrayTiled<T>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendLineDownL_V(ThreadMemory memory,
+    public void AppendLineDownL_V(ThreadMemory memory,
         F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x,
         F24Dot8 p1y)
     {
@@ -145,7 +145,7 @@ public unsafe partial struct LineArrayTiled<T>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendLineUpL_V(ThreadMemory memory,
+    public void AppendLineUpL_V(ThreadMemory memory,
         F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x,
         F24Dot8 p1y)
     {
@@ -168,7 +168,7 @@ public unsafe partial struct LineArrayTiled<T>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendLineDownRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
+    public void AppendLineDownRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
     {
         Debug.Assert(x0 != x1);
 
@@ -184,7 +184,7 @@ public unsafe partial struct LineArrayTiled<T>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendLineUpRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
+    public void AppendLineUpRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
     {
         Debug.Assert(x0 != x1);
 
@@ -200,7 +200,7 @@ public unsafe partial struct LineArrayTiled<T>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void AppendLineDownR(ThreadMemory memory,
+    private void AppendLineDownR(ThreadMemory memory,
         F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x,
         F24Dot8 p1y)
     {
@@ -279,7 +279,7 @@ public unsafe partial struct LineArrayTiled<T>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void AppendLineUpR(ThreadMemory memory,
+    private void AppendLineUpR(ThreadMemory memory,
         F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x,
         F24Dot8 p1y)
     {
@@ -358,7 +358,7 @@ public unsafe partial struct LineArrayTiled<T>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void AppendLineDownL(ThreadMemory memory,
+    private void AppendLineDownL(ThreadMemory memory,
         F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x,
         F24Dot8 p1y)
     {
@@ -437,7 +437,7 @@ public unsafe partial struct LineArrayTiled<T>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void AppendLineUpL(ThreadMemory memory,
+    private void AppendLineUpL(ThreadMemory memory,
         F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x,
         F24Dot8 p1y)
     {
@@ -516,7 +516,7 @@ public unsafe partial struct LineArrayTiled<T>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void Append(ThreadMemory memory,
+    private void Append(ThreadMemory memory,
         TileIndex columnIndex, F24Dot8 x0, F24Dot8 y0,
         F24Dot8 x1, F24Dot8 y1)
     {
@@ -532,7 +532,7 @@ public unsafe partial struct LineArrayTiled<T>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void Push(ThreadMemory memory,
+    private void Push(ThreadMemory memory,
         TileIndex columnIndex, F24Dot8 x0, F24Dot8 y0,
         F24Dot8 x1, F24Dot8 y1)
     {

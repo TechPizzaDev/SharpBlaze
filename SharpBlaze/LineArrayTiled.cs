@@ -37,34 +37,6 @@ public unsafe struct LineArrayTiledBlock : IConstructible<LineArrayTiledBlock, P
 public unsafe partial struct LineArrayTiled<T> : ILineArray<LineArrayTiled<T>>
     where T : ITileDescriptor
 {
-
-    public static partial void Construct(ref LineArrayTiled<T> placement,
-        TileIndex rowCount, TileIndex columnCount,
-        ThreadMemory memory);
-
-    public partial BitVector* GetTileAllocationBitVectors();
-    public partial LineArrayTiledBlock* GetFrontBlockForColumn(TileIndex columnIndex);
-    public partial int* GetCoversForColumn(TileIndex columnIndex);
-    public partial int GetTotalLineCountForColumn(TileIndex columnIndex);
-
-    public partial void AppendVerticalLine(ThreadMemory memory, F24Dot8 x, F24Dot8 y0, F24Dot8 y1);
-    public partial void AppendLineDownR_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    public partial void AppendLineUpR_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    public partial void AppendLineDownL_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    public partial void AppendLineUpL_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    public partial void AppendLineDownRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    public partial void AppendLineUpRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-
-    private partial void AppendLineDownR(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    private partial void AppendLineUpR(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    private partial void AppendLineDownL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    private partial void AppendLineUpL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-
-    private partial void Append(ThreadMemory memory, TileIndex columnIndex,
-        F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-    private partial void Push(ThreadMemory memory, TileIndex columnIndex,
-        F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
-
     private static int AdjustmentMask
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

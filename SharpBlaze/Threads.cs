@@ -9,13 +9,13 @@ using static Utils;
 public unsafe partial class Threads
 {
 
-    public static partial int GetHardwareThreadCount()
+    public static int GetHardwareThreadCount()
     {
         return Max(Environment.ProcessorCount, 1);
     }
 
 
-    private partial void Run(int count, Action<int, ThreadMemory> loopBody)
+    private void Run(int count, Action<int, ThreadMemory> loopBody)
     {
         Debug.Assert(loopBody != null);
 
@@ -68,7 +68,7 @@ public unsafe partial class Threads
     }
 
 
-    public partial void ResetFrameMemory()
+    public void ResetFrameMemory()
     {
         for (int i = 0; i < mThreadCount; i++)
         {
@@ -79,7 +79,7 @@ public unsafe partial class Threads
     }
 
 
-    private partial void RunThreads()
+    private void RunThreads()
     {
         if (mThreadData != null)
         {
@@ -109,7 +109,7 @@ public unsafe partial class Threads
     }
 
 
-    private static partial void Worker(object? p)
+    private static void Worker(object? p)
     {
         Debug.Assert(p != null);
 

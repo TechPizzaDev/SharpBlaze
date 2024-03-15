@@ -20,10 +20,6 @@ public partial struct FloatRect
         Max = new FloatPoint(r.MaxX, r.MaxY);
     }
 
-
-    public readonly partial IntRect ToExpandedIntRect();
-
-
     public FloatPoint Min;
     public FloatPoint Max;
 }

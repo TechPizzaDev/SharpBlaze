@@ -9,7 +9,7 @@ public static unsafe partial class CurveUtils
 {
 
 
-    static int AcceptRoot(ref double t, double root)
+    private static int AcceptRoot(ref double t, double root)
     {
         if (root < -DBL_EPSILON)
         {

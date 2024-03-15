@@ -7,7 +7,7 @@ public unsafe partial struct LineArrayX32Y16
 {
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static partial void Construct(ref LineArrayX32Y16 placement,
+    public static void Construct(ref LineArrayX32Y16 placement,
         TileIndex rowCount, TileIndex columnCount,
         ThreadMemory memory)
     {
@@ -23,70 +23,70 @@ public unsafe partial struct LineArrayX32Y16
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial LineArrayX32Y16Block* GetFrontBlock()
+    public LineArrayX32Y16Block* GetFrontBlock()
     {
         return mCurrent;
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial int GetFrontBlockLineCount()
+    public int GetFrontBlockLineCount()
     {
         return mCount;
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendVerticalLine(ThreadMemory memory, F24Dot8 x, F24Dot8 y0, F24Dot8 y1)
+    public void AppendVerticalLine(ThreadMemory memory, F24Dot8 x, F24Dot8 y0, F24Dot8 y1)
     {
         AppendLine(memory, x, y0, x, y1);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendLineDownR_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
+    public void AppendLineDownR_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
     {
         AppendLine(memory, x0, y0, x1, y1);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendLineUpR_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
+    public void AppendLineUpR_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
     {
         AppendLine(memory, x0, y0, x1, y1);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendLineDownL_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
+    public void AppendLineDownL_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
     {
         AppendLine(memory, x0, y0, x1, y1);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendLineUpL_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
+    public void AppendLineUpL_V(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
     {
         AppendLine(memory, x0, y0, x1, y1);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendLineDownRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
+    public void AppendLineDownRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
     {
         AppendLine(memory, x0, y0, x1, y1);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void AppendLineUpRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
+    public void AppendLineUpRL(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
     {
         AppendLine(memory, x0, y0, x1, y1);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void AppendLine(ThreadMemory memory, F8Dot8x2 y0y1, F24Dot8 x0, F24Dot8 x1)
+    private void AppendLine(ThreadMemory memory, F8Dot8x2 y0y1, F24Dot8 x0, F24Dot8 x1)
     {
         LineArrayX32Y16Block* current = mCurrent;
         int count = mCount;
@@ -117,7 +117,7 @@ public unsafe partial struct LineArrayX32Y16
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void AppendLine(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
+    private void AppendLine(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
     {
         if (y0 != y1)
         {

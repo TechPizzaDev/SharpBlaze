@@ -13,26 +13,18 @@ internal unsafe partial struct BinaryReader
         End = binary + length;
     }
 
-    byte* Bytes;
-    readonly byte* End;
-
-    public readonly partial ulong GetRemainingByteCount();
-    public partial sbyte ReadInt8();
-    public partial byte ReadUInt8();
-    public partial int ReadInt32();
-    public partial uint ReadUInt32();
-    public partial void ReadBinary(byte* d, ulong length);
-
+    private byte* Bytes;
+    private readonly byte* End;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly partial ulong GetRemainingByteCount()
+    public readonly ulong GetRemainingByteCount()
     {
         return (ulong) (End - Bytes);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial uint ReadUInt32()
+    public uint ReadUInt32()
     {
         ulong r = (ulong) (End - Bytes);
 
@@ -50,7 +42,7 @@ internal unsafe partial struct BinaryReader
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial sbyte ReadInt8()
+    public sbyte ReadInt8()
     {
         if (Bytes < End)
         {
@@ -66,7 +58,7 @@ internal unsafe partial struct BinaryReader
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial byte ReadUInt8()
+    public byte ReadUInt8()
     {
         if (Bytes < End)
         {
@@ -82,7 +74,7 @@ internal unsafe partial struct BinaryReader
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial int ReadInt32()
+    public int ReadInt32()
     {
         ulong r = (ulong) (End - Bytes);
 
@@ -100,7 +92,7 @@ internal unsafe partial struct BinaryReader
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void ReadBinary(byte* d, ulong length)
+    public void ReadBinary(byte* d, ulong length)
     {
         Debug.Assert(GetRemainingByteCount() >= length);
 
@@ -124,7 +116,7 @@ public unsafe partial class VectorImage
     }
 
 
-    public partial void Parse(byte* binary, ulong length)
+    public void Parse(byte* binary, ulong length)
     {
         Debug.Assert(binary != null);
         Debug.Assert(length > 0);
@@ -220,14 +212,14 @@ public unsafe partial class VectorImage
     }
 
 
-    private partial void Free()
+    private void Free()
     {
         int count = mGeometryCount;
 
         for (int i = 0; i < count; i++)
         {
-            NativeMemory.Free((void*) mGeometries[i].Tags);
-            NativeMemory.Free((void*) mGeometries[i].Points);
+            NativeMemory.Free(mGeometries[i].Tags);
+            NativeMemory.Free(mGeometries[i].Points);
         }
 
         NativeMemory.Free(mGeometries);

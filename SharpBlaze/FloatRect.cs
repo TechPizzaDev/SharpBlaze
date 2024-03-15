@@ -4,7 +4,7 @@ namespace SharpBlaze;
 
 public partial struct FloatRect
 {
-    public readonly partial IntRect ToExpandedIntRect()
+    public readonly IntRect ToExpandedIntRect()
     {
         int minx = (int) (Utils.Floor(Min.X));
         int miny = (int) (Utils.Floor(Min.Y));
