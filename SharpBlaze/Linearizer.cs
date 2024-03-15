@@ -338,7 +338,7 @@ public unsafe partial struct Linearizer<T, L>
             ClipBounds clip = new(ch, cv);
 
             Matrix matrix = new(geometry->TM);
-            matrix.PreTranslate(-tx, -ty);
+            matrix *= Matrix.CreateTranslation(-tx, -ty);
 
             linearizer.ProcessUncontained(geometry, memory, clip, matrix);
         }

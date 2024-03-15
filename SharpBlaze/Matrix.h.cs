@@ -1,4 +1,3 @@
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
@@ -49,7 +48,7 @@ public enum MatrixComplexity : byte
 /**
  * A class encapsulating a 3x2 matrix.
  */
-public partial struct Matrix
+public readonly partial struct Matrix
 {
     /**
      * Pre-constructed identity matrix.
@@ -162,27 +161,9 @@ public partial struct Matrix
 
 
     /**
-     * Post-multiplies this matrix by a given matrix.
-     */
-    public partial void PostMultiply(in Matrix matrix);
-
-
-    /**
-     * Pre-multiplies this matrix by a given matrix.
-     */
-    public partial void PreMultiply(in Matrix matrix);
-
-
-    /**
      * Returns M11 element of matrix.
      */
     public readonly partial double M11();
-
-
-    /**
-     * Sets M11 element of matrix.
-     */
-    public partial void SetM11(double value);
 
 
     /**
@@ -192,21 +173,9 @@ public partial struct Matrix
 
 
     /**
-     * Sets M12 element of matrix.
-     */
-    public partial void SetM12(double value);
-
-
-    /**
      * Returns M21 element of matrix.
      */
     public readonly partial double M21();
-
-
-    /**
-     * Sets M21 element of matrix.
-     */
-    public partial void SetM21(double value);
 
 
     /**
@@ -216,33 +185,15 @@ public partial struct Matrix
 
 
     /**
-     * Sets M22 element of matrix.
-     */
-    public partial void SetM22(double value);
-
-
-    /**
      * Returns M31 element of matrix.
      */
     public readonly partial double M31();
 
 
     /**
-     * Sets M31 element of matrix.
-     */
-    public partial void SetM31(double value);
-
-
-    /**
      * Returns M32 element of matrix.
      */
     public readonly partial double M32();
-
-
-    /**
-     * Sets M32 element of matrix.
-     */
-    public partial void SetM32(double value);
 
 
     /**
@@ -258,90 +209,6 @@ public partial struct Matrix
 
 
     /**
-     * Pre-multiplies this matrix by translation matrix constructed with given
-     * translation values.
-     */
-    public partial void PreTranslate(FloatPoint translation);
-
-
-    /**
-     * Post-multiplies this matrix by translation matrix constructed with
-     * given translation values.
-     */
-    public partial void PostTranslate(FloatPoint translation);
-
-
-    /**
-     * Pre-multiplies this matrix by translation matrix constructed with given
-     * translation values.
-     */
-    public partial void PreTranslate(double x, double y);
-
-
-    /**
-     * Post-multiplies this matrix by translation matrix constructed with
-     * given translation values.
-     */
-    public partial void PostTranslate(double x, double y);
-
-
-    /**
-     * Pre-multiplies this matrix by scale matrix constructed with given scale
-     * values.
-     */
-    public partial void PreScale(FloatPoint scale);
-
-
-    /**
-     * Post-multiplies this matrix by scale matrix constructed with given
-     * scale values.
-     */
-    public partial void PostScale(FloatPoint scale);
-
-
-    /**
-     * Pre-multiplies this matrix by scale matrix constructed with given scale
-     * values.
-     */
-    public partial void PreScale(double x, double y);
-
-
-    /**
-     * Post-multiplies this matrix by scale matrix constructed with given
-     * scale values.
-     */
-    public partial void PostScale(double x, double y);
-
-
-    /**
-     * Pre-multiplies this matrix by scale matrix constructed with given scale
-     * value.
-     */
-    public partial void PreScale(double scale);
-
-
-    /**
-     * Post-multiplies this matrix by scale matrix constructed with given
-     * scale value.
-     */
-    public partial void PostScale(double scale);
-
-
-    /**
-     * Pre-multiplies this matrix with rotation matrix constructed with given
-     * rotation in degrees.
-     */
-    public partial void PreRotate(double degrees);
-
-
-    /**
-     * Post-multiplies this matrix with rotation matrix constructed with given
-     * rotation in degrees.
-     */
-    public partial void PostRotate(double degrees);
-
-
-    /**
      * Determine matrix complexity.
      */
     public readonly partial MatrixComplexity DetermineComplexity();
@@ -353,7 +220,7 @@ public partial struct Matrix
         private Vector128<double> _e0;
     }
 
-    private Rows m;
+    private readonly Rows m;
 
 
 
@@ -376,6 +243,18 @@ public partial struct Matrix
     public Matrix(in Matrix matrix)
     {
         this = matrix;
+    }
+
+
+    /**
+     * Contructs 3x2 matrix from given vectors.
+     */
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Matrix(Vector128<double> m1, Vector128<double> m2, Vector128<double> m3)
+    {
+        m[0] = m1;
+        m[1] = m2;
+        m[2] = m3;
     }
 
 
@@ -482,23 +361,9 @@ public partial struct Matrix
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void SetM11(double value)
-    {
-        m[0] = m[0].WithElement(0, value);
-    }
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial double M12()
     {
         return m[0][1];
-    }
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void SetM12(double value)
-    {
-        m[0] = m[0].WithElement(1, value);
     }
 
 
@@ -517,23 +382,9 @@ public partial struct Matrix
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void SetM21(double value)
-    {
-        m[1] = m[1].WithElement(0, value);
-    }
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial double M22()
     {
         return m[1][1];
-    }
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void SetM22(double value)
-    {
-        m[1] = m[1].WithElement(1, value);
     }
 
 
@@ -551,25 +402,11 @@ public partial struct Matrix
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void SetM31(double value)
-    {
-        m[2] = m[2].WithElement(0, value);
-    }
-
-
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial double M32()
     {
         return m[2][1];
-    }
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void SetM32(double value)
-    {
-        m[2] = m[2].WithElement(1, value);
     }
 
 
@@ -589,10 +426,7 @@ public partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial FloatPoint GetTranslation()
     {
-        return new FloatPoint(
-            m[2][0],
-            m[2][1]
-        );
+        return new FloatPoint(m[2]);
     }
 
 }

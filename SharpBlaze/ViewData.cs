@@ -22,9 +22,9 @@ public class ViewData
     {
         Matrix m = Matrix.CreateScale(Scale, Scale);
 
-        m.PreMultiply(CoordinateSystemMatrix);
+        m *= CoordinateSystemMatrix;
 
-        m.PostTranslate(Translation.X, Translation.Y);
+        m = Matrix.CreateTranslation(Translation) * m;
 
         return m;
     }

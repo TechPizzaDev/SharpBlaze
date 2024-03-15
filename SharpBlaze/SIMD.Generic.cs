@@ -176,7 +176,7 @@ public static unsafe partial class SIMD
     {
         // Scale and translation matrix.
         Matrix m = new(matrix);
-        m.PreScale(256.0, 256.0);
+        m *= Matrix.CreateScale(256.0);
 
         int i = 0;
         if (Vector128.IsHardwareAccelerated)
@@ -218,7 +218,7 @@ public static unsafe partial class SIMD
         F24Dot8Point origin, F24Dot8Point size)
     {
         Matrix m = new(matrix);
-        m.PreScale(256.0, 256.0);
+        m *= Matrix.CreateScale(256.0);
 
         int i = 0;
         if (Vector128.IsHardwareAccelerated)

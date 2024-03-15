@@ -321,7 +321,7 @@ public unsafe partial struct Rasterizer<T>
 
             Matrix tm = new(s->TM);
 
-            tm.PreMultiply(matrix);
+            tm *= matrix;
 
             *(geometries + i) = new Geometry(
                 tm.MapBoundingRect(s->PathBounds),

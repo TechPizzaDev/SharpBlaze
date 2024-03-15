@@ -5,39 +5,17 @@ namespace SharpBlaze;
 
 using static Utils;
 
-public partial struct Matrix
+public readonly partial struct Matrix
 {
-
-    /**
-     * Constructs matrix as product of two given matrices.
-     */
-    public Matrix(in Matrix matrix1, in Matrix matrix2)
-    {
-        m[0] = Vector128.Create(
-            matrix2.m[0][0] * matrix1.m[0][0] + matrix2.m[0][1] * matrix1.m[1][0],
-            matrix2.m[0][0] * matrix1.m[0][1] + matrix2.m[0][1] * matrix1.m[1][1]);
-
-        m[1] = Vector128.Create(
-            matrix2.m[1][0] * matrix1.m[0][0] + matrix2.m[1][1] * matrix1.m[1][0],
-            matrix2.m[1][0] * matrix1.m[0][1] + matrix2.m[1][1] * matrix1.m[1][1]);
-
-        m[2] = Vector128.Create(
-            matrix2.m[2][0] * matrix1.m[0][0] + matrix2.m[2][1] * matrix1.m[1][0] + matrix1.m[2][0],
-            matrix2.m[2][0] * matrix1.m[0][1] + matrix2.m[2][1] * matrix1.m[1][1] + matrix1.m[2][1]);
-    }
-
-
     /**
      * Constructs translation matrix with given position.
      */
     public static explicit operator Matrix(FloatPoint translation)
     {
-        Matrix r;
-        Unsafe.SkipInit(out r);
-        r.m[0] = Vector128.Create(1.0, 0);
-        r.m[1] = Vector128.Create(0.0, 1);
-        r.m[2] = Vector128.Create(translation.X, translation.Y);
-        return r;
+        Vector128<double> r0 = Vector128.Create(1.0, 0);
+        Vector128<double> r1 = Vector128.Create(0.0, 1);
+        Vector128<double> r2 = Vector128.Create(translation.X, translation.Y);
+        return new Matrix(r0, r1, r2);
     }
 
 
@@ -159,130 +137,28 @@ public partial struct Matrix
     }
 
 
-    public partial void PreTranslate(FloatPoint translation)
-    {
-        PreMultiply((Matrix) (translation));
-    }
-
-
-    public partial void PostTranslate(FloatPoint translation)
-    {
-        PostMultiply((Matrix) (translation));
-    }
-
-
-    public partial void PreTranslate(double x, double y)
-    {
-        PreTranslate(new FloatPoint(
-            x, y
-        ));
-    }
-
-
-    public partial void PostTranslate(double x, double y)
-    {
-        PostTranslate(new FloatPoint(
-            x, y
-        ));
-    }
-
-
-    public partial void PreScale(FloatPoint scale)
-    {
-        PreMultiply(CreateScale(scale));
-    }
-
-
-    public partial void PostScale(FloatPoint scale)
-    {
-        PostMultiply(CreateScale(scale));
-    }
-
-
-    public partial void PreScale(double x, double y)
-    {
-        PreScale(new FloatPoint(
-            x, y
-        ));
-    }
-
-
-    public partial void PostScale(double x, double y)
-    {
-        PostScale(new FloatPoint(
-            x, y
-        ));
-    }
-
-
-    public partial void PreScale(double scale)
-    {
-        PreScale(new FloatPoint(
-            scale, scale
-        ));
-    }
-
-
-    public partial void PostScale(double scale)
-    {
-        PostScale(new FloatPoint(
-            scale, scale
-        ));
-    }
-
-
-    public partial void PreRotate(double degrees)
-    {
-        PreMultiply(CreateRotation(degrees));
-    }
-
-
-    public partial void PostRotate(double degrees)
-    {
-        PostMultiply(CreateRotation(degrees));
-    }
-
-    
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void PostMultiply(in Matrix matrix)
+    public static Matrix operator *(in Matrix left, in Matrix right)
     {
-        double m00 = m[0][0];
-        double m01 = m[0][1];
-        double m10 = m[1][0];
-        double m11 = m[1][1];
+        Vector128<double> o0 = right.m[0];
+        Vector128<double> o1 = right.m[1];
 
-        m[0] = Vector128.Create(
-            matrix.m[0][0] * m00 + matrix.m[0][1] * m10,
-            matrix.m[0][0] * m01 + matrix.m[0][1] * m11);
-        m[1] = Vector128.Create(
-            matrix.m[1][0] * m00 + matrix.m[1][1] * m10,
-            matrix.m[1][0] * m01 + matrix.m[1][1] * m11);
-        m[2] = Vector128.Create(
-            matrix.m[2][0] * m00 + matrix.m[2][1] * m10 + m[2][0],
-            matrix.m[2][0] * m01 + matrix.m[2][1] * m11 + m[2][1]);
+        Vector128<double> m00 = Vector128.Shuffle(left.m[0], Vector128.Create(0L));
+        Vector128<double> m01 = Vector128.Shuffle(left.m[0], Vector128.Create(1L));
+        Vector128<double> r0 = m00 * o0 + m01 * o1;
+
+        Vector128<double> m10 = Vector128.Shuffle(left.m[1], Vector128.Create(0L));
+        Vector128<double> m11 = Vector128.Shuffle(left.m[1], Vector128.Create(1L));
+        Vector128<double> r1 = m10 * o0 + m11 * o1;
+
+        Vector128<double> m20 = Vector128.Shuffle(left.m[2], Vector128.Create(0L));
+        Vector128<double> m21 = Vector128.Shuffle(left.m[2], Vector128.Create(1L));
+        Vector128<double> r2 = m20 * o0 + m21 * o1 + right.m[2];
+
+        return new Matrix(r0, r1, r2);
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public partial void PreMultiply(in Matrix matrix)
-    {
-        Vector128<double> o0 = matrix.m[0];
-        Vector128<double> o1 = matrix.m[1];
-
-        Vector128<double> m00 = Vector128.Create(m[0][0]);
-        Vector128<double> m01 = Vector128.Create(m[0][1]);
-        m[0] = m00 * o0 + m01 * o1;
-
-        Vector128<double> m10 = Vector128.Create(m[1][0]);
-        Vector128<double> m11 = Vector128.Create(m[1][1]);
-        m[1] = m10 * o0 + m11 * o1;
-
-        Vector128<double> m20 = Vector128.Create(m[2][0]);
-        Vector128<double> m21 = Vector128.Create(m[2][1]);
-        m[2] = m20 * o0 + m21 * o1 + matrix.m[2];
-    }
-
-    
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial MatrixComplexity DetermineComplexity()
     {
