@@ -135,7 +135,19 @@ public static class Utils
     public static T Clamp<T>(T val, T min, T max)
         where T : INumber<T>
     {
-        return val > max ? max : val < min ? min : val;
+        return T.Max(min, T.Min(val, max));
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<T> Clamp<T>(Vector128<T> val, Vector128<T> min, Vector128<T> max)
+    {
+        return Vector128.Max(min, Vector128.Min(val, max));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<T> Clamp<T>(Vector256<T> val, Vector256<T> min, Vector256<T> max)
+    {
+        return Vector256.Max(min, Vector256.Min(val, max));
     }
 
 

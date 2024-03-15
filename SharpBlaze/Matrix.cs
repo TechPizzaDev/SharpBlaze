@@ -242,7 +242,8 @@ public partial struct Matrix
         PostMultiply(CreateRotation(degrees));
     }
 
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public partial void PostMultiply(in Matrix matrix)
     {
         double m00 = m[0][0];
@@ -262,6 +263,7 @@ public partial struct Matrix
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public partial void PreMultiply(in Matrix matrix)
     {
         Vector128<double> o0 = matrix.m[0];
@@ -280,7 +282,8 @@ public partial struct Matrix
         m[2] = m20 * o0 + m21 * o1 + matrix.m[2];
     }
 
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial MatrixComplexity DetermineComplexity()
     {
         Vector128<double> m0 = FuzzyNotEqual(m[0], Vector128.Create(1.0, 0));

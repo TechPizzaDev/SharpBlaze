@@ -468,6 +468,13 @@ public partial struct Matrix
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector128<double> M1()
+    {
+        return m[0];
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial double M11()
     {
         return m[0][0];
@@ -496,6 +503,13 @@ public partial struct Matrix
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector128<double> M2()
+    {
+        return m[1];
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial double M21()
     {
         return m[1][0];
@@ -520,6 +534,13 @@ public partial struct Matrix
     public partial void SetM22(double value)
     {
         m[1] = m[1].WithElement(1, value);
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector128<double> M3()
+    {
+        return m[2];
     }
 
 
