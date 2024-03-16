@@ -116,7 +116,7 @@ public unsafe partial class VectorImage
     }
 
 
-    public void Parse(byte* binary, ulong length)
+    public bool Parse(byte* binary, ulong length)
     {
         Debug.Assert(binary != null);
         Debug.Assert(length > 0);
@@ -133,7 +133,7 @@ public unsafe partial class VectorImage
 
         if (B != 'B' || v != 'v' || e != 'e' || c != 'c')
         {
-            return;
+            return false;
         }
 
         // Read version.
@@ -141,7 +141,7 @@ public unsafe partial class VectorImage
 
         if (version != 1)
         {
-            return;
+            return false;
         }
 
         // 4 bytes, total path count.
@@ -161,7 +161,7 @@ public unsafe partial class VectorImage
         if (length < ((count * 32) + 4 + 16 + 8))
         {
             // File is smaller than it says it has paths in it.
-            return;
+            return false;
         }
 
         mGeometries = (Geometry*) NativeMemory.Alloc((nuint) (sizeof(Geometry) * count));
@@ -209,6 +209,8 @@ public unsafe partial class VectorImage
 
             mGeometryCount++;
         }
+
+        return true;
     }
 
 
