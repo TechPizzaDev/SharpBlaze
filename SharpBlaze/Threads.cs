@@ -103,7 +103,8 @@ public unsafe partial class Threads
         {
             ThreadData d = mThreadData[i];
 
-            d.Thread = new(Worker);
+            d.Thread = new Thread(Worker);
+            d.Thread.IsBackground = true;
             d.Thread.Start(d);
         }
     }
