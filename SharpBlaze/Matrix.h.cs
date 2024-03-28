@@ -335,7 +335,9 @@ public readonly partial struct Matrix
     public readonly partial FloatPoint Map(FloatPoint point)
     {
         return new FloatPoint(
-            m[0] * Vector128.Create(point.X) + m[1] * Vector128.Create(point.Y) + m[2]);
+            m[0] * Vector128.Create(point.X, point.X) + 
+            m[1] * Vector128.Create(point.Y, point.Y) + 
+            m[2]);
     }
 
 
