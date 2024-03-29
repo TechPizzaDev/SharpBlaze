@@ -1029,16 +1029,11 @@ public unsafe partial struct Linearizer<T, L>
         }
         else
         {
-            FloatPointX5 monoY;
-            FloatPointX5 monoX;
-            Unsafe.SkipInit(out monoY);
-            Unsafe.SkipInit(out monoX);
-
             if (monoInY)
             {
                 // Here we know it has control points outside of end point range
                 // in X direction.
-                int nX = CutQuadraticAtXExtrema(p, ref monoX);
+                int nX = CutQuadraticAtXExtrema(p, out FloatPointX5 monoX);
 
                 for (int j = 0; j < nX; j++)
                 {
@@ -1048,7 +1043,7 @@ public unsafe partial struct Linearizer<T, L>
             }
             else
             {
-                int nY = CutQuadraticAtYExtrema(p, ref monoY);
+                int nY = CutQuadraticAtYExtrema(p, out FloatPointX5 monoY);
 
                 for (int i = 0; i < nY; i++)
                 {
@@ -1060,7 +1055,7 @@ public unsafe partial struct Linearizer<T, L>
                     }
                     else
                     {
-                        int nX = CutQuadraticAtXExtrema(my, ref monoX);
+                        int nX = CutQuadraticAtXExtrema(my, out FloatPointX5 monoX);
 
                         for (int j = 0; j < nX; j++)
                         {
@@ -1122,22 +1117,17 @@ public unsafe partial struct Linearizer<T, L>
         pts[1] = p[1];
         pts[2] = p[2];
 
-        FloatPointX5 tmp;
-        Unsafe.SkipInit(out tmp);
-
-        double t = 0;
-
         if (sy > py)
         {
             // Curve is going ↑.
             if (sy > clip.MaxY)
             {
                 // Cut-off at bottom.
-                if (CutMonotonicQuadraticAtY(pts, clip.MaxY, ref t))
+                if (CutMonotonicQuadraticAtY(pts, clip.MaxY, out double t))
                 {
                     // Cut quadratic at t and keep upper part of curve (since we
                     // are handling ascending curve and cutting at off bottom).
-                    CutQuadraticAt(pts, ref tmp, t);
+                    CutQuadraticAt(pts, out FloatPointX5 tmp, t);
 
                     pts[0] = tmp[2];
                     pts[1] = tmp[3];
@@ -1149,11 +1139,11 @@ public unsafe partial struct Linearizer<T, L>
             if (py < 0)
             {
                 // Cut-off at top.
-                if (CutMonotonicQuadraticAtY(pts, 0, ref t))
+                if (CutMonotonicQuadraticAtY(pts, 0, out double t))
                 {
                     // Cut quadratic at t and keep bottom part of curve (since we are
                     // handling ascending curve and cutting off at top).
-                    CutQuadraticAt(pts, ref tmp, t);
+                    CutQuadraticAt(pts, out FloatPointX5 tmp, t);
 
                     // pts[0] already contains tmp[0].
 
@@ -1170,11 +1160,11 @@ public unsafe partial struct Linearizer<T, L>
             if (py > clip.MaxY)
             {
                 // Cut-off at bottom.
-                if (CutMonotonicQuadraticAtY(pts, clip.MaxY, ref t))
+                if (CutMonotonicQuadraticAtY(pts, clip.MaxY, out double t))
                 {
                     // Cut quadratic at t and keep upper part of curve (since we are
                     // handling descending curve and cutting at off bottom).
-                    CutQuadraticAt(pts, ref tmp, t);
+                    CutQuadraticAt(pts, out FloatPointX5 tmp, t);
 
                     // pts[0] already contains tmp[0].
 
@@ -1186,11 +1176,11 @@ public unsafe partial struct Linearizer<T, L>
             if (sy < 0)
             {
                 // Cut-off at top.
-                if (CutMonotonicQuadraticAtY(pts, 0, ref t))
+                if (CutMonotonicQuadraticAtY(pts, 0, out double t))
                 {
                     // Cut quadratic at t and keep bottom part of curve (since we are
                     // handling descending curve and cutting off at top).
-                    CutQuadraticAt(pts, ref tmp, t);
+                    CutQuadraticAt(pts, out FloatPointX5 tmp, t);
 
                     pts[0] = tmp[2];
                     pts[1] = tmp[3];
@@ -1225,11 +1215,6 @@ public unsafe partial struct Linearizer<T, L>
         double sx = p[0].X;
         double px = p[2].X;
 
-        double t = 0;
-
-        FloatPointX5 tmp;
-        Unsafe.SkipInit(out tmp);
-
         if (sx > px)
         {
             // Curve is going ←.
@@ -1254,11 +1239,11 @@ public unsafe partial struct Linearizer<T, L>
             if (sx > clip.MaxX)
             {
                 // Cut-off at right.
-                if (CutMonotonicQuadraticAtX(p, clip.MaxX, ref t))
+                if (CutMonotonicQuadraticAtX(p, clip.MaxX, out double t))
                 {
                     // Cut quadratic at t and keep left part of curve (since we are
                     // handling right-to-left curve and cutting at off right part).
-                    CutQuadraticAt(p, ref tmp, t);
+                    CutQuadraticAt(p, out FloatPointX5 tmp, t);
 
                     p[0] = tmp[2];
                     p[1] = tmp[3];
@@ -1270,11 +1255,11 @@ public unsafe partial struct Linearizer<T, L>
             if (px < 0)
             {
                 // Split at min-x.
-                if (CutMonotonicQuadraticAtX(p, 0, ref t))
+                if (CutMonotonicQuadraticAtX(p, 0, out double t))
                 {
                     // Cut quadratic in two parts and keep both since we also need
                     // the part on the left side of bounding box.
-                    CutQuadraticAt(p, ref tmp, t);
+                    CutQuadraticAt(p, out FloatPointX5 tmp, t);
 
                     F24Dot8PointX3 q;
                     Unsafe.SkipInit(out q);
@@ -1340,11 +1325,11 @@ public unsafe partial struct Linearizer<T, L>
             if (px > clip.MaxX)
             {
                 // Cut-off at right.
-                if (CutMonotonicQuadraticAtX(p, clip.MaxX, ref t))
+                if (CutMonotonicQuadraticAtX(p, clip.MaxX, out double t))
                 {
                     // Cut quadratic at t and keep left part of curve (since we are
                     // handling left-to-right curve and cutting at off right part).
-                    CutQuadraticAt(p, ref tmp, t);
+                    CutQuadraticAt(p, out FloatPointX5 tmp, t);
 
                     // p[0] already contains tmp[0].
 
@@ -1356,11 +1341,11 @@ public unsafe partial struct Linearizer<T, L>
             if (sx < 0)
             {
                 // Split at min-x.
-                if (CutMonotonicQuadraticAtX(p, 0, ref t))
+                if (CutMonotonicQuadraticAtX(p, 0, out double t))
                 {
                     // Chop quadratic in two equal parts and keep both since we also
                     // need the part on the left side of bounding box.
-                    CutQuadraticAt(p, ref tmp, t);
+                    CutQuadraticAt(p, out FloatPointX5 tmp, t);
 
                     F24Dot8 a = Clamp(DoubleToF24Dot8(tmp[0].Y), 0,
                         clip.FMax.Y);
@@ -1462,9 +1447,7 @@ public unsafe partial struct Linearizer<T, L>
         else
         {
             F24Dot8PointX5 split;
-            Unsafe.SkipInit(out split);
-
-            SplitQuadratic(ref split, q);
+            SplitQuadratic(out split, q);
 
             AddContainedQuadraticF24Dot8(memory, Unsafe.As<F24Dot8PointX5, F24Dot8PointX3>(ref split));
 
@@ -1484,7 +1467,7 @@ public unsafe partial struct Linearizer<T, L>
             Vector128.Min(p[2].AsVector128(), p[3].AsVector128()));
 
         double minx = pmin.GetElement(0);
-        
+
         if (minx >= clip.MaxX)
         {
             // Curve is to the right of clipping bounds.
@@ -1570,16 +1553,11 @@ public unsafe partial struct Linearizer<T, L>
         }
         else
         {
-            FloatPointX10 monoY;
-            FloatPointX10 monoX;
-            Unsafe.SkipInit(out monoY);
-            Unsafe.SkipInit(out monoX);
-
             if (monoInY)
             {
                 // Here we know it has control points outside of end point range
                 // in X direction.
-                int nX = CutCubicAtXExtrema(p, ref monoX);
+                int nX = CutCubicAtXExtrema(p, out FloatPointX10 monoX);
 
                 for (int j = 0; j < nX; j++)
                 {
@@ -1588,7 +1566,7 @@ public unsafe partial struct Linearizer<T, L>
             }
             else
             {
-                int nY = CutCubicAtYExtrema(p, ref monoY);
+                int nY = CutCubicAtYExtrema(p, out FloatPointX10 monoY);
 
                 for (int i = 0; i < nY; i++)
                 {
@@ -1600,7 +1578,7 @@ public unsafe partial struct Linearizer<T, L>
                     }
                     else
                     {
-                        int nX = CutCubicAtXExtrema(my, ref monoX);
+                        int nX = CutCubicAtXExtrema(my, out FloatPointX10 monoX);
 
                         for (int j = 0; j < nX; j++)
                         {
@@ -1661,22 +1639,17 @@ public unsafe partial struct Linearizer<T, L>
         pts[2] = p[2];
         pts[3] = p[3];
 
-        FloatPointX7 tmp;
-        Unsafe.SkipInit(out tmp);
-
-        double t = 0;
-
         if (sy > py)
         {
             // Curve is ascending.
             if (sy > clip.MaxY)
             {
                 // Cut-off at bottom.
-                if (CutMonotonicCubicAtY(p, clip.MaxY, ref t))
+                if (CutMonotonicCubicAtY(p, clip.MaxY, out double t))
                 {
                     // Cut cubic at t and keep upper part of curve (since we are
                     // handling ascending curve and cutting at off bottom).
-                    CutCubicAt(p, ref tmp, t);
+                    CutCubicAt(p, out FloatPointX7 tmp, t);
 
                     pts[0] = tmp[3];
                     pts[1] = tmp[4];
@@ -1689,11 +1662,11 @@ public unsafe partial struct Linearizer<T, L>
             if (py < 0)
             {
                 // Cut-off at top.
-                if (CutMonotonicCubicAtY(pts, 0, ref t))
+                if (CutMonotonicCubicAtY(pts, 0, out double t))
                 {
                     // Cut cubic at t and keep bottom part of curve (since we are
                     // handling ascending curve and cutting off at top).
-                    CutCubicAt(pts, ref tmp, t);
+                    CutCubicAt(pts, out FloatPointX7 tmp, t);
 
                     // pts[0] already contains tmp[0].
 
@@ -1711,11 +1684,11 @@ public unsafe partial struct Linearizer<T, L>
             if (py > clip.MaxY)
             {
                 // Cut-off at bottom.
-                if (CutMonotonicCubicAtY(pts, clip.MaxY, ref t))
+                if (CutMonotonicCubicAtY(pts, clip.MaxY, out double t))
                 {
                     // Cut cubic at t and keep upper part of curve (since we are
                     // handling descending curve and cutting at off bottom).
-                    CutCubicAt(pts, ref tmp, t);
+                    CutCubicAt(pts, out FloatPointX7 tmp, t);
 
                     // pts[0] already contains tmp[0].
 
@@ -1728,11 +1701,11 @@ public unsafe partial struct Linearizer<T, L>
             if (sy < 0)
             {
                 // Cut-off at top.
-                if (CutMonotonicCubicAtY(pts, 0, ref t))
+                if (CutMonotonicCubicAtY(pts, 0, out double t))
                 {
                     // Cut cubic at t and keep bottom part of curve (since we are
                     // handling descending curve and cutting off at top).
-                    CutCubicAt(pts, ref tmp, t);
+                    CutCubicAt(pts, out FloatPointX7 tmp, t);
 
                     pts[0] = tmp[3];
                     pts[1] = tmp[4];
@@ -1764,11 +1737,6 @@ public unsafe partial struct Linearizer<T, L>
         double sx = p[0].X;
         double px = p[3].X;
 
-        double t = 0;
-
-        FloatPointX7 tmp;
-        Unsafe.SkipInit(out tmp);
-
         if (sx > px)
         {
             // Curve is going from right to left.
@@ -1793,11 +1761,11 @@ public unsafe partial struct Linearizer<T, L>
             if (sx > clip.MaxX)
             {
                 // Cut-off at right.
-                if (CutMonotonicCubicAtX(p, clip.MaxX, ref t))
+                if (CutMonotonicCubicAtX(p, clip.MaxX, out double t))
                 {
                     // Cut cubic at t and keep left part of curve (since we are
                     // handling right-to-left curve and cutting at off right part).
-                    CutCubicAt(p, ref tmp, t);
+                    CutCubicAt(p, out FloatPointX7 tmp, t);
 
                     p[0] = tmp[3];
                     p[1] = tmp[4];
@@ -1810,11 +1778,11 @@ public unsafe partial struct Linearizer<T, L>
             if (px < 0)
             {
                 // Cut-off at left.
-                if (CutMonotonicCubicAtX(p, 0, ref t))
+                if (CutMonotonicCubicAtX(p, 0, out double t))
                 {
                     // Cut cubic in two equal parts and keep both since we also
                     // need the part on the left side of bounding box.
-                    CutCubicAt(p, ref tmp, t);
+                    CutCubicAt(p, out FloatPointX7 tmp, t);
 
                     // Since curve is going from right to left, the first one will
                     // be inside and the second one will be on the left.
@@ -1888,11 +1856,11 @@ public unsafe partial struct Linearizer<T, L>
             if (px > clip.MaxX)
             {
                 // Cut-off at right.
-                if (CutMonotonicCubicAtX(p, clip.MaxX, ref t))
+                if (CutMonotonicCubicAtX(p, clip.MaxX, out double t))
                 {
                     // Cut cubic at t and keep left part of curve (since we are
                     // handling left-to-right curve and cutting at off right part).
-                    CutCubicAt(p, ref tmp, t);
+                    CutCubicAt(p, out FloatPointX7 tmp, t);
 
                     // p[0] already contains tmp[0].
 
@@ -1905,11 +1873,11 @@ public unsafe partial struct Linearizer<T, L>
             if (sx < 0)
             {
                 // Cut-off at left.
-                if (CutMonotonicCubicAtX(p, 0, ref t))
+                if (CutMonotonicCubicAtX(p, 0, out double t))
                 {
                     // Cut cubic in two equal parts and keep both since we also
                     // need the part on the left side of bounding box.
-                    CutCubicAt(p, ref tmp, t);
+                    CutCubicAt(p, out FloatPointX7 tmp, t);
 
                     // Since curve is going from left to right, the first one will
                     // be on the left and the second one will be inside.
@@ -2068,10 +2036,7 @@ public unsafe partial struct Linearizer<T, L>
             }
             else
             {
-                F24Dot8PointX7 pc;
-                Unsafe.SkipInit(out pc);
-
-                SplitCubic(ref pc, c);
+                SplitCubic(out F24Dot8PointX7 pc, c);
 
                 AddPotentiallyUncontainedCubicF24Dot8(memory, max, Unsafe.As<F24Dot8PointX7, F24Dot8PointX4>(ref pc));
 
@@ -2113,10 +2078,7 @@ public unsafe partial struct Linearizer<T, L>
         }
         else
         {
-            F24Dot8PointX7 split;
-            Unsafe.SkipInit(out split);
-
-            SplitCubic(ref split, c);
+            SplitCubic(out F24Dot8PointX7 split, c);
 
             AddContainedCubicF24Dot8(memory, Unsafe.As<F24Dot8PointX7, F24Dot8PointX4>(ref split));
 

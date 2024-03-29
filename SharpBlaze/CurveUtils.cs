@@ -8,29 +8,26 @@ using static Utils;
 
 public static unsafe partial class CurveUtils
 {
-
-
-    private static int AcceptRoot(ref double t, double root)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int AcceptRoot(out double t, double root)
     {
-        if (root < -DBL_EPSILON)
-        {
-            return 0;
-        }
-        else if (root > (1.0 + DBL_EPSILON))
-        {
-            return 0;
-        }
+        double c = Clamp(root, 0.0, 1.0);
+        t = c;
 
-        t = Clamp(root, 0.0, 1.0);
-
-        return 1;
+        if (Math.Abs(root - c) <= DBL_EPSILON)
+        {
+            return 1;
+        }
+        return 0;
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial int FindQuadraticRoots(double a, double b, double c,
-        ref DoubleX2 roots)
+        out DoubleX2 roots)
     {
         //Debug.Assert(roots != null);
+        Unsafe.SkipInit(out roots);
 
         double delta = b * b - 4.0 * a * c;
 
@@ -48,43 +45,34 @@ public static unsafe partial class CurveUtils
 
             if (FuzzyIsEqual(rv0, rv1))
             {
-                return AcceptRoot(ref roots[0], rv0);
+                return AcceptRoot(out roots[0], rv0);
             }
 
-            if (rv0 < rv1)
-            {
-                int n = AcceptRoot(ref roots[0], rv0);
+            double r0 = rv0 <= rv1 ? rv0 : rv1;
+            double r1 = rv0 <= rv1 ? rv1 : rv0;
 
-                n += AcceptRoot(ref roots[n], rv1);
+            int n = AcceptRoot(out roots[0], r0);
 
-                return n;
-            }
-            else
-            {
-                int n = AcceptRoot(ref roots[0], rv1);
+            n += AcceptRoot(out roots[n], r1);
 
-                n += AcceptRoot(ref roots[n], rv0);
-
-                return n;
-            }
+            return n;
         }
 
         if (a != 0)
         {
-            return AcceptRoot(ref roots[0], -0.5 * b / a);
+            return AcceptRoot(out roots[0], -0.5 * b / a);
         }
 
         return 0;
     }
 
 
-    static int AcceptRootWithin(ref double t, double root)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int AcceptRootWithin(out double t, double root)
     {
-        if (root <= DBL_EPSILON)
-        {
-            return 0;
-        }
-        else if (root >= (1.0 - DBL_EPSILON))
+        Unsafe.SkipInit(out t);
+
+        if (root <= DBL_EPSILON || root >= (1.0 - DBL_EPSILON))
         {
             return 0;
         }
@@ -96,9 +84,10 @@ public static unsafe partial class CurveUtils
 
 
     static int FindQuadraticRootsWithin(double a, double b,
-        double c, ref DoubleX2 roots)
+        double c, out DoubleX2 roots)
     {
         //Debug.Assert(roots != null);
+        Unsafe.SkipInit(out roots);
 
         double delta = b * b - 4.0 * a * c;
 
@@ -116,39 +105,32 @@ public static unsafe partial class CurveUtils
 
             if (FuzzyIsEqual(rv0, rv1))
             {
-                return AcceptRootWithin(ref roots[0], rv0);
+                return AcceptRootWithin(out roots[0], rv0);
             }
 
-            if (rv0 < rv1)
-            {
-                int n = AcceptRootWithin(ref roots[0], rv0);
+            double r0 = rv0 <= rv1 ? rv0 : rv1;
+            double r1 = rv0 <= rv1 ? rv1 : rv0;
 
-                n += AcceptRootWithin(ref roots[n], rv1);
+            int n = AcceptRootWithin(out roots[0], r0);
 
-                return n;
-            }
-            else
-            {
-                int n = AcceptRootWithin(ref roots[0], rv1);
+            n += AcceptRootWithin(out roots[n], r1);
 
-                n += AcceptRootWithin(ref roots[n], rv0);
-
-                return n;
-            }
+            return n;
         }
 
         if (a != 0)
         {
-            return AcceptRootWithin(ref roots[0], -0.5 * b / a);
+            return AcceptRootWithin(out roots[0], -0.5 * b / a);
         }
 
         return 0;
     }
 
 
-    static bool FindQuadraticExtrema(double a, double b, double c,
-        ref double t)
+    static bool FindQuadraticExtrema(double a, double b, double c, out double t)
     {
+        Unsafe.SkipInit(out t);
+
         double aMinusB = a - b;
         double d = aMinusB - b + c;
 
@@ -173,25 +155,24 @@ public static unsafe partial class CurveUtils
 
 
     static int FindCubicExtrema(double a, double b, double c,
-        double d, ref DoubleX2 t)
+        double d, out DoubleX2 t)
     {
         double A = d - a + 3.0 * (b - c);
         double B = 2.0 * (a - b - b + c);
         double C = b - a;
 
-        return FindQuadraticRootsWithin(A, B, C, ref t);
+        return FindQuadraticRootsWithin(A, B, C, out t);
     }
 
 
-    public static partial int CutCubicAtYExtrema(in FloatPointX4 src, ref FloatPointX10 dst)
+    public static partial int CutCubicAtYExtrema(in FloatPointX4 src, out FloatPointX10 dst)
     {
+        Unsafe.SkipInit(out dst);
+
         //Debug.Assert(src != null);
         //Debug.Assert(dst != null);
 
-        DoubleX2 t;
-        Unsafe.SkipInit(out t);
-
-        int n = FindCubicExtrema(src[0].Y, src[1].Y, src[2].Y, src[3].Y, ref t);
+        int n = FindCubicExtrema(src[0].Y, src[1].Y, src[2].Y, src[3].Y, out DoubleX2 t);
 
         if (n == 1)
         {
@@ -200,7 +181,7 @@ public static unsafe partial class CurveUtils
             Debug.Assert(t[0] > 0.0);
             Debug.Assert(t[0] < 1.0);
 
-            CutCubicAt(src, ref Unsafe.As<FloatPointX10, FloatPointX7>(ref dst), t[0]);
+            CutCubicAt(src, out Unsafe.As<FloatPointX10, FloatPointX7>(ref dst), t[0]);
 
             // Make sure curve tangents at extrema are horizontal.
             double y = dst[3].Y;
@@ -222,10 +203,7 @@ public static unsafe partial class CurveUtils
             Debug.Assert(t[1] > 0.0);
             Debug.Assert(t[1] < 1.0);
 
-            FloatPointX7 tmp;
-            Unsafe.SkipInit(out tmp);
-
-            CutCubicAt(src, ref tmp, t[0]);
+            CutCubicAt(src, out FloatPointX7 tmp, t[0]);
 
             dst[0] = tmp[0];
             dst[1] = tmp[1];
@@ -239,7 +217,7 @@ public static unsafe partial class CurveUtils
             // precision.
             double tt = Clamp((t[1] - t[0]) / d, 0.0, 1.0);
 
-            CutCubicAt(in Unsafe.As<FloatPoint, FloatPointX4>(ref tmp[3]), ref Unsafe.As<FloatPoint, FloatPointX7>(ref dst[3]), tt);
+            CutCubicAt(in Unsafe.As<FloatPoint, FloatPointX4>(ref tmp[3]), out Unsafe.As<FloatPoint, FloatPointX7>(ref dst[3]), tt);
 
             // Make sure curve tangents at extremas are horizontal.
             double y0 = dst[3].Y;
@@ -264,15 +242,14 @@ public static unsafe partial class CurveUtils
     }
 
 
-    public static partial int CutCubicAtXExtrema(in FloatPointX4 src, ref FloatPointX10 dst)
+    public static partial int CutCubicAtXExtrema(in FloatPointX4 src, out FloatPointX10 dst)
     {
+        Unsafe.SkipInit(out dst);
+
         //Debug.Assert(src != null);
         //Debug.Assert(dst != null);
 
-        DoubleX2 t;
-        Unsafe.SkipInit(out t);
-
-        int n = FindCubicExtrema(src[0].X, src[1].X, src[2].X, src[3].X, ref t);
+        int n = FindCubicExtrema(src[0].X, src[1].X, src[2].X, src[3].X, out DoubleX2 t);
 
         if (n == 1)
         {
@@ -281,7 +258,7 @@ public static unsafe partial class CurveUtils
             Debug.Assert(t[0] > 0.0);
             Debug.Assert(t[0] < 1.0);
 
-            CutCubicAt(src, ref Unsafe.As<FloatPointX10, FloatPointX7>(ref dst), t[0]);
+            CutCubicAt(src, out Unsafe.As<FloatPointX10, FloatPointX7>(ref dst), t[0]);
 
             // Make sure curve tangents at extrema are horizontal.
             double x = dst[3].X;
@@ -303,10 +280,7 @@ public static unsafe partial class CurveUtils
             Debug.Assert(t[1] > 0.0);
             Debug.Assert(t[1] < 1.0);
 
-            FloatPointX7 tmp;
-            Unsafe.SkipInit(out tmp);
-
-            CutCubicAt(src, ref tmp, t[0]);
+            CutCubicAt(src, out FloatPointX7 tmp, t[0]);
 
             dst[0] = tmp[0];
             dst[1] = tmp[1];
@@ -320,7 +294,7 @@ public static unsafe partial class CurveUtils
             // precision.
             double tt = Clamp((t[1] - t[0]) / d, 0.0, 1.0);
 
-            CutCubicAt(in Unsafe.As<FloatPoint, FloatPointX4>(ref tmp[3]), ref Unsafe.As<FloatPoint, FloatPointX7>(ref dst[3]), tt);
+            CutCubicAt(in Unsafe.As<FloatPoint, FloatPointX4>(ref tmp[3]), out Unsafe.As<FloatPoint, FloatPointX7>(ref dst[3]), tt);
 
             // Make sure curve tangents at extremas are horizontal.
             double x0 = dst[3].X;
@@ -359,8 +333,10 @@ public static unsafe partial class CurveUtils
     }
 
 
-    public static partial int CutQuadraticAtYExtrema(in FloatPointX3 src, ref FloatPointX5 dst)
+    public static partial int CutQuadraticAtYExtrema(in FloatPointX3 src, out FloatPointX5 dst)
     {
+        Unsafe.SkipInit(out dst);
+
         double a = src[0].Y;
         double b = src[1].Y;
         double c = src[2].Y;
@@ -374,11 +350,9 @@ public static unsafe partial class CurveUtils
             return 1;
         }
 
-        double t = 0;
-
-        if (FindQuadraticExtrema(a, b, c, ref t))
+        if (FindQuadraticExtrema(a, b, c, out double t))
         {
-            CutQuadraticAt(src, ref dst, t);
+            CutQuadraticAt(src, out dst, t);
 
             double y = dst[2].Y;
 
@@ -407,8 +381,10 @@ public static unsafe partial class CurveUtils
     }
 
 
-    public static partial int CutQuadraticAtXExtrema(in FloatPointX3 src, ref FloatPointX5 dst)
+    public static partial int CutQuadraticAtXExtrema(in FloatPointX3 src, out FloatPointX5 dst)
     {
+        Unsafe.SkipInit(out dst);
+
         double a = src[0].X;
         double b = src[1].X;
         double c = src[2].X;
@@ -422,11 +398,9 @@ public static unsafe partial class CurveUtils
             return 1;
         }
 
-        double t = 0;
-
-        if (FindQuadraticExtrema(a, b, c, ref t))
+        if (FindQuadraticExtrema(a, b, c, out double t))
         {
-            CutQuadraticAt(src, ref dst, t);
+            CutQuadraticAt(src, out dst, t);
 
             double x = dst[2].X;
 

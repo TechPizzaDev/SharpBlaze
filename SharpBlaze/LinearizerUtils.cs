@@ -130,7 +130,7 @@ public static unsafe class LinearizerUtils
      * @param s Source curve defined by three points.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void SplitQuadratic(ref F24Dot8PointX5 r, in F24Dot8PointX3 s)
+    public static void SplitQuadratic(out F24Dot8PointX5 r, in F24Dot8PointX3 s)
     {
         //Debug.Assert(r != null);
         //Debug.Assert(s != null);
@@ -142,6 +142,7 @@ public static unsafe class LinearizerUtils
         F24Dot8 mx = (m0x + m1x) >> 1;
         F24Dot8 my = (m0y + m1y) >> 1;
 
+        Unsafe.SkipInit(out r);
         r[0] = s[0];
         r[1].X = m0x;
         r[1].Y = m0y;
@@ -163,7 +164,7 @@ public static unsafe class LinearizerUtils
      * @param s Source curve defined by four points.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void SplitCubic(ref F24Dot8PointX7 r, in F24Dot8PointX4 s)
+    public static void SplitCubic(out F24Dot8PointX7 r, in F24Dot8PointX4 s)
     {
         //Debug.Assert(r != null);
         //Debug.Assert(s != null);
@@ -181,6 +182,7 @@ public static unsafe class LinearizerUtils
         F24Dot8 mx = (m3x + m4x) >> 1;
         F24Dot8 my = (m3y + m4y) >> 1;
 
+        Unsafe.SkipInit(out r);
         r[0] = s[0];
         r[1].X = m0x;
         r[1].Y = m0y;
@@ -197,51 +199,46 @@ public static unsafe class LinearizerUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicQuadraticAt(double c0, double c1, double c2, double target, ref double t)
+    public static bool CutMonotonicQuadraticAt(double c0, double c1, double c2, double target, out double t)
     {
         double A = c0 - c1 - c1 + c2;
         double B = 2 * (c1 - c0);
         double C = c0 - target;
 
-        DoubleX2 roots;
-        Unsafe.SkipInit(out roots);
+        int count = CurveUtils.FindQuadraticRoots(A, B, C, out DoubleX2 roots);
 
-        int count = CurveUtils.FindQuadraticRoots(A, B, C, ref roots);
+        t = roots[0];
 
-        if (count > 0)
-        {
-            t = roots[0];
-            return true;
-        }
-
-        return false;
+        return count > 0;
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicQuadraticAtX(in FloatPointX3 quadratic, double x, ref double t)
+    public static bool CutMonotonicQuadraticAtX(in FloatPointX3 quadratic, double x, out double t)
     {
         //Debug.Assert(quadratic != null);
 
         return CutMonotonicQuadraticAt(quadratic[0].X, quadratic[1].X,
-            quadratic[2].X, x, ref t);
+            quadratic[2].X, x, out t);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicQuadraticAtY(in FloatPointX3 quadratic, double y, ref double t)
+    public static bool CutMonotonicQuadraticAtY(in FloatPointX3 quadratic, double y, out double t)
     {
         //Debug.Assert(quadratic != null);
 
         return CutMonotonicQuadraticAt(quadratic[0].Y, quadratic[1].Y,
-            quadratic[2].Y, y, ref t);
+            quadratic[2].Y, y, out t);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicCubicAt(ref double t, in DoubleX4 pts)
+    public static bool CutMonotonicCubicAt(out double t, in DoubleX4 pts)
     {
         const double Tolerance = 1e-7;
+
+        Unsafe.SkipInit(out t);
 
         double negative = 0;
         double positive = 0;
@@ -296,7 +293,7 @@ public static unsafe class LinearizerUtils
             {
                 positive = m;
             }
-        } 
+        }
         while (Math.Abs(positive - negative) > Tolerance);
 
         t = (negative + positive) / 2.0;
@@ -306,7 +303,7 @@ public static unsafe class LinearizerUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicCubicAtY(in FloatPointX4 pts, double y, ref double t)
+    public static bool CutMonotonicCubicAtY(in FloatPointX4 pts, double y, out double t)
     {
         DoubleX4 c;
         Unsafe.SkipInit(out c);
@@ -315,12 +312,12 @@ public static unsafe class LinearizerUtils
         c[2] = pts[2].Y - y;
         c[3] = pts[3].Y - y;
 
-        return CutMonotonicCubicAt(ref t, c);
+        return CutMonotonicCubicAt(out t, c);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicCubicAtX(in FloatPointX4 pts, double x, ref double t)
+    public static bool CutMonotonicCubicAtX(in FloatPointX4 pts, double x, out double t)
     {
         DoubleX4 c;
         Unsafe.SkipInit(out c);
@@ -329,7 +326,7 @@ public static unsafe class LinearizerUtils
         c[2] = pts[2].X - x;
         c[3] = pts[3].X - x;
 
-        return CutMonotonicCubicAt(ref t, c);
+        return CutMonotonicCubicAt(out t, c);
     }
 
 

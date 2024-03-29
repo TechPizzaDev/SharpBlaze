@@ -54,7 +54,7 @@ public static unsafe partial class CurveUtils
      * Roots must not be nullptr. Returns 0, 1 or 2.
      */
     public static partial int FindQuadraticRoots(double a, double b, double c,
-        ref DoubleX2 roots);
+        out DoubleX2 roots);
 
 
     /**
@@ -73,7 +73,7 @@ public static unsafe partial class CurveUtils
      * @param dst Pointer to memory for destination curves. Must be large enough
      * to keep 5 FloatPoint values.
      */
-    public static partial int CutQuadraticAtXExtrema(in FloatPointX3 src, ref FloatPointX5 dst);
+    public static partial int CutQuadraticAtXExtrema(in FloatPointX3 src, out FloatPointX5 dst);
 
 
     /**
@@ -93,7 +93,7 @@ public static unsafe partial class CurveUtils
      * @param dst Pointer to memory for destination curves. Must be large enough
      * to keep 10 FloatPoint values.
      */
-    public static partial int CutCubicAtXExtrema(in FloatPointX4 src, ref FloatPointX10 dst);
+    public static partial int CutCubicAtXExtrema(in FloatPointX4 src, out FloatPointX10 dst);
 
 
     /**
@@ -112,7 +112,7 @@ public static unsafe partial class CurveUtils
      * @param dst Pointer to memory for destination curves. Must be large enough
      * to keep 5 FloatPoint values.
      */
-    public static partial int CutQuadraticAtYExtrema(in FloatPointX3 src, ref FloatPointX5 dst);
+    public static partial int CutQuadraticAtYExtrema(in FloatPointX3 src, out FloatPointX5 dst);
 
 
     /**
@@ -132,7 +132,7 @@ public static unsafe partial class CurveUtils
      * @param dst Pointer to memory for destination curves. Must be large enough
      * to keep 10 FloatPoint values.
      */
-    public static partial int CutCubicAtYExtrema(in FloatPointX4 src, ref FloatPointX10 dst);
+    public static partial int CutCubicAtYExtrema(in FloatPointX4 src, out FloatPointX10 dst);
 
 
 
@@ -200,11 +200,12 @@ public static unsafe partial class CurveUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void InterpolateQuadraticCoordinates(in FloatPointX3 src, ref FloatPointX5 dst, Vector128<double> t)
+    public static void InterpolateQuadraticCoordinates(in FloatPointX3 src, out FloatPointX5 dst, Vector128<double> t)
     {
         Vector128<double> ab = InterpolateLinear(src[0].AsVector128(), src[1].AsVector128(), t);
         Vector128<double> bc = InterpolateLinear(src[1].AsVector128(), src[2].AsVector128(), t);
-
+        
+        Unsafe.SkipInit(out dst);
         dst[0] = src[0];
         dst[1] = new FloatPoint(ab);
         dst[2] = new FloatPoint(InterpolateLinear(ab, bc, t));
@@ -214,17 +215,17 @@ public static unsafe partial class CurveUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void CutQuadraticAt(in FloatPointX3 src, ref FloatPointX5 dst, double t)
+    public static void CutQuadraticAt(in FloatPointX3 src, out FloatPointX5 dst, double t)
     {
         Debug.Assert(t >= 0.0);
         Debug.Assert(t <= 1.0);
 
-        InterpolateQuadraticCoordinates(src, ref dst, Vector128.Create(t));
+        InterpolateQuadraticCoordinates(src, out dst, Vector128.Create(t));
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void InterpolateCubicCoordinates(in FloatPointX4 src, ref FloatPointX7 dst, Vector128<double> t)
+    private static void InterpolateCubicCoordinates(in FloatPointX4 src, out FloatPointX7 dst, Vector128<double> t)
     {
         Vector128<double> ab = InterpolateLinear(src[0].AsVector128(), src[1].AsVector128(), t);
         Vector128<double> bc = InterpolateLinear(src[1].AsVector128(), src[2].AsVector128(), t);
@@ -233,6 +234,7 @@ public static unsafe partial class CurveUtils
         Vector128<double> bcd = InterpolateLinear(bc, cd, t);
         Vector128<double> abcd = InterpolateLinear(abc, bcd, t);
 
+        Unsafe.SkipInit(out dst);
         dst[0] = src[0];
         dst[1] = new FloatPoint(ab);
         dst[2] = new FloatPoint(abc);
@@ -244,12 +246,12 @@ public static unsafe partial class CurveUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void CutCubicAt(in FloatPointX4 src, ref FloatPointX7 dst, double t)
+    public static void CutCubicAt(in FloatPointX4 src, out FloatPointX7 dst, double t)
     {
         Debug.Assert(t >= 0.0);
         Debug.Assert(t <= 1.0);
 
-        InterpolateCubicCoordinates(src, ref dst, Vector128.Create(t));
+        InterpolateCubicCoordinates(src, out dst, Vector128.Create(t));
     }
 
 }
