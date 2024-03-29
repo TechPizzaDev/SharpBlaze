@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -296,7 +297,7 @@ public static unsafe class LinearizerUtils
                 positive = m;
             }
         } 
-        while (Utils.Abs(positive - negative) > Tolerance);
+        while (Math.Abs(positive - negative) > Tolerance);
 
         t = (negative + positive) / 2.0;
 

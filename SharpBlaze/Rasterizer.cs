@@ -393,14 +393,14 @@ public unsafe partial struct Rasterizer<T>
 
         Debug.Assert(threadCount > 0);
 
-        int iterationHeight = (int) Max<uint>((uint) ((int) rowCount / threadCount), 1);
+        int iterationHeight = (int) Math.Max((uint) ((int) rowCount / threadCount), 1);
         int iterationCount = ((int) rowCount / iterationHeight) +
-            (int) Min<uint>((uint) ((int) rowCount % iterationHeight), 1);
+            (int) Math.Min((uint) ((int) rowCount % iterationHeight), 1);
 
         threads.ParallelFor(iterationCount, (int index, ThreadMemory memory) =>
         {
             TileIndex threadY = (TileIndex) (index * iterationHeight);
-            TileIndex threadHeight = (TileIndex) Min(iterationHeight, (int) (rowCount - threadY));
+            TileIndex threadHeight = (TileIndex) Math.Min(iterationHeight, (int) (rowCount - threadY));
             TileIndex threadMaxY = threadY + threadHeight;
 
             for (TileIndex i = threadY; i < threadMaxY; i++)
@@ -652,10 +652,10 @@ public unsafe partial struct Rasterizer<T>
             return null;
         }
 
-        int minx = Max(0, geometryBounds.MinX);
-        int miny = Max(0, geometryBounds.MinY);
-        int maxx = Min(imageSize.Width, geometryBounds.MaxX + 1);
-        int maxy = Min(imageSize.Height, geometryBounds.MaxY);
+        int minx = Math.Max(0, geometryBounds.MinX);
+        int miny = Math.Max(0, geometryBounds.MinY);
+        int maxx = Math.Min(imageSize.Width, geometryBounds.MaxX + 1);
+        int maxy = Math.Min(imageSize.Height, geometryBounds.MaxY);
 
         if (minx >= maxx || miny >= maxy)
         {
@@ -1858,7 +1858,7 @@ public unsafe partial struct Rasterizer<T>
         // Calculate maximum height. This can only get less than 8 when rendering
         // the last row of the image and image height is not multiple of row
         // height.
-        int hh = Min(maxpy, image.Height) - py;
+        int hh = Math.Min(maxpy, image.Height) - py;
 
         // Fill color.
         uint color = item->Rasterizable->Geometry->Color;

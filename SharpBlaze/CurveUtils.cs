@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -40,7 +41,7 @@ public static unsafe partial class CurveUtils
 
         if (delta > 0.0)
         {
-            double d = Sqrt(delta);
+            double d = Math.Sqrt(delta);
             double q = -0.5 * (b + (b < 0.0 ? -d : d));
             double rv0 = q / a;
             double rv1 = c / q;
@@ -108,7 +109,7 @@ public static unsafe partial class CurveUtils
 
         if (delta > 0.0)
         {
-            double d = Sqrt(delta);
+            double d = Math.Sqrt(delta);
             double q = -0.5 * (b + (b < 0.0 ? -d : d));
             double rv0 = q / a;
             double rv1 = c / q;
@@ -158,7 +159,7 @@ public static unsafe partial class CurveUtils
 
         double tv = aMinusB / d;
 
-        Debug.Assert(DoubleIsFinite(tv));
+        Debug.Assert(double.IsFinite(tv));
 
         if (tv <= 1e-15 || tv >= (1.0 - 1e-15))
         {
@@ -232,7 +233,7 @@ public static unsafe partial class CurveUtils
 
             double d = 1.0 - t[0];
 
-            Debug.Assert(DoubleIsFinite(d));
+            Debug.Assert(double.IsFinite(d));
 
             // Clamp to make sure we don't go out of range due to limited
             // precision.
@@ -313,7 +314,7 @@ public static unsafe partial class CurveUtils
 
             double d = 1.0 - t[0];
 
-            Debug.Assert(DoubleIsFinite(d));
+            Debug.Assert(double.IsFinite(d));
 
             // Clamp to make sure we don't go out of range due to limited
             // precision.
@@ -394,7 +395,7 @@ public static unsafe partial class CurveUtils
 
         dst[1] = new FloatPoint(
             src[1].X,
-            Abs(a - b) < Abs(b - c) ? a : c
+            Math.Abs(a - b) < Math.Abs(b - c) ? a : c
         );
 
         dst[2] = new FloatPoint(
@@ -441,7 +442,7 @@ public static unsafe partial class CurveUtils
         );
 
         dst[1] = new FloatPoint(
-            Abs(a - b) < Abs(b - c) ? a : c,
+            Math.Abs(a - b) < Math.Abs(b - c) ? a : c,
             src[1].Y
         );
 

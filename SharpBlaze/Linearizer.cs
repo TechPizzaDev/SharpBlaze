@@ -1,6 +1,8 @@
+using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
 
@@ -455,7 +457,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void ProcessUncontained(Geometry* geometry, ThreadMemory memory,
         in ClipBounds clip, in Matrix matrix)
     {
@@ -546,10 +547,10 @@ public unsafe partial struct Linearizer<T, L>
     private partial void AddUncontainedLine(ThreadMemory memory,
         in ClipBounds clip, FloatPoint p0, FloatPoint p1)
     {
-        Debug.Assert(DoubleIsFinite(p0.X));
-        Debug.Assert(DoubleIsFinite(p0.Y));
-        Debug.Assert(DoubleIsFinite(p1.X));
-        Debug.Assert(DoubleIsFinite(p1.Y));
+        Debug.Assert(double.IsFinite(p0.X));
+        Debug.Assert(double.IsFinite(p0.Y));
+        Debug.Assert(double.IsFinite(p1.X));
+        Debug.Assert(double.IsFinite(p1.Y));
 
         double y0 = p0.Y;
         double y1 = p1.Y;
@@ -615,7 +616,7 @@ public unsafe partial struct Linearizer<T, L>
         // calculating vertical t value at min-y and max-y. Meanwhile delta-x
         // needs to be exact since it is multiplied by t and it can go left or
         // right.
-        double deltay_v = Abs(y1 - y0);
+        double deltay_v = Math.Abs(y1 - y0);
         double deltax_v = x1 - x0;
 
         // These will point to line start/end after vertical clipping.
@@ -704,7 +705,7 @@ public unsafe partial struct Linearizer<T, L>
 
         // Horizontal clipping.
         double deltay_h = ry1 - ry0;
-        double deltax_h = Abs(rx1 - rx0);
+        double deltax_h = Math.Abs(rx1 - rx0);
 
         if (rx1 > rx0)
         {
@@ -1070,18 +1071,18 @@ public unsafe partial struct Linearizer<T, L>
         ThreadMemory memory, in ClipBounds clip, in FloatPointX3 p)
     {
         //Debug.Assert(p != null);
-        Debug.Assert(DoubleIsFinite(p[0].X));
-        Debug.Assert(DoubleIsFinite(p[0].Y));
-        Debug.Assert(DoubleIsFinite(p[1].X));
-        Debug.Assert(DoubleIsFinite(p[1].Y));
-        Debug.Assert(DoubleIsFinite(p[2].X));
-        Debug.Assert(DoubleIsFinite(p[2].Y));
+        Debug.Assert(double.IsFinite(p[0].X));
+        Debug.Assert(double.IsFinite(p[0].Y));
+        Debug.Assert(double.IsFinite(p[1].X));
+        Debug.Assert(double.IsFinite(p[1].Y));
+        Debug.Assert(double.IsFinite(p[2].X));
+        Debug.Assert(double.IsFinite(p[2].Y));
 
         // Assuming curve is monotonic.
-        Debug.Assert(p[1].X <= Max(p[0].X, p[2].X));
-        Debug.Assert(p[1].X >= Min(p[0].X, p[2].X));
-        Debug.Assert(p[1].Y <= Max(p[0].Y, p[2].Y));
-        Debug.Assert(p[1].Y >= Min(p[0].Y, p[2].Y));
+        Debug.Assert(p[1].X <= Math.Max(p[0].X, p[2].X));
+        Debug.Assert(p[1].X >= Math.Min(p[0].X, p[2].X));
+        Debug.Assert(p[1].Y <= Math.Max(p[0].Y, p[2].Y));
+        Debug.Assert(p[1].Y >= Math.Min(p[0].Y, p[2].Y));
 
         double sx = p[0].X;
         double px = p[2].X;
@@ -1200,18 +1201,18 @@ public unsafe partial struct Linearizer<T, L>
         ThreadMemory memory, in ClipBounds clip, ref FloatPointX3 p)
     {
         //Debug.Assert(p != null);
-        Debug.Assert(DoubleIsFinite(p[0].X));
-        Debug.Assert(DoubleIsFinite(p[0].Y));
-        Debug.Assert(DoubleIsFinite(p[1].X));
-        Debug.Assert(DoubleIsFinite(p[1].Y));
-        Debug.Assert(DoubleIsFinite(p[2].X));
-        Debug.Assert(DoubleIsFinite(p[2].Y));
+        Debug.Assert(double.IsFinite(p[0].X));
+        Debug.Assert(double.IsFinite(p[0].Y));
+        Debug.Assert(double.IsFinite(p[1].X));
+        Debug.Assert(double.IsFinite(p[1].Y));
+        Debug.Assert(double.IsFinite(p[2].X));
+        Debug.Assert(double.IsFinite(p[2].Y));
 
         // Assuming curve is monotonic.
-        Debug.Assert(p[1].X <= Max(p[0].X, p[2].X));
-        Debug.Assert(p[1].X >= Min(p[0].X, p[2].X));
-        Debug.Assert(p[1].Y <= Max(p[0].Y, p[2].Y));
-        Debug.Assert(p[1].Y >= Min(p[0].Y, p[2].Y));
+        Debug.Assert(p[1].X <= Math.Max(p[0].X, p[2].X));
+        Debug.Assert(p[1].X >= Math.Min(p[0].X, p[2].X));
+        Debug.Assert(p[1].Y <= Math.Max(p[0].Y, p[2].Y));
+        Debug.Assert(p[1].Y >= Math.Min(p[0].Y, p[2].Y));
 
         double sx = p[0].X;
         double px = p[2].X;
@@ -1471,7 +1472,7 @@ public unsafe partial struct Linearizer<T, L>
         //Debug.Assert(p != null);
 
         double minx = Min4(p[0].X, p[1].X, p[2].X, p[3].X);
-
+        
         if (minx >= clip.MaxX)
         {
             // Curve is to the right of clipping bounds.
@@ -1602,14 +1603,14 @@ public unsafe partial struct Linearizer<T, L>
         in ClipBounds clip, in FloatPointX4 p)
     {
         //Debug.Assert(p != null);
-        Debug.Assert(DoubleIsFinite(p[0].X));
-        Debug.Assert(DoubleIsFinite(p[0].Y));
-        Debug.Assert(DoubleIsFinite(p[1].X));
-        Debug.Assert(DoubleIsFinite(p[1].Y));
-        Debug.Assert(DoubleIsFinite(p[2].X));
-        Debug.Assert(DoubleIsFinite(p[2].Y));
-        Debug.Assert(DoubleIsFinite(p[3].X));
-        Debug.Assert(DoubleIsFinite(p[3].Y));
+        Debug.Assert(double.IsFinite(p[0].X));
+        Debug.Assert(double.IsFinite(p[0].Y));
+        Debug.Assert(double.IsFinite(p[1].X));
+        Debug.Assert(double.IsFinite(p[1].Y));
+        Debug.Assert(double.IsFinite(p[2].X));
+        Debug.Assert(double.IsFinite(p[2].Y));
+        Debug.Assert(double.IsFinite(p[3].X));
+        Debug.Assert(double.IsFinite(p[3].Y));
 
         // Assuming curve is monotonic.
 
@@ -1735,14 +1736,14 @@ public unsafe partial struct Linearizer<T, L>
         ThreadMemory memory, in ClipBounds clip, ref FloatPointX4 p)
     {
         //Debug.Assert(p != null);
-        Debug.Assert(DoubleIsFinite(p[0].X));
-        Debug.Assert(DoubleIsFinite(p[0].Y));
-        Debug.Assert(DoubleIsFinite(p[1].X));
-        Debug.Assert(DoubleIsFinite(p[1].Y));
-        Debug.Assert(DoubleIsFinite(p[2].X));
-        Debug.Assert(DoubleIsFinite(p[2].Y));
-        Debug.Assert(DoubleIsFinite(p[3].X));
-        Debug.Assert(DoubleIsFinite(p[3].Y));
+        Debug.Assert(double.IsFinite(p[0].X));
+        Debug.Assert(double.IsFinite(p[0].Y));
+        Debug.Assert(double.IsFinite(p[1].X));
+        Debug.Assert(double.IsFinite(p[1].Y));
+        Debug.Assert(double.IsFinite(p[2].X));
+        Debug.Assert(double.IsFinite(p[2].Y));
+        Debug.Assert(double.IsFinite(p[3].X));
+        Debug.Assert(double.IsFinite(p[3].Y));
 
         double sx = p[0].X;
         double px = p[3].X;

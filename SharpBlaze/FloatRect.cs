@@ -1,3 +1,4 @@
+using System;
 
 namespace SharpBlaze;
 
@@ -6,10 +7,10 @@ public partial struct FloatRect
 {
     public readonly IntRect ToExpandedIntRect()
     {
-        int minx = (int) (Utils.Floor(Min.X));
-        int miny = (int) (Utils.Floor(Min.Y));
-        int maxx = (int) (Utils.Ceil(Max.X));
-        int maxy = (int) (Utils.Ceil(Max.Y));
+        int minx = (int) (Math.Floor(Min.X));
+        int miny = (int) (Math.Floor(Min.Y));
+        int maxx = (int) (Math.Ceiling(Max.X));
+        int maxy = (int) (Math.Ceiling(Max.Y));
 
         return new IntRect(minx, miny, maxx - minx, maxy - miny);
     }

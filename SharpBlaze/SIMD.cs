@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
@@ -13,7 +14,7 @@ public static unsafe partial class SIMD
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 RoundTo24Dot8(double v)
     {
-        return (F24Dot8) (int) Round(v);
+        return (F24Dot8) (int) Math.Round(v);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -285,10 +286,10 @@ public static unsafe partial class SIMD
         else
         {
             return Vector128.Create(
-                (int) Round(a.GetElement(0)),
-                (int) Round(a.GetElement(1)),
-                (int) Round(b.GetElement(0)),
-                (int) Round(b.GetElement(1)));
+                (int) Math.Round(a.GetElement(0)),
+                (int) Math.Round(a.GetElement(1)),
+                (int) Math.Round(b.GetElement(0)),
+                (int) Math.Round(b.GetElement(1)));
         }
     }
 

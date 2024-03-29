@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
@@ -22,7 +23,7 @@ public static class RasterizerUtils
         int aaabs = (aa + mask) ^ mask;
 
         // Clamp absolute area value to be 255 or less.
-        return Min(aaabs, 255);
+        return Math.Min(aaabs, 255);
     }
 
 
@@ -47,7 +48,7 @@ public static class RasterizerUtils
             return 512 - aac;
         }
 
-        return Min(aac, 255);
+        return Math.Min(aac, 255);
     }
 
 

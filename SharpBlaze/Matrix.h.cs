@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
@@ -314,8 +315,8 @@ public readonly partial struct Matrix
             return Identity;
         }
 
-        double xTan = Tan(Deg2Rad(degreesX));
-        double yTan = Tan(Deg2Rad(degreesY));
+        double xTan = Math.Tan(Deg2Rad(degreesX));
+        double yTan = Math.Tan(Deg2Rad(degreesY));
 
         return new Matrix(1.0, yTan, xTan, 1.0, 0.0, 0.0);
     }

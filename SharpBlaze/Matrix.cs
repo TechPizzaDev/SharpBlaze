@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
@@ -46,8 +47,7 @@ public readonly partial struct Matrix
             // Arbitrary rotation.
             double radians = Deg2Rad(degrees);
 
-            c = Cos(radians);
-            s = Sin(radians);
+            (s, c) = Math.SinCos(radians);
         }
 
         return new Matrix(c, s, -s, c, 0, 0);

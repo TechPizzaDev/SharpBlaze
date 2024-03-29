@@ -1,11 +1,10 @@
-
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace SharpBlaze;
 
-using static Utils;
+using static Math;
 
 /**
  * Manages a pool of threads used for parallelization of rasterization tasks.

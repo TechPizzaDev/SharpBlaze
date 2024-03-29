@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace SharpBlaze;
 
-using static Utils;
+using static Math;
 
 public unsafe partial class Threads
 {

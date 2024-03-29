@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -32,7 +33,7 @@ public readonly struct F24Dot8
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 DoubleToF24Dot8(double v)
     {
-        return (F24Dot8) (int) Utils.Round(v * 256.0);
+        return (F24Dot8) (int) Math.Round(v * 256.0);
     }
 
 
