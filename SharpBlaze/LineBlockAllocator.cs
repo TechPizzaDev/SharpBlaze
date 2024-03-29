@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 
 namespace SharpBlaze;
@@ -62,10 +63,10 @@ public unsafe partial class LineBlockAllocator
         p->Links.NextFree = null;
 
         mCurrent = p->Memory + sizeof(ArenaLinks);
-        mEnd = p->Memory + Arena.Size -
-            Utils.Max3(
-                sizeof(LineArrayX32Y16Block),
-                sizeof(LineArrayX16Y16Block),
-                sizeof(LineArrayTiledBlock));
+        mEnd = p->Memory + Arena.Size - Math.Max(
+            sizeof(LineArrayX32Y16Block),
+            Math.Max(
+                sizeof(LineArrayX16Y16Block), 
+                sizeof(LineArrayTiledBlock)));
     }
 }

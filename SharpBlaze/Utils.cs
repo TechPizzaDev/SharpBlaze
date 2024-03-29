@@ -18,28 +18,6 @@ public static class Utils
 
 
     /**
-     * Finds the smallest of the three values.
-     */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T Min3<T>(T a, T b, T c)
-        where T : INumber<T>
-    {
-        return T.Min(a, T.Min(b, c));
-    }
-
-
-    /**
-     * Finds the greatest of the three values.
-     */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T Max3<T>(T a, T b, T c)
-        where T : INumber<T>
-    {
-        return T.Max(a, T.Max(b, c));
-    }
-
-
-    /**
      * Returns value clamped to range between minimum and maximum values.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

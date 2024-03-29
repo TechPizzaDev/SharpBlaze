@@ -942,7 +942,11 @@ public unsafe partial struct Linearizer<T, L>
     {
         //Debug.Assert(p != null);
 
-        double minx = Min3(p[0].X, p[1].X, p[2].X);
+        Vector128<double> pmin = Vector128.Min(
+            Vector128.Min(p[0].AsVector128(), p[1].AsVector128()),
+            p[2].AsVector128());
+
+        double minx = pmin.GetElement(0);
 
         if (minx >= clip.MaxX)
         {
@@ -950,7 +954,7 @@ public unsafe partial struct Linearizer<T, L>
             return;
         }
 
-        double miny = Min3(p[0].Y, p[1].Y, p[2].Y);
+        double miny = pmin.GetElement(1);
 
         if (miny >= clip.MaxY)
         {
@@ -958,7 +962,11 @@ public unsafe partial struct Linearizer<T, L>
             return;
         }
 
-        double maxy = Max3(p[0].Y, p[1].Y, p[2].Y);
+        Vector128<double> pmax = Vector128.Max(
+            Vector128.Max(p[0].AsVector128(), p[1].AsVector128()),
+            p[2].AsVector128());
+
+        double maxy = pmax.GetElement(1);
 
         if (maxy <= 0)
         {
@@ -971,7 +979,7 @@ public unsafe partial struct Linearizer<T, L>
         if (miny >= 0 && maxy <= clip.MaxY)
         {
             // Primitive is within clipping bounds vertically.
-            double maxx = Max3(p[0].X, p[1].X, p[2].X);
+            double maxx = pmax.GetElement(0);
 
             if (maxx <= 0)
             {
@@ -1471,7 +1479,11 @@ public unsafe partial struct Linearizer<T, L>
     {
         //Debug.Assert(p != null);
 
-        double minx = Min4(p[0].X, p[1].X, p[2].X, p[3].X);
+        Vector128<double> pmin = Vector128.Min(
+            Vector128.Min(p[0].AsVector128(), p[1].AsVector128()),
+            Vector128.Min(p[2].AsVector128(), p[3].AsVector128()));
+
+        double minx = pmin.GetElement(0);
         
         if (minx >= clip.MaxX)
         {
@@ -1479,7 +1491,7 @@ public unsafe partial struct Linearizer<T, L>
             return;
         }
 
-        double miny = Min4(p[0].Y, p[1].Y, p[2].Y, p[3].Y);
+        double miny = pmin.GetElement(1);
 
         if (miny >= clip.MaxY)
         {
@@ -1487,7 +1499,11 @@ public unsafe partial struct Linearizer<T, L>
             return;
         }
 
-        double maxy = Max4(p[0].Y, p[1].Y, p[2].Y, p[3].Y);
+        Vector128<double> pmax = Vector128.Max(
+            Vector128.Max(p[0].AsVector128(), p[1].AsVector128()),
+            Vector128.Max(p[2].AsVector128(), p[3].AsVector128()));
+
+        double maxy = pmax.GetElement(1);
 
         if (maxy <= 0)
         {
@@ -1500,7 +1516,7 @@ public unsafe partial struct Linearizer<T, L>
         if (miny >= 0 && maxy <= clip.MaxY)
         {
             // Primitive is within clipping bounds vertically.
-            double maxx = Max4(p[0].X, p[1].X, p[2].X, p[3].X);
+            double maxx = pmax.GetElement(0);
 
             if (maxx <= 0)
             {
