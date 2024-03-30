@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -26,7 +27,7 @@ public static unsafe partial class CompositionOps
     }
 
 
-    internal static void CompositeSpanSourceOver(int pos, int end, uint* d, int alpha, uint color)
+    internal static void CompositeSpanSourceOver(int pos, int end, uint* d, uint alpha, uint color)
     {
         Debug.Assert(pos >= 0);
         Debug.Assert(pos < end);
@@ -36,10 +37,9 @@ public static unsafe partial class CompositionOps
         // For opaque colors, use opaque span composition version.
         Debug.Assert((color >> 24) < 255);
 
-        int e = end;
-        uint cba = ApplyAlpha(color, (uint) alpha);
+        uint cba = ApplyAlpha(color, alpha);
 
-        for (int x = pos; x < e; x++)
+        for (int x = pos; x < end; x++)
         {
             uint dd = d[x];
 
@@ -55,7 +55,7 @@ public static unsafe partial class CompositionOps
     }
 
 
-    internal static void CompositeSpanSourceOverOpaque(int pos, int end, uint* d, int alpha, uint color)
+    internal static void CompositeSpanSourceOverOpaque(int pos, int end, uint* d, uint alpha, uint color)
     {
         Debug.Assert(pos >= 0);
         Debug.Assert(pos < end);
@@ -63,22 +63,21 @@ public static unsafe partial class CompositionOps
         Debug.Assert(alpha <= 255);
         Debug.Assert((color >> 24) == 255);
 
-        int e = end;
-
         if (alpha == 255)
         {
             // Solid span, write only.
-            for (int x = pos; x < e; x++)
+            int length = end - pos;
+            if (length > 0)
             {
-                d[x] = color;
+                new Span<uint>(d + pos, end - pos).Fill(color);
             }
         }
         else
         {
             // Transparent span.
-            uint cba = ApplyAlpha(color, (uint) alpha);
+            uint cba = ApplyAlpha(color, alpha);
 
-            for (int x = pos; x < e; x++)
+            for (int x = pos; x < end; x++)
             {
                 uint dd = d[x];
 
@@ -95,7 +94,7 @@ public static unsafe partial class CompositionOps
     }
 }
 
-public readonly unsafe struct SpanBlender: ISpanBlender
+public readonly unsafe struct SpanBlender : ISpanBlender
 {
     public SpanBlender(uint color)
     {
@@ -105,7 +104,7 @@ public readonly unsafe struct SpanBlender: ISpanBlender
     readonly uint Color = 0;
 
 
-    public void CompositeSpan(int pos, int end, uint* d, int alpha)
+    public void CompositeSpan(int pos, int end, uint* d, uint alpha)
     {
         CompositionOps.CompositeSpanSourceOver(pos, end, d, alpha, Color);
     }
@@ -124,7 +123,7 @@ public readonly unsafe struct SpanBlenderOpaque : ISpanBlender
     readonly uint Color = 0;
 
 
-    public void CompositeSpan(int pos, int end, uint* d, int alpha)
+    public void CompositeSpan(int pos, int end, uint* d, uint alpha)
     {
         CompositionOps.CompositeSpanSourceOverOpaque(pos, end, d, alpha, Color);
     }

@@ -45,7 +45,7 @@ public unsafe partial struct Rasterizer<T>
         return (PixelIndex) (x >> 8);
     }
 
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static F24Dot8 PixelIndexToF24Dot8(PixelIndex x)
     {
@@ -1100,7 +1100,7 @@ public unsafe partial struct Rasterizer<T>
         Debug.Assert(p1y >= 0);
         Debug.Assert(p1y <= T.TileHF24Dot8);
         Debug.Assert(p0y <= p1y);
-        
+
         BitVector* bitVector = bitVectorTable[rowIndex];
         int* coverArea = coverAreaTable[rowIndex];
 
@@ -1207,7 +1207,7 @@ public unsafe partial struct Rasterizer<T>
         Debug.Assert(p1y >= 0);
         Debug.Assert(p1y <= T.TileHF24Dot8);
         Debug.Assert(p0y >= p1y);
-        
+
         BitVector* bitVector = bitVectorTable[rowIndex];
         int* coverArea = coverAreaTable[rowIndex];
 
@@ -1714,7 +1714,7 @@ public unsafe partial struct Rasterizer<T>
                     {
                         if (spanAlpha != 0)
                         {
-                            blender.CompositeSpan((int) spanX, (int) spanEnd, d, (int) spanAlpha);
+                            blender.CompositeSpan((int) spanX, (int) spanEnd, d, spanAlpha);
                         }
 
                         spanX = nextEdgeX;
@@ -1731,7 +1731,7 @@ public unsafe partial struct Rasterizer<T>
                         // alpha.
                         if (spanAlpha != 0)
                         {
-                            blender.CompositeSpan((int) spanX, (int) spanEnd, d, (int) spanAlpha);
+                            blender.CompositeSpan((int) spanX, (int) spanEnd, d, spanAlpha);
                         }
 
                         spanX = edgeX;
@@ -1750,7 +1750,7 @@ public unsafe partial struct Rasterizer<T>
                         // Fill span if there is one and reset current span.
                         if (spanAlpha != 0)
                         {
-                            blender.CompositeSpan((int) spanX, (int) spanEnd, d, (int) spanAlpha);
+                            blender.CompositeSpan((int) spanX, (int) spanEnd, d, spanAlpha);
                         }
 
                         spanX = edgeX;
@@ -1774,7 +1774,7 @@ public unsafe partial struct Rasterizer<T>
                             else
                             {
                                 // Only gap alpha matches current span.
-                                blender.CompositeSpan((int) spanX, (int) edgeX, d, (int) spanAlpha);
+                                blender.CompositeSpan((int) spanX, (int) edgeX, d, spanAlpha);
 
                                 spanX = edgeX;
                                 spanEnd = nextEdgeX;
@@ -1785,11 +1785,11 @@ public unsafe partial struct Rasterizer<T>
                         {
                             if (spanAlpha != 0)
                             {
-                                blender.CompositeSpan((int) spanX, (int) spanEnd, d, (int) spanAlpha);
+                                blender.CompositeSpan((int) spanX, (int) spanEnd, d, spanAlpha);
                             }
 
                             // Compose gap.
-                            blender.CompositeSpan((int) spanEnd, (int) edgeX, d, (int) gapAlpha);
+                            blender.CompositeSpan((int) spanEnd, (int) edgeX, d, gapAlpha);
 
                             spanX = edgeX;
                             spanEnd = nextEdgeX;
@@ -1805,7 +1805,7 @@ public unsafe partial struct Rasterizer<T>
         if (spanAlpha != 0)
         {
             // Composite current span.
-            blender.CompositeSpan((int) spanX, (int) spanEnd, d, (int) spanAlpha);
+            blender.CompositeSpan((int) spanX, (int) spanEnd, d, spanAlpha);
         }
 
         if (cover != 0 && spanEnd < rowLength)
@@ -1813,7 +1813,7 @@ public unsafe partial struct Rasterizer<T>
             // Composite anything that goes to the edge of destination image.
             int alpha = F.ApplyFillRule(cover << 9);
 
-            blender.CompositeSpan((int) spanEnd, rowLength, d, alpha);
+            blender.CompositeSpan((int) spanEnd, rowLength, d, (uint) alpha);
         }
     }
 
