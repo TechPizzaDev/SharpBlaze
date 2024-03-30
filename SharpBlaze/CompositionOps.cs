@@ -26,7 +26,6 @@ public static unsafe partial class CompositionOps
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void CompositeSpanSourceOver(int pos, int end, uint* d, int alpha, uint color)
     {
         Debug.Assert(pos >= 0);
@@ -56,7 +55,6 @@ public static unsafe partial class CompositionOps
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void CompositeSpanSourceOverOpaque(int pos, int end, uint* d, int alpha, uint color)
     {
         Debug.Assert(pos >= 0);
@@ -107,7 +105,6 @@ public readonly unsafe struct SpanBlender: ISpanBlender
     readonly uint Color = 0;
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CompositeSpan(int pos, int end, uint* d, int alpha)
     {
         CompositionOps.CompositeSpanSourceOver(pos, end, d, alpha, Color);
@@ -127,7 +124,6 @@ public readonly unsafe struct SpanBlenderOpaque : ISpanBlender
     readonly uint Color = 0;
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CompositeSpan(int pos, int end, uint* d, int alpha)
     {
         CompositionOps.CompositeSpanSourceOverOpaque(pos, end, d, alpha, Color);

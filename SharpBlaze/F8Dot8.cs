@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
 
@@ -78,6 +79,7 @@ public readonly struct F8Dot8x4
 
 public readonly partial struct F8Dot8
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F8Dot8x2 PackF24Dot8ToF8Dot8x2(F24Dot8 a, F24Dot8 b)
     {
         // Values must be small enough.
@@ -87,7 +89,8 @@ public readonly partial struct F8Dot8
         return (uint) a | ((uint) b << 16);
     }
 
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F8Dot8x4 PackF24Dot8ToF8Dot8x4(F24Dot8 a, F24Dot8 b, F24Dot8 c, F24Dot8 d)
     {
         // Values must be small enough.
@@ -100,13 +103,15 @@ public readonly partial struct F8Dot8
             ((uint) c << 32) | ((uint) d << 48);
     }
 
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 UnpackLoFromF8Dot8x2(F8Dot8x2 a)
     {
         return ((uint) a & 0xffff);
     }
 
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 UnpackHiFromF8Dot8x2(F8Dot8x2 a)
     {
         return ((uint) a >> 16);

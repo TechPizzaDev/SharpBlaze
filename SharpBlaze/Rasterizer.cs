@@ -38,12 +38,15 @@ public unsafe partial struct Rasterizer<T>
         int inputGeometryCount, in Matrix matrix, Threads threads,
         ImageData image);
 
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static PixelIndex F24Dot8ToPixelIndex(F24Dot8 x)
     {
         return (PixelIndex) (x >> 8);
     }
 
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static F24Dot8 PixelIndexToF24Dot8(PixelIndex x)
     {
         return (F24Dot8) (x) << 8;
@@ -547,7 +550,6 @@ public unsafe partial struct Rasterizer<T>
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void IterateLinesX32Y16(RasterizableItem* item, BitVector** bitVectorTable, int** coverAreaTable)
     {
         int count = item->GetFirstBlockLineCount();
@@ -578,7 +580,6 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void IterateLinesX16Y16(RasterizableItem* item, BitVector** bitVectorTable, int** coverAreaTable)
     {
         int count = item->GetFirstBlockLineCount();
@@ -681,7 +682,6 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial RasterizableGeometry*
         Linearize<L>(void* placement, Geometry* geometry, TileBounds bounds, IntSize imageSize, LineIterationFunction iterationFunction, ThreadMemory memory)
         where L : unmanaged, ILineArrayBlock<L>
@@ -753,7 +753,6 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void Vertical_Down(BitVector** bitVectorTable,
         int** coverAreaTable, PixelIndex columnIndex, F24Dot8 y0,
         F24Dot8 y1, F24Dot8 x)
@@ -785,7 +784,6 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void Vertical_Up(BitVector** bitVectorTable,
         int** coverAreaTable, PixelIndex columnIndex, F24Dot8 y0,
         F24Dot8 y1, F24Dot8 x)
@@ -875,7 +873,6 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void RowDownR(BitVector** bitVectorTable,
         int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
         F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
@@ -984,7 +981,6 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void RowUpR(BitVector** bitVectorTable,
         int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
         F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
@@ -1092,7 +1088,6 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void RowDownL(BitVector** bitVectorTable,
         int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
         F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
@@ -1200,7 +1195,6 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void RowUpL(BitVector** bitVectorTable,
         int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
         F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
@@ -1308,7 +1302,6 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void LineDownR(BitVector** bitVectorTable,
         int** coverAreaTable, PixelIndex rowIndex0,
         PixelIndex rowIndex1, F24Dot8 x0, F24Dot8 y0,
@@ -1370,7 +1363,6 @@ public unsafe partial struct Rasterizer<T>
     /**
      * ⬈
      */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void LineUpR(BitVector** bitVectorTable,
         int** coverAreaTable, PixelIndex rowIndex0,
         PixelIndex rowIndex1, F24Dot8 x0, F24Dot8 y0,
@@ -1430,7 +1422,6 @@ public unsafe partial struct Rasterizer<T>
     /**
      * ⬋
      */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void LineDownL(BitVector** bitVectorTable,
         int** coverAreaTable, PixelIndex rowIndex0,
         PixelIndex rowIndex1, F24Dot8 x0, F24Dot8 y0,
@@ -1492,7 +1483,6 @@ public unsafe partial struct Rasterizer<T>
     /**
      * ⬉
      */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void LineUpL(BitVector** bitVectorTable,
         int** coverAreaTable, PixelIndex rowIndex0,
         PixelIndex rowIndex1, F24Dot8 x0, F24Dot8 y0,
@@ -1668,7 +1658,6 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void RenderOneLine<B, F>(byte* image,
         BitVector* bitVectorTable, int bitVectorCount,
         int* coverAreaTable, int x, int rowLength,
@@ -1829,7 +1818,6 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void RasterizeOneItem(RasterizableItem* item,
         BitVector** bitVectorTable, int** coverAreaTable, int columnCount,
         ImageData image)
@@ -1932,7 +1920,6 @@ public unsafe partial struct Rasterizer<T>
     /**
      * Rasterize all items in one row.
      */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void RasterizeRow(
         RowItemList<RasterizableItem>* rowList, ThreadMemory memory,
         ImageData image)

@@ -46,13 +46,18 @@ public readonly struct F24Dot8
         int mask = v >> 31;
         return (v + mask) ^ mask;
     }
+    
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator int(F24Dot8 value) => value._value;
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator uint(F24Dot8 value) => (uint) value._value;
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator F24Dot8(int value) => new(value);
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator F24Dot8(uint value) => new((int) value);
     
     public override string ToString()
