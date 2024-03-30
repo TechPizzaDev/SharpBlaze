@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
 
@@ -27,6 +28,13 @@ public static unsafe partial class CompositionOps
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<uint> BlendSourceOver(Vector128<uint> d, Vector128<uint> s)
+    {
+        return s + ApplyAlpha(d, Vector128.Create(255u) - (s >> 24));
+    }
+
+
     internal static void CompositeSpanSourceOver(int pos, int end, uint* d, uint alpha, uint color)
     {
         Debug.Assert(pos >= 0);
@@ -35,11 +43,24 @@ public static unsafe partial class CompositionOps
         Debug.Assert(alpha <= 255);
 
         // For opaque colors, use opaque span composition version.
-        Debug.Assert((color >> 24) < 255);
+        Debug.Assert(alpha != 255 || (color >> 24) < 255);
 
+        int x = pos;
         uint cba = ApplyAlpha(color, alpha);
 
-        for (int x = pos; x < end; x++)
+        if (Vector128.IsHardwareAccelerated)
+        {
+            var vCba = Vector128.Create(cba);
+
+            for (; x + Vector128<uint>.Count - 1 <= end; x += Vector128<uint>.Count)
+            {
+                var dd = Vector128.Load(d + x);
+
+                BlendSourceOver(dd, vCba).Store(d + x);
+            }
+        }
+
+        for (; x < end; x++)
         {
             uint dd = d[x];
 
@@ -75,21 +96,7 @@ public static unsafe partial class CompositionOps
         else
         {
             // Transparent span.
-            uint cba = ApplyAlpha(color, alpha);
-
-            for (int x = pos; x < end; x++)
-            {
-                uint dd = d[x];
-
-                if (dd == 0)
-                {
-                    d[x] = cba;
-                }
-                else
-                {
-                    d[x] = BlendSourceOver(dd, cba);
-                }
-            }
+            CompositeSpanSourceOver(pos, end, d, alpha, color);
         }
     }
 }
