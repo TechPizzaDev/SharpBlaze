@@ -167,33 +167,16 @@ public readonly partial struct Matrix
         uint m01 = (m0 | Vector128.Shuffle(m1, Vector128.Create(1, 0))).ExtractMostSignificantBits();
         bool m2 = FuzzyNotZero(m[2]);
 
-        bool translation = m2;
-        bool scale = (m01 & 0b01) != 0;
-        bool complex = (m01 & 0b10) != 0;
+        uint translation = m2 ? 0b001 : 0u;
+        uint scale = (m01 & 0b001) << 1;
+        uint complex = (m01 & 0b010) << 1;
 
-        const int TranslationBit = 2;
-        const int ScaleBit = 1;
-        const int ComplexBit = 0;
-
-        int mask =
-            ((translation ? 1 : 0) << TranslationBit) |
-            ((scale ? 1 : 0) << ScaleBit) |
-            ((complex ? 1 : 0) << ComplexBit);
-
-        switch (mask)
-        {
-            case 0:
-                return MatrixComplexity.Identity;
-            case (1 << TranslationBit):
-                return MatrixComplexity.TranslationOnly;
-            case (1 << ScaleBit):
-                return MatrixComplexity.ScaleOnly;
-            case ((1 << TranslationBit) | (1 << ScaleBit)):
-                return MatrixComplexity.TranslationScale;
-            default:
-                break;
-        }
-
-        return MatrixComplexity.Complex;
+        // Identity = 0b000,
+        // Translation = 0b001,
+        // Scale = 0b010,
+        // TranslationScale = 0b011,
+        // Complex = 0b1XX,
+        uint mask = translation | scale | complex;
+        return (MatrixComplexity) Math.Min(mask, (uint) MatrixComplexity.Complex);
     }
 }

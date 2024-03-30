@@ -23,26 +23,26 @@ public enum MatrixComplexity : byte
     /**
      * Matrix only contains translation and no scale or other components.
      */
-    TranslationOnly,
+    TranslationOnly = 1,
 
 
     /**
      * Matrix only contains scale, but no translation or other components.
      */
-    ScaleOnly,
+    ScaleOnly = 2,
 
 
     /**
      * Matrix contains a combination of translation and scale.
      */
-    TranslationScale,
+    TranslationScale = 3,
 
 
     /**
      * Matrix potentially contains a combination of scale, translation,
      * rotation and skew.
      */
-    Complex
+    Complex = 4
 }
 
 
