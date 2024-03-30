@@ -31,7 +31,6 @@ public struct F24Dot8PointX7
 public static unsafe class LinearizerUtils
 {
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void UpdateCoverTable_Down(int* covers,
         F24Dot8 y0, F24Dot8 y1)
     {
@@ -68,7 +67,6 @@ public static unsafe class LinearizerUtils
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void UpdateCoverTable_Up(int* covers, F24Dot8 y0,
         F24Dot8 y1)
     {
@@ -233,7 +231,6 @@ public static unsafe class LinearizerUtils
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool CutMonotonicCubicAt(out double t, in DoubleX4 pts)
     {
         const double Tolerance = 1e-7;

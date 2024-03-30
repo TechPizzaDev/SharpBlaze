@@ -199,7 +199,6 @@ public unsafe partial struct LineArrayTiled<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void AppendLineDownR(ThreadMemory memory,
         F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x,
         F24Dot8 p1y)
@@ -278,7 +277,6 @@ public unsafe partial struct LineArrayTiled<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void AppendLineUpR(ThreadMemory memory,
         F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x,
         F24Dot8 p1y)
@@ -436,7 +434,6 @@ public unsafe partial struct LineArrayTiled<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void AppendLineUpL(ThreadMemory memory,
         F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x,
         F24Dot8 p1y)
@@ -531,7 +528,6 @@ public unsafe partial struct LineArrayTiled<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Push(ThreadMemory memory,
         TileIndex columnIndex, F24Dot8 x0, F24Dot8 y0,
         F24Dot8 x1, F24Dot8 y1)

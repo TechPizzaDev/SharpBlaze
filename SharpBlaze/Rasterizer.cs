@@ -1539,7 +1539,6 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static partial void RasterizeLine(F24Dot8 X0,
         F24Dot8 Y0, F24Dot8 X1, F24Dot8 Y1,
         BitVector** bitVectorTable, int** coverAreaTable)

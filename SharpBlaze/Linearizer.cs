@@ -317,7 +317,6 @@ public unsafe partial struct Linearizer<T, L>
     private readonly L* mLA;
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial Linearizer<T, L> Create(ThreadMemory memory, in TileBounds bounds, bool contains, Geometry* geometry)
     {
         L* lineArray = (L*) memory.TaskMalloc(sizeof(L) * (int) bounds.RowCount);
@@ -374,7 +373,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void ProcessContained(Geometry* geometry, ThreadMemory memory)
     {
         // In this case path is known to be completely within destination image.
@@ -543,7 +541,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AddUncontainedLine(ThreadMemory memory,
         in ClipBounds clip, FloatPoint p0, FloatPoint p1)
     {
@@ -811,7 +808,6 @@ public unsafe partial struct Linearizer<T, L>
     static F24Dot8 MaximumDelta => 2048 << 8;
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AddContainedLineF24Dot8(ThreadMemory memory,
         F24Dot8Point p0, F24Dot8Point p1)
     {
@@ -936,7 +932,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AddUncontainedQuadratic(ThreadMemory memory,
         in ClipBounds clip, in FloatPointX3 p)
     {
@@ -1069,7 +1064,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AddUncontainedMonotonicQuadratic(
         ThreadMemory memory, in ClipBounds clip, in FloatPointX3 p)
     {
@@ -1194,7 +1188,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AddVerticallyContainedMonotonicQuadratic(
         ThreadMemory memory, in ClipBounds clip, ref FloatPointX3 p)
     {
@@ -1456,7 +1449,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AddUncontainedCubic(ThreadMemory memory,
         in ClipBounds clip, in FloatPointX4 p)
     {
@@ -1592,7 +1584,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AddUncontainedMonotonicCubic(ThreadMemory memory,
         in ClipBounds clip, in FloatPointX4 p)
     {
@@ -1720,7 +1711,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AddVerticallyContainedMonotonicCubic(
         ThreadMemory memory, in ClipBounds clip, ref FloatPointX4 p)
     {
@@ -1965,7 +1955,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AddPotentiallyUncontainedCubicF24Dot8(
         ThreadMemory memory, F24Dot8Point max, in F24Dot8PointX4 c)
     {
@@ -2105,7 +2094,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void LineDownR(ThreadMemory memory,
         TileIndex rowIndex0, TileIndex rowIndex1, F24Dot8 dx,
         F24Dot8 dy, F24Dot8Point p0, F24Dot8Point p1)
@@ -2159,7 +2147,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void LineUpR(ThreadMemory memory,
         TileIndex rowIndex0, TileIndex rowIndex1, F24Dot8 dx,
         F24Dot8 dy, F24Dot8Point p0, F24Dot8Point p1)
@@ -2212,7 +2199,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void LineDownL(ThreadMemory memory,
         TileIndex rowIndex0, TileIndex rowIndex1, F24Dot8 dx,
         F24Dot8 dy, F24Dot8Point p0, F24Dot8Point p1)
@@ -2265,7 +2251,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void LineUpL(ThreadMemory memory,
         TileIndex rowIndex0, TileIndex rowIndex1, F24Dot8 dx,
         F24Dot8 dy, F24Dot8Point p0, F24Dot8Point p1)
@@ -2318,7 +2303,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void Vertical_Down(ThreadMemory memory,
         F24Dot8 y0, F24Dot8 y1, F24Dot8 x)
     {
@@ -2347,7 +2331,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void Vertical_Up(ThreadMemory memory,
         F24Dot8 y0, F24Dot8 y1, F24Dot8 x)
     {
@@ -2399,7 +2382,6 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void UpdateStartCovers(ThreadMemory memory,
         F24Dot8 y0, F24Dot8 y1)
     {
