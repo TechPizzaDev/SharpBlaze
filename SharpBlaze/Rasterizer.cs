@@ -140,8 +140,8 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 x, F24Dot8 y0, F24Dot8 y1);
 
 
-    private static partial void Cell(BitVector** bitVectorTable, int** coverAreaTable,
-        PixelIndex px, PixelIndex py, F24Dot8 x0,
+    private static partial void Cell(BitVector* bitVector, int* coverArea,
+        PixelIndex px, F24Dot8 x0,
         F24Dot8 y0, F24Dot8 x1, F24Dot8 y1);
 
 
@@ -847,20 +847,17 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    private static partial void Cell(BitVector** bitVectorTable, int** coverAreaTable,
-        PixelIndex px, PixelIndex py, F24Dot8 x0,
-        F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
+    private static partial void Cell(BitVector* bitVector, int* coverArea,
+        PixelIndex px, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
     {
         Debug.Assert(px >= 0);
-        Debug.Assert(py >= 0);
-        Debug.Assert(py < T.TileH);
 
         F24Dot8 delta = y0 - y1;
         F24Dot8 a = delta * (F24Dot8_2 - x0 - x1);
         int index = (int) px << 1;
-        int* ca = coverAreaTable[py];
+        int* ca = coverArea;
 
-        if (ConditionalSetBit(bitVectorTable[py], px))
+        if (ConditionalSetBit(bitVector, px))
         {
             // New.
             ca[index] = delta;
@@ -883,12 +880,17 @@ public unsafe partial struct Rasterizer<T>
         int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
         F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
     {
+        Debug.Assert(rowIndex >= 0);
+        Debug.Assert(rowIndex < T.TileH);
         Debug.Assert(p0x < p1x);
         Debug.Assert(p0y >= 0);
         Debug.Assert(p0y <= T.TileHF24Dot8);
         Debug.Assert(p1y >= 0);
         Debug.Assert(p1y <= T.TileHF24Dot8);
         Debug.Assert(p0y <= p1y);
+
+        BitVector* bitVector = bitVectorTable[rowIndex];
+        int* coverArea = coverAreaTable[rowIndex];
 
         PixelIndex columnIndex0 = F24Dot8ToPixelIndex(p0x);
         PixelIndex columnIndex1 = F24Dot8ToPixelIndex(p1x - 1);
@@ -906,7 +908,7 @@ public unsafe partial struct Rasterizer<T>
 
         if (columnIndex0 == columnIndex1)
         {
-            Cell(bitVectorTable, coverAreaTable, columnIndex0, rowIndex, fx0, p0y, fx1, p1y);
+            Cell(bitVector, coverArea, columnIndex0, fx0, p0y, fx1, p1y);
         }
         else
         {
@@ -918,7 +920,7 @@ public unsafe partial struct Rasterizer<T>
 
             F24Dot8 cy = p0y + (pp / dx);
 
-            Cell(bitVectorTable, coverAreaTable, columnIndex0, rowIndex, fx0, p0y,
+            Cell(bitVector, coverArea, columnIndex0, fx0, p0y,
                 F24Dot8_1, cy);
 
             PixelIndex idx = columnIndex0 + 1;
@@ -945,14 +947,13 @@ public unsafe partial struct Rasterizer<T>
 
                     F24Dot8 ny = cy + delta;
 
-                    Cell(bitVectorTable, coverAreaTable, idx, rowIndex, 0, cy,
-                        F24Dot8_1, ny);
+                    Cell(bitVector, coverArea, idx, 0, cy, F24Dot8_1, ny);
 
                     cy = ny;
                 }
             }
 
-            Cell(bitVectorTable, coverAreaTable, columnIndex1, rowIndex, 0, cy, fx1, p1y);
+            Cell(bitVector, coverArea, columnIndex1, 0, cy, fx1, p1y);
         }
     }
 
@@ -988,12 +989,17 @@ public unsafe partial struct Rasterizer<T>
         int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
         F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
     {
+        Debug.Assert(rowIndex >= 0);
+        Debug.Assert(rowIndex < T.TileH);
         Debug.Assert(p0x < p1x);
         Debug.Assert(p0y >= 0);
         Debug.Assert(p0y <= T.TileHF24Dot8);
         Debug.Assert(p1y >= 0);
         Debug.Assert(p1y <= T.TileHF24Dot8);
         Debug.Assert(p0y >= p1y);
+
+        BitVector* bitVector = bitVectorTable[rowIndex];
+        int* coverArea = coverAreaTable[rowIndex];
 
         PixelIndex columnIndex0 = F24Dot8ToPixelIndex(p0x);
         PixelIndex columnIndex1 = F24Dot8ToPixelIndex(p1x - 1);
@@ -1011,7 +1017,7 @@ public unsafe partial struct Rasterizer<T>
 
         if (columnIndex0 == columnIndex1)
         {
-            Cell(bitVectorTable, coverAreaTable, columnIndex0, rowIndex, fx0, p0y, fx1, p1y);
+            Cell(bitVector, coverArea, columnIndex0, fx0, p0y, fx1, p1y);
         }
         else
         {
@@ -1023,8 +1029,7 @@ public unsafe partial struct Rasterizer<T>
 
             F24Dot8 cy = p0y - (pp / dx);
 
-            Cell(bitVectorTable, coverAreaTable, columnIndex0, rowIndex, fx0, p0y,
-                F24Dot8_1, cy);
+            Cell(bitVector, coverArea, columnIndex0, fx0, p0y, F24Dot8_1, cy);
 
             PixelIndex idx = columnIndex0 + 1;
 
@@ -1050,14 +1055,13 @@ public unsafe partial struct Rasterizer<T>
 
                     F24Dot8 ny = cy - delta;
 
-                    Cell(bitVectorTable, coverAreaTable, idx, rowIndex, 0, cy,
-                        F24Dot8_1, ny);
+                    Cell(bitVector, coverArea, idx, 0, cy, F24Dot8_1, ny);
 
                     cy = ny;
                 }
             }
 
-            Cell(bitVectorTable, coverAreaTable, columnIndex1, rowIndex, 0, cy, fx1, p1y);
+            Cell(bitVector, coverArea, columnIndex1, 0, cy, fx1, p1y);
         }
     }
 
@@ -1093,12 +1097,17 @@ public unsafe partial struct Rasterizer<T>
         int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
         F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
     {
+        Debug.Assert(rowIndex >= 0);
+        Debug.Assert(rowIndex < T.TileH);
         Debug.Assert(p0x > p1x);
         Debug.Assert(p0y >= 0);
         Debug.Assert(p0y <= T.TileHF24Dot8);
         Debug.Assert(p1y >= 0);
         Debug.Assert(p1y <= T.TileHF24Dot8);
         Debug.Assert(p0y <= p1y);
+        
+        BitVector* bitVector = bitVectorTable[rowIndex];
+        int* coverArea = coverAreaTable[rowIndex];
 
         PixelIndex columnIndex0 = F24Dot8ToPixelIndex(p0x - 1);
         PixelIndex columnIndex1 = F24Dot8ToPixelIndex(p1x);
@@ -1116,7 +1125,7 @@ public unsafe partial struct Rasterizer<T>
 
         if (columnIndex0 == columnIndex1)
         {
-            Cell(bitVectorTable, coverAreaTable, columnIndex0, rowIndex, fx0, p0y, fx1, p1y);
+            Cell(bitVector, coverArea, columnIndex0, fx0, p0y, fx1, p1y);
         }
         else
         {
@@ -1128,7 +1137,7 @@ public unsafe partial struct Rasterizer<T>
 
             F24Dot8 cy = p0y + (pp / dx);
 
-            Cell(bitVectorTable, coverAreaTable, columnIndex0, rowIndex, fx0, p0y, 0, cy);
+            Cell(bitVector, coverArea, columnIndex0, fx0, p0y, 0, cy);
 
             PixelIndex idx = columnIndex0 - 1;
 
@@ -1154,14 +1163,13 @@ public unsafe partial struct Rasterizer<T>
 
                     F24Dot8 ny = cy + delta;
 
-                    Cell(bitVectorTable, coverAreaTable, idx, rowIndex, F24Dot8_1,
-                        cy, 0, ny);
+                    Cell(bitVector, coverArea, idx, F24Dot8_1, cy, 0, ny);
 
                     cy = ny;
                 }
             }
 
-            Cell(bitVectorTable, coverAreaTable, columnIndex1, rowIndex, F24Dot8_1, cy, fx1, p1y);
+            Cell(bitVector, coverArea, columnIndex1, F24Dot8_1, cy, fx1, p1y);
         }
     }
 
@@ -1197,12 +1205,17 @@ public unsafe partial struct Rasterizer<T>
         int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
         F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
     {
+        Debug.Assert(rowIndex >= 0);
+        Debug.Assert(rowIndex < T.TileH);
         Debug.Assert(p0x > p1x);
         Debug.Assert(p0y >= 0);
         Debug.Assert(p0y <= T.TileHF24Dot8);
         Debug.Assert(p1y >= 0);
         Debug.Assert(p1y <= T.TileHF24Dot8);
         Debug.Assert(p0y >= p1y);
+        
+        BitVector* bitVector = bitVectorTable[rowIndex];
+        int* coverArea = coverAreaTable[rowIndex];
 
         PixelIndex columnIndex0 = F24Dot8ToPixelIndex(p0x - 1);
         PixelIndex columnIndex1 = F24Dot8ToPixelIndex(p1x);
@@ -1220,7 +1233,7 @@ public unsafe partial struct Rasterizer<T>
 
         if (columnIndex0 == columnIndex1)
         {
-            Cell(bitVectorTable, coverAreaTable, columnIndex0, rowIndex, fx0, p0y, fx1, p1y);
+            Cell(bitVector, coverArea, columnIndex0, fx0, p0y, fx1, p1y);
         }
         else
         {
@@ -1232,7 +1245,7 @@ public unsafe partial struct Rasterizer<T>
 
             F24Dot8 cy = p0y - (pp / dx);
 
-            Cell(bitVectorTable, coverAreaTable, columnIndex0, rowIndex, fx0, p0y, 0, cy);
+            Cell(bitVector, coverArea, columnIndex0, fx0, p0y, 0, cy);
 
             PixelIndex idx = columnIndex0 - 1;
 
@@ -1258,14 +1271,13 @@ public unsafe partial struct Rasterizer<T>
 
                     F24Dot8 ny = cy - delta;
 
-                    Cell(bitVectorTable, coverAreaTable, idx, rowIndex, F24Dot8_1,
-                        cy, 0, ny);
+                    Cell(bitVector, coverArea, idx, F24Dot8_1, cy, 0, ny);
 
                     cy = ny;
                 }
             }
 
-            Cell(bitVectorTable, coverAreaTable, columnIndex1, rowIndex, F24Dot8_1, cy, fx1, p1y);
+            Cell(bitVector, coverArea, columnIndex1, F24Dot8_1, cy, fx1, p1y);
         }
     }
 
