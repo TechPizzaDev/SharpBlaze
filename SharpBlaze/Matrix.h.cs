@@ -238,16 +238,6 @@ public readonly partial struct Matrix
 
 
     /**
-     * Constructs a copy of a given 3x2 matrix.
-     */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Matrix(in Matrix matrix)
-    {
-        this = matrix;
-    }
-
-
-    /**
      * Contructs 3x2 matrix from given vectors.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

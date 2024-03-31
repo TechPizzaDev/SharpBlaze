@@ -176,7 +176,7 @@ public static unsafe partial class SIMD
         F24Dot8Point origin, F24Dot8Point size)
     {
         // Scale and translation matrix.
-        Matrix m = new(matrix);
+        Matrix m = matrix;
         m *= Matrix.CreateScale(256.0);
 
         int i = 0;
@@ -218,7 +218,7 @@ public static unsafe partial class SIMD
         F24Dot8Point* dst, FloatPoint* src, int count,
         F24Dot8Point origin, F24Dot8Point size)
     {
-        Matrix m = new(matrix);
+        Matrix m = matrix;
         m *= Matrix.CreateScale(256.0);
 
         int i = 0;

@@ -317,7 +317,7 @@ public unsafe partial struct Rasterizer<T>
         {
             Geometry* s = inputGeometries + i;
 
-            Matrix tm = new(s->TM);
+            Matrix tm = s->TM;
 
             tm *= matrix;
 
@@ -690,9 +690,9 @@ public unsafe partial struct Rasterizer<T>
         // when generating lines.
         bool contains =
             geometry->PathBounds.MinX >= 0 &&
-                geometry->PathBounds.MinY >= 0 &&
-                geometry->PathBounds.MaxX <= imageSize.Width &&
-                geometry->PathBounds.MaxY <= imageSize.Height;
+            geometry->PathBounds.MinY >= 0 &&
+            geometry->PathBounds.MaxX <= imageSize.Width &&
+            geometry->PathBounds.MaxY <= imageSize.Height;
 
         Linearizer<T, L> linearizer =
             Linearizer<T, L>.Create(memory, bounds, contains, geometry);
