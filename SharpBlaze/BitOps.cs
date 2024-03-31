@@ -27,36 +27,6 @@ public struct BitVector
 
 public static class BitOps
 {
-
-    /**
-     * Returns the number of bits set to 1 in a given value.
-     *
-     * @param v Value to count bits for. Must not be 0.
-     */
-    public static int CountBits<T>(T v)
-        where T : IBinaryInteger<T>
-    {
-        Debug.Assert(v != T.Zero);
-
-        return int.CreateTruncating(T.PopCount(v));
-    }
-
-
-    /**
-     * Returns the number of trailing zero bits in a given value, starting at the
-     * least significant bit position.
-     *
-     * @param v Value to count trailing zeroes for. Must not be 0.
-     */
-    public static int CountTrailingZeroes<T>(T v)
-        where T : IBinaryInteger<T>
-    {
-        Debug.Assert(v != T.Zero);
-
-        return int.CreateTruncating(T.TrailingZeroCount(v));
-    }
-
-
     /**
      * Returns the amount of BitVector values needed to contain at least a given
      * amount of bits.
@@ -64,11 +34,11 @@ public static class BitOps
      * @param maxBitCount Maximum number of bits for which storage is needed. Must
      * be at least 1.
      */
-    public static int BitVectorsForMaxBitCount(int maxBitCount)
+    public static unsafe int BitVectorsForMaxBitCount(int maxBitCount)
     {
         Debug.Assert(maxBitCount != 0);
 
-        int x = Utils.BIT_SIZE_OF<BitVector>();
+        int x = sizeof(BitVector) * 8;
 
         return (maxBitCount + x - 1) / x;
     }
@@ -92,7 +62,7 @@ public static class BitOps
 
             if (value != 0)
             {
-                num += CountBits((nuint) value);
+                num += BitOperations.PopCount((nuint) value);
             }
         }
 
@@ -116,11 +86,11 @@ public static class BitOps
         Debug.Assert(vec != null);
         Debug.Assert(index >= 0);
 
-        uint vecIndex = index / (uint) Utils.BIT_SIZE_OF<T>();
+        uint vecIndex = index / (uint) (sizeof(T) * 8);
 
         T* v = vec + vecIndex;
 
-        uint localIndex = index % (uint) Utils.BIT_SIZE_OF<T>();
+        uint localIndex = index % (uint) (sizeof(T) * 8);
         T current = *v;
         T bit = T.One << (int) localIndex;
 

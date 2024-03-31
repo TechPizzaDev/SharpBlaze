@@ -9,13 +9,8 @@ namespace SharpBlaze;
 
 public static class Utils
 {
-    internal const float FLT_EPSILON = 1.1920929e-07F;
-
     internal const double DBL_EPSILON = 2.2204460492503131e-16;
     
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int BIT_SIZE_OF<T>() => Unsafe.SizeOf<T>() << 3;
-
 
     /**
      * Returns value clamped to range between minimum and maximum values.
@@ -104,16 +99,6 @@ public static class Utils
 
 
     /**
-     * Returns true if two given numbers are considered equal.
-     */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool FuzzyIsEqual(float a, float b)
-    {
-        return (MathF.Abs(a - b) < FLT_EPSILON);
-    }
-
-
-    /**
      * Returns true if a number can be considered being equal to zero.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -140,26 +125,6 @@ public static class Utils
 
 
     /**
-     * Returns true if two given numbers are not considered equal.
-     */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool FuzzyNotEqual(float a, float b)
-    {
-        return (MathF.Abs(a - b) >= FLT_EPSILON);
-    }
-
-
-    /**
-     * Returns true if a number can be considered being equal to zero.
-     */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool FuzzyIsZero(float f)
-    {
-        return MathF.Abs(f) < FLT_EPSILON;
-    }
-
-
-    /**
      * Returns true if a number can not be considered being equal to zero.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -172,38 +137,6 @@ public static class Utils
     public static bool FuzzyNotZero(Vector128<double> d)
     {
         return Vector128.GreaterThanOrEqualAll(Vector128.Abs(d), Vector128.Create(DBL_EPSILON));
-    }
-
-
-    /**
-     * Returns true if a number can not be considered being equal to zero.
-     */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool FuzzyNotZero(float f)
-    {
-        return MathF.Abs(f) >= FLT_EPSILON;
-    }
-
-
-    /**
-     * Finds the greatest of the four values.
-     */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T Max4<T>(T a, T b, T c, T d)
-        where T : INumber<T>
-    {
-        return T.Max(a, T.Max(b, T.Max(c, d)));
-    }
-
-
-    /**
-     * Finds the smallest of the four values.
-     */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T Min4<T>(T a, T b, T c, T d)
-        where T : INumber<T>
-    {
-        return T.Min(a, T.Min(b, T.Min(c, d)));
     }
 
 

@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -1690,8 +1691,8 @@ public unsafe partial struct Rasterizer<T>
             while (bitset != 0)
             {
                 BitVector t = bitset & (nuint) (-(nint) (nuint) bitset);
-                uint r = (uint) CountTrailingZeroes((nuint) bitset);
-                uint index = (uint) ((i * BIT_SIZE_OF<BitVector>()) + r);
+                uint r = (uint) BitOperations.TrailingZeroCount(bitset);
+                uint index = (uint) ((i * sizeof(BitVector) * 8) + r);
 
                 bitset ^= t;
 
