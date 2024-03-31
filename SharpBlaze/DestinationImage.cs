@@ -89,8 +89,7 @@ public unsafe partial class DestinationImage<T>
         ImageData d = new(mImageData, mImageSize.Width, mImageSize.Height,
            mBytesPerRow);
 
-        Rasterizer<T>.Rasterize(image.GetGeometries(), image.GetGeometryCount(), matrix,
-            mThreads, d);
+        Rasterizer<T>.Rasterize(image.GetGeometrySpan(), matrix, mThreads, d);
 
         // Free all the memory allocated by threads.
         mThreads.ResetFrameMemory();

@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -6,32 +7,33 @@ namespace SharpBlaze;
 public unsafe partial struct LineArrayTiled<T>
     where T : ITileDescriptor
 {
-    public static void Construct(ref LineArrayTiled<T> placement,
-        TileIndex rowCount, TileIndex columnCount,
+    public static void Construct(Span<LineArrayTiled<T>> placement,
+        TileIndex columnCount,
         ThreadMemory memory)
     {
+        int rowCount = placement.Length;
+
         //Debug.Assert(placement != null);
         Debug.Assert(rowCount > 0);
         Debug.Assert(columnCount > 0);
 
         int bitVectorsPerRow = BitOps.BitVectorsForMaxBitCount((int) columnCount);
-        int bitVectorCount = bitVectorsPerRow * (int) rowCount;
+        int bitVectorCount = bitVectorsPerRow * rowCount;
 
         BitVector* bitVectors = memory.FrameMallocArrayZeroFill<BitVector>(bitVectorCount);
 
         LineArrayTiledBlock** blocks =
-            memory.TaskMallocPointers<LineArrayTiledBlock>((int) columnCount * (int) rowCount);
+            memory.TaskMallocPointers<LineArrayTiledBlock>((int) columnCount * rowCount);
 
         int** covers =
-            memory.TaskMallocPointers<int>((int) columnCount * (int) rowCount);
+            memory.TaskMallocPointers<int>((int) columnCount * rowCount);
 
         int* counts =
-            memory.TaskMallocArray<int>((int) columnCount * (int) rowCount);
+            memory.TaskMallocArray<int>((int) columnCount * rowCount);
 
-        for (TileIndex i = 0; i < rowCount; i++)
+        for (int i = 0; i < rowCount; i++)
         {
-            Unsafe.Add(ref placement, i) = new LineArrayTiled<T>(bitVectors, blocks,
-                covers, counts);
+            placement[i] = new LineArrayTiled<T>(bitVectors, blocks, covers, counts);
 
             bitVectors += bitVectorsPerRow;
             blocks += columnCount;

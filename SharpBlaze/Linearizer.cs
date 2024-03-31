@@ -323,7 +323,7 @@ public unsafe partial struct Linearizer<T, L>
 
         var linearizer = new Linearizer<T, L>(bounds, lineArray);
 
-        L.Construct(ref *linearizer.mLA, bounds.RowCount, bounds.ColumnCount, memory);
+        L.Construct(new Span<L>(linearizer.mLA, (int) bounds.RowCount), bounds.ColumnCount, memory);
 
         if (contains)
         {

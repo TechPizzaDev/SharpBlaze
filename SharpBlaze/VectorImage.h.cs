@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 
 namespace SharpBlaze;
@@ -32,9 +33,15 @@ public unsafe partial class VectorImage
         return mGeometries + index;
     }
 
-
+    
     public Geometry* GetGeometries()
     {
         return mGeometries;
+    }
+
+
+    public ReadOnlySpan<Geometry> GetGeometrySpan()
+    {
+        return new ReadOnlySpan<Geometry>(mGeometries, mGeometryCount);
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -6,18 +7,19 @@ namespace SharpBlaze;
 public unsafe partial struct LineArrayX16Y16
 {
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Construct(ref LineArrayX16Y16 placement,
-        TileIndex rowCount, TileIndex columnCount,
+    public static void Construct(Span<LineArrayX16Y16> placement,
+        TileIndex columnCount,
         ThreadMemory memory)
     {
+        int rowCount = placement.Length;
+
         //Debug.Assert(placement != null);
         Debug.Assert(rowCount > 0);
         Debug.Assert(columnCount > 0);
 
-        for (TileIndex i = 0; i < rowCount; i++)
+        for (int i = 0; i < rowCount; i++)
         {
-            Unsafe.Add(ref placement, i) = new LineArrayX16Y16();
+            placement[i] = new LineArrayX16Y16();
         }
     }
 

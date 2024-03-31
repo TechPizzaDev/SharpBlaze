@@ -1,10 +1,12 @@
-﻿namespace SharpBlaze;
+﻿using System;
+
+namespace SharpBlaze;
 
 public unsafe interface ILineArray<T>
     where T : unmanaged, ILineArray<T>
 {
-    static abstract void Construct(ref T placement,
-        TileIndex rowCount, TileIndex columnCount,
+    static abstract void Construct(Span<T> placement,
+        TileIndex columnCount,
         ThreadMemory memory);
 
     void AppendVerticalLine(ThreadMemory memory, F24Dot8 x, F24Dot8 y0, F24Dot8 y1);

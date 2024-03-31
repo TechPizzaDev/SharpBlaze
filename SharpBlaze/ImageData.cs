@@ -23,8 +23,7 @@ public unsafe struct ImageData
      *
      * @param bytesPerRow Byte stride. Must be at least width × bpp.
      */
-    public ImageData(byte* d, int width, int height,
-         int bytesPerRow)
+    public ImageData(byte* d, int width, int height, int bytesPerRow)
     {
         Data = d;
         Width = width;

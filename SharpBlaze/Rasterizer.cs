@@ -35,8 +35,8 @@ public unsafe partial struct Rasterizer<T>
     where T : unmanaged, ITileDescriptor
 {
 
-    public static partial void Rasterize(Geometry* inputGeometries,
-        int inputGeometryCount, in Matrix matrix, Threads threads,
+    public static partial void Rasterize(ReadOnlySpan<Geometry> inputGeometries,
+        in Matrix matrix, Threads threads,
         ImageData image);
 
 
@@ -115,11 +115,11 @@ public unsafe partial struct Rasterizer<T>
         BitVector** bitVectorTable, int** coverAreaTable);
 
 
-    private static partial RasterizableGeometry* CreateRasterizable(void* placement,
+    private static partial RasterizableGeometry* CreateRasterizable(RasterizableGeometry* placement,
         Geometry* geometry, IntSize imageSize, ThreadMemory memory);
 
 
-    private static partial RasterizableGeometry* Linearize<L>(void* placement, Geometry* geometry,
+    private static partial RasterizableGeometry* Linearize<L>(RasterizableGeometry* placement, Geometry* geometry,
         TileBounds bounds, IntSize imageSize,
         LineIterationFunction iterationFunction, ThreadMemory memory)
         where L : unmanaged, ILineArrayBlock<L>;
@@ -297,10 +297,12 @@ public unsafe partial struct Rasterizer<T>
     public Rasterizer() { }
 
 
-    public static partial void Rasterize(Geometry* inputGeometries,
-        int inputGeometryCount, in Matrix matrix, Threads threads,
+    public static partial void Rasterize(ReadOnlySpan<Geometry> inputGeometries,
+        in Matrix matrix, Threads threads,
         ImageData image)
     {
+        int inputGeometryCount = inputGeometries.Length;
+
         Debug.Assert(inputGeometries != null);
         Debug.Assert(inputGeometryCount > 0);
         Debug.Assert(image.Data != null);
@@ -315,21 +317,21 @@ public unsafe partial struct Rasterizer<T>
 
         for (int i = 0; i < inputGeometryCount; i++)
         {
-            Geometry* s = inputGeometries + i;
+            ref readonly Geometry s = ref inputGeometries[i];
 
-            Matrix tm = s->TM;
+            Matrix tm = s.TM;
 
             tm *= matrix;
 
             *(geometries + i) = new Geometry(
-                tm.MapBoundingRect(s->PathBounds),
-                s->Tags,
-                s->Points,
+                tm.MapBoundingRect(s.PathBounds),
+                s.Tags,
+                s.Points,
                 tm,
-                s->TagCount,
-                s->PointCount,
-                s->Color,
-                s->Rule);
+                s.TagCount,
+                s.PointCount,
+                s.Color,
+                s.Rule);
         }
 
         // Step 1.
@@ -392,6 +394,7 @@ public unsafe partial struct Rasterizer<T>
         Debug.Assert(threadCount > 0);
 
         int iterationHeight = (int) Math.Max((uint) ((int) rowCount / threadCount), 1);
+        
         int iterationCount = ((int) rowCount / iterationHeight) +
             (int) Math.Min((uint) ((int) rowCount % iterationHeight), 1);
 
@@ -412,8 +415,7 @@ public unsafe partial struct Rasterizer<T>
                 TileBounds b = rasterizable->Bounds;
 
                 TileIndex min = Clamp(b.Y, threadY, threadMaxY);
-                TileIndex max = Clamp(b.Y + b.RowCount, threadY,
-                    threadMaxY);
+                TileIndex max = Clamp(b.Y + b.RowCount, threadY, threadMaxY);
 
                 if (min == max)
                 {
@@ -431,7 +433,7 @@ public unsafe partial struct Rasterizer<T>
                     // array.
                     bool emptyRow =
                         rasterizable->GetLinesForRow((int) localIndex) == null &&
-                            rasterizable->GetCoversForRow((int) localIndex) == null;
+                        rasterizable->GetCoversForRow((int) localIndex) == null;
 
                     if (emptyRow)
                     {
@@ -605,8 +607,8 @@ public unsafe partial struct Rasterizer<T>
         }
     }
 
-    private static partial RasterizableGeometry*
-        CreateRasterizable(void* placement, Geometry* geometry, IntSize imageSize, ThreadMemory memory)
+    private static partial RasterizableGeometry* CreateRasterizable(
+        RasterizableGeometry* placement, Geometry* geometry, IntSize imageSize, ThreadMemory memory)
     {
         Debug.Assert(placement != null);
         Debug.Assert(geometry != null);
@@ -677,11 +679,13 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    private static partial RasterizableGeometry*
-        Linearize<L>(void* placement, Geometry* geometry, TileBounds bounds, IntSize imageSize, LineIterationFunction iterationFunction, ThreadMemory memory)
+    private static partial RasterizableGeometry* Linearize<L>(
+        RasterizableGeometry* placement, Geometry* geometry,
+        TileBounds bounds, IntSize imageSize,
+        LineIterationFunction iterationFunction, ThreadMemory memory)
         where L : unmanaged, ILineArrayBlock<L>
     {
-        RasterizableGeometry* linearized = (RasterizableGeometry*) placement;
+        RasterizableGeometry* linearized = placement;
         *linearized = new RasterizableGeometry(
             geometry, iterationFunction, bounds);
 
@@ -702,8 +706,7 @@ public unsafe partial struct Rasterizer<T>
         // Finalize.
         void** lineBlocks = (void**) memory.FrameMallocArray<nint>((int) bounds.RowCount);
 
-        int* firstLineBlockCounts = memory.FrameMallocArray<int>(
-            (int) bounds.RowCount);
+        int* firstLineBlockCounts = memory.FrameMallocArray<int>((int) bounds.RowCount);
 
         for (TileIndex i = 0; i < bounds.RowCount; i++)
         {
