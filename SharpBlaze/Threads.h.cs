@@ -89,15 +89,20 @@ public unsafe partial class Threads
     }
 
 
-    public void* MallocMain(int size)
-    {
-        return mMainMemory.FrameMalloc(size);
-    }
-
-
-    public T* MallocMain<T>() where T : unmanaged
+    public T* MainMalloc<T>() where T : unmanaged
     {
         return mMainMemory.FrameMalloc<T>();
     }
 
+    
+    public T* MainMallocArray<T>(int count) where T : unmanaged
+    {
+        return mMainMemory.FrameMallocArray<T>(count);
+    }
+
+
+    public T** MainMallocPointers<T>(int count) where T : unmanaged
+    {
+        return mMainMemory.FrameMallocPointers<T>(count);
+    }
 }

@@ -19,14 +19,14 @@ public unsafe partial struct LineArrayTiled<T>
 
         BitVector* bitVectors = memory.FrameMallocArrayZeroFill<BitVector>(bitVectorCount);
 
-        LineArrayTiledBlock** blocks = (LineArrayTiledBlock**) (
-            memory.TaskMalloc(sizeof(LineArrayTiledBlock*) * (int) columnCount * (int) rowCount));
+        LineArrayTiledBlock** blocks =
+            memory.TaskMallocPointers<LineArrayTiledBlock>((int) columnCount * (int) rowCount);
 
-        int** covers = (int**) (
-            memory.TaskMalloc(sizeof(int*) * (int) columnCount * (int) rowCount));
+        int** covers =
+            memory.TaskMallocPointers<int>((int) columnCount * (int) rowCount);
 
-        int* counts = (int*) (
-            memory.TaskMalloc(sizeof(int) * (int) columnCount * (int) rowCount));
+        int* counts =
+            memory.TaskMallocArray<int>((int) columnCount * (int) rowCount);
 
         for (TileIndex i = 0; i < rowCount; i++)
         {

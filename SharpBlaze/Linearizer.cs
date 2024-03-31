@@ -319,7 +319,7 @@ public unsafe partial struct Linearizer<T, L>
 
     public static partial Linearizer<T, L> Create(ThreadMemory memory, in TileBounds bounds, bool contains, Geometry* geometry)
     {
-        L* lineArray = (L*) memory.TaskMalloc(sizeof(L) * (int) bounds.RowCount);
+        L* lineArray = memory.TaskMallocArray<L>((int) bounds.RowCount);
 
         var linearizer = new Linearizer<T, L>(bounds, lineArray);
 
@@ -382,8 +382,8 @@ public unsafe partial struct Linearizer<T, L>
         int pointCount = geometry->PointCount;
         PathTag* tags = geometry->Tags;
 
-        F24Dot8Point* pp = (F24Dot8Point*) (
-            memory.TaskMalloc(sizeof(F24Dot8Point) * pointCount));
+        F24Dot8Point* pp =
+            memory.TaskMallocArray<F24Dot8Point>(pointCount);
 
         F24Dot8Point origin;
 

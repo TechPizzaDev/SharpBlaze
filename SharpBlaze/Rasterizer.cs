@@ -310,8 +310,8 @@ public unsafe partial struct Rasterizer<T>
 
         // TODO
         // Skip transform if matrix is identity.
-        Geometry* geometries = (Geometry*) (
-            threads.MallocMain(sizeof(Geometry) * inputGeometryCount));
+        Geometry* geometries =
+            threads.MainMallocArray<Geometry>(inputGeometryCount);
 
         for (int i = 0; i < inputGeometryCount; i++)
         {
@@ -338,12 +338,12 @@ public unsafe partial struct Rasterizer<T>
         // created and prepared for further processing in parallel.
 
         // Allocate memory for RasterizableGeometry instance pointers.
-        RasterizableGeometry** rasterizables = (RasterizableGeometry**) (
-            threads.MallocMain(sizeof(RasterizableGeometry*) * inputGeometryCount));
+        RasterizableGeometry** rasterizables =
+            threads.MainMallocPointers<RasterizableGeometry>(inputGeometryCount);
 
         // Allocate memory for RasterizableGeometry instances.
-        RasterizableGeometry* rasterizableGeometryMemory = (RasterizableGeometry*) (
-            threads.MallocMain(sizeof(RasterizableGeometry) * inputGeometryCount));
+        RasterizableGeometry* rasterizableGeometryMemory =
+            threads.MainMallocArray<RasterizableGeometry>(inputGeometryCount);
 
         IntSize imageSize = new(
             image.Width,
@@ -362,8 +362,8 @@ public unsafe partial struct Rasterizer<T>
         // the following step, a new array is created and only non-null items
         // are copied to it.
 
-        RasterizableGeometry** visibleRasterizables = (RasterizableGeometry**) (
-            threads.MallocMain(sizeof(RasterizableGeometry*) * inputGeometryCount));
+        RasterizableGeometry** visibleRasterizables =
+            threads.MainMallocPointers<RasterizableGeometry>(inputGeometryCount);
 
         int visibleRasterizableCount = 0;
 
@@ -385,7 +385,7 @@ public unsafe partial struct Rasterizer<T>
         TileIndex rowCount = CalculateRowCount<T>(imageSize.Height);
 
         RowItemList<RasterizableItem>* rowLists =
-            (RowItemList<RasterizableItem>*) (threads.MallocMain(sizeof(RowItemList<RasterizableItem>) * (int) rowCount));
+            threads.MainMallocArray<RowItemList<RasterizableItem>>((int) rowCount);
 
         int threadCount = Threads.GetHardwareThreadCount();
 
@@ -1926,15 +1926,15 @@ public unsafe partial struct Rasterizer<T>
             (int) columnCount * T.TileW);
         int bitVectorCount = bitVectorsPerRow * T.TileH;
 
-        BitVector* bitVectors = (BitVector*) (
-            memory.TaskMalloc(sizeof(BitVector) * bitVectorCount));
+        BitVector* bitVectors =
+            memory.TaskMallocArray<BitVector>(bitVectorCount);
 
         // Create cover/area table.
         int coverAreaIntsPerRow = (int) columnCount * T.TileW * 2;
         int coverAreaIntCount = coverAreaIntsPerRow * T.TileH;
 
-        int* coverArea = (int*) (
-            memory.TaskMalloc(sizeof(int) * coverAreaIntCount));
+        int* coverArea =
+            memory.TaskMallocArray<int>(coverAreaIntCount);
 
         // Setup row pointers for bit vectors and cover/area table.
         BitVector** bitVectorTable = stackalloc BitVector*[T.TileH];

@@ -76,8 +76,7 @@ public unsafe partial class BumpAllocator
         // A new block is needed.
         Block* block = (Block*) (NativeMemory.Alloc((nuint) sizeof(Block)));
 
-        block->BlockSize = Math.Max(kMinimumMasterBlockSize,
-            RoundUpBlockSize(size));
+        block->BlockSize = Math.Max(kMinimumMasterBlockSize, RoundUpBlockSize(size));
 
         block->Bytes = (byte*) (NativeMemory.Alloc((nuint) block->BlockSize));
 
