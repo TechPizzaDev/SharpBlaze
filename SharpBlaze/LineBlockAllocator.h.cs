@@ -76,32 +76,32 @@ public unsafe partial class LineBlockAllocator
     private Arena* mAllArenas = null;
     private Arena* mFreeArenas = null;
 
-    private partial T* NewBlock<T>(T* next) where T : unmanaged, IConstructible<T, Pointer<T>>;
-
-    private partial T* NewBlockFromNewArena<T>(T* next) where T : unmanaged, IConstructible<T, Pointer<T>>;
-
-    private partial void NewArena();
-
 
     public partial LineArrayTiledBlock* NewTiledBlock(LineArrayTiledBlock* next)
     {
-        return NewBlock<LineArrayTiledBlock>(next);
+        var block = MallocBlock<LineArrayTiledBlock>();
+        *block = new(next);
+        return block;
     }
 
 
     public partial LineArrayX16Y16Block* NewX16Y16Block(LineArrayX16Y16Block* next)
     {
-        return NewBlock<LineArrayX16Y16Block>(next);
+        var block = MallocBlock<LineArrayX16Y16Block>();
+        *block = new(next);
+        return block;
     }
 
 
     public partial LineArrayX32Y16Block* NewX32Y16Block(LineArrayX32Y16Block* next)
     {
-        return NewBlock<LineArrayX32Y16Block>(next);
+        var block = MallocBlock<LineArrayX32Y16Block>();
+        *block = new(next);
+        return block;
     }
 
 
-    private partial T* NewBlock<T>(T* next) where T : unmanaged, IConstructible<T, Pointer<T>>
+    private T* MallocBlock<T>() where T : unmanaged
     {
         byte* current = mCurrent;
 
@@ -111,14 +111,13 @@ public unsafe partial class LineBlockAllocator
 
             mCurrent = (byte*) (b + 1);
 
-            T.Construct(ref *b, next);
             return b;
         }
 
-        return NewBlockFromNewArena(next);
+        return MallocBlockFromNewArena<T>();
     }
 
-    private partial T* NewBlockFromNewArena<T>(T* next) where T : unmanaged, IConstructible<T, Pointer<T>>
+    private T* MallocBlockFromNewArena<T>() where T : unmanaged
     {
         NewArena();
 
@@ -126,7 +125,6 @@ public unsafe partial class LineBlockAllocator
 
         mCurrent = (byte*) (b + 1);
 
-        T.Construct(ref *b, next);
         return b;
     }
 }

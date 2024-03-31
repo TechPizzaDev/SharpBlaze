@@ -12,17 +12,12 @@ public unsafe partial struct RowItemList<T>
     }
 
 
-    public struct Block : IConstructible<Block, int>
+    public struct Block
     {
         [InlineArray(ItemsPerBlock)]
         public struct Array
         {
             private T _e0;
-        }
-
-        public static void Construct(ref Block instance, in int args)
-        {
-            instance = new Block();
         }
 
         public Block()
@@ -52,7 +47,8 @@ public unsafe partial struct RowItemList<T>
         if (Last == null)
         {
             // Adding first item.
-            Block* b = memory.FrameNew<Block, int>(0);
+            Block* b = memory.FrameMalloc<Block>();
+            *b = new Block();
 
             Debug.Assert(First == null);
 
@@ -75,7 +71,8 @@ public unsafe partial struct RowItemList<T>
             }
             else
             {
-                Block* b = memory.FrameNew<Block, int>(0);
+                Block* b = memory.FrameMalloc<Block>();
+                *b = new Block();
 
                 b->Items[0] = value;
 

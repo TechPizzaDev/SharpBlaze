@@ -132,24 +132,6 @@ public unsafe partial class ThreadMemory
 
 
     /**
-     * Allocates memory for one element of type T and calls constructor with
-     * given parameters. Returns fully constructed object of type T.
-     *
-     * This method allocates from task memory.
-     */
-    public partial T* TaskNew<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>;
-
-
-    /**
-     * Allocates memory for one element of type T and calls constructor with
-     * given parameters. Returns fully constructed object of type T.
-     *
-     * This method allocates from frame memory.
-     */
-    public partial T* FrameNew<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>;
-
-
-    /**
      * Allocates given amount of bytes. Does not zero-fill allocated memory.
      *
      * This method allocates from frame memory.
@@ -260,22 +242,6 @@ public unsafe partial class ThreadMemory
     public partial T* FrameMallocArrayZeroFill<T>(int count) where T : unmanaged
     {
         return mFrameAllocator.MallocArrayZeroFill<T>(count);
-    }
-
-
-    public partial T* TaskNew<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>
-    {
-        T* instance = TaskMalloc<T>();
-        T.Construct(ref *instance, args);
-        return instance;
-    }
-
-
-    public partial T* FrameNew<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>
-    {
-        T* instance = FrameMalloc<T>();
-        T.Construct(ref *instance, args);
-        return instance;
     }
 
 

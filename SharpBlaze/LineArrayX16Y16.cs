@@ -4,17 +4,12 @@ using System.Runtime.CompilerServices;
 namespace SharpBlaze;
 
 
-public unsafe partial struct LineArrayX16Y16Block : IConstructible<LineArrayX16Y16Block, Pointer<LineArrayX16Y16Block>>
+public unsafe partial struct LineArrayX16Y16Block
 {
     [InlineArray(LinesPerBlock)]
     public struct Array
     {
         private F8Dot8x2 _e0;
-    }
-    
-    public static void Construct(ref LineArrayX16Y16Block instance, in Pointer<LineArrayX16Y16Block> args)
-    {
-        instance = new LineArrayX16Y16Block(args.Value);
     }
 
     public LineArrayX16Y16Block(LineArrayX16Y16Block* next)

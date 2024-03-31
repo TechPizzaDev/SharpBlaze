@@ -55,13 +55,6 @@ public unsafe partial class BumpAllocator
 
 
     /**
-     * Allocates memory for one element of type T and calls constructor with
-     * given parameters. Returns fully constructed object of type T.
-     */
-    public partial T* New<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>;
-
-
-    /**
      * Allocates given amount of bytes. Does not zero-fill allocated memory.
      *
      * @param size A number of bytes to allocate. Must be at least 1.
@@ -156,14 +149,6 @@ public unsafe partial class BumpAllocator
         NativeMemory.Clear(p, (nuint) b);
 
         return p;
-    }
-
-
-    public partial T* New<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>
-    {
-        T* instance = Malloc<T>();
-        T.Construct(ref *instance, args);
-        return instance;
     }
 
 

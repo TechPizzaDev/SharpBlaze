@@ -89,15 +89,9 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    unsafe partial struct RasterizableItem : IConstructible<RasterizableItem, nint>
+    unsafe partial struct RasterizableItem
     {
-        public static void Construct(ref RasterizableItem instance, in nint args)
-        {
-            instance = new RasterizableItem();
-        }
-
-        public RasterizableItem(RasterizableGeometry* rasterizable,
-            int localRowIndex)
+        public RasterizableItem(RasterizableGeometry* rasterizable, int localRowIndex)
         {
             Rasterizable = rasterizable;
             LocalRowIndex = localRowIndex;

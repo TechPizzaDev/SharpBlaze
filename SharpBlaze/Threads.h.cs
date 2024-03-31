@@ -89,26 +89,15 @@ public unsafe partial class Threads
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void* MallocMain(int size)
     {
         return mMainMemory.FrameMalloc(size);
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T* MallocMain<T>() where T : unmanaged
     {
         return mMainMemory.FrameMalloc<T>();
-    }
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public T* NewMain<T, TArgs>(in TArgs args) where T : unmanaged, IConstructible<T, TArgs>
-    {
-        T* instance = MallocMain<T>();
-        T.Construct(ref *instance, args);
-        return instance;
     }
 
 }

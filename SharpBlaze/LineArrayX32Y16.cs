@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
 
-public unsafe struct LineArrayX32Y16Block : IConstructible<LineArrayX32Y16Block, Pointer<LineArrayX32Y16Block>>
+public unsafe struct LineArrayX32Y16Block
 {
     [InlineArray(LinesPerBlock)]
     public struct ArrayF8Dot8x2
@@ -15,11 +15,6 @@ public unsafe struct LineArrayX32Y16Block : IConstructible<LineArrayX32Y16Block,
     public struct ArrayF24Dot8
     {
         private F24Dot8 _e0;
-    }
-
-    public static void Construct(ref LineArrayX32Y16Block instance, in Pointer<LineArrayX32Y16Block> args)
-    {
-        instance = new LineArrayX32Y16Block(args.Value);
     }
 
     public LineArrayX32Y16Block(LineArrayX32Y16Block* next)

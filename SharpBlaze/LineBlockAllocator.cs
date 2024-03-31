@@ -43,7 +43,7 @@ public unsafe partial class LineBlockAllocator
     }
 
 
-    private partial void NewArena()
+    private void NewArena()
     {
         Arena* p = mFreeArenas;
 
