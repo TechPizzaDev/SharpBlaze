@@ -109,6 +109,12 @@ public unsafe partial class VectorImage
         mBounds = new(0, 0, 0, 0);
     }
 
+    public VectorImage(Geometry* geometries, int geometryCount, IntRect bounds)
+    {
+        mGeometries = geometries;
+        mGeometryCount = geometryCount;
+        mBounds = bounds;
+    }
 
     ~VectorImage()
     {
@@ -153,7 +159,7 @@ public unsafe partial class VectorImage
         int imaxx = br.ReadInt32();
         int imaxy = br.ReadInt32();
 
-        mBounds = new IntRect(iminx, iminy, imaxx - iminx, imaxy - iminy);
+        mBounds = IntRect.FromMinMax(iminx, iminy, imaxx, imaxy);
 
         // Each path entry is at least 32 bytes plus 4 bytes indicating path count
         // plus 16 bytes indicating full bounds plus 8 bytes for signature and
@@ -203,7 +209,7 @@ public unsafe partial class VectorImage
 
             Geometry* geometry = mGeometries + mGeometryCount;
 
-            *geometry = new Geometry(new IntRect(pminx, pminy, pmaxx - pminx, pmaxy - pminy),
+            *geometry = new Geometry(IntRect.FromMinMax(pminx, pminy, pmaxx, pmaxy),
                 tags, points, Matrix.Identity, (int) tagCount, (int) pointCount, color,
                 fillRule);
 
