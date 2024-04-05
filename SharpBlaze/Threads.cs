@@ -136,7 +136,7 @@ public unsafe partial class Threads
                 }
             }
 
-            items.RequiredWorkerCount--;
+            Interlocked.Decrement(ref items.RequiredWorkerCount);
 
             Monitor.Exit(items.Mutex);
 
