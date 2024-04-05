@@ -12,6 +12,6 @@ public partial struct FloatRect
         int maxx = (int) (Math.Ceiling(Max.X));
         int maxy = (int) (Math.Ceiling(Max.Y));
 
-        return new IntRect(minx, miny, maxx - minx, maxy - miny);
+        return IntRect.FromMinMax(minx, miny, maxx, maxy);
     }
 }

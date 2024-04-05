@@ -24,11 +24,11 @@ public unsafe partial class Threads
 
         public object CV = new();
         public object Mutex = new();
-        public int RequiredWorkerCount = 0;
+        public volatile int RequiredWorkerCount = 0;
 
         public object FinalizationCV => FinalizationMutex;
         public object FinalizationMutex = new();
-        public int FinalizedWorkers = 0;
+        public volatile int FinalizedWorkers = 0;
     };
 
     private class ThreadData
