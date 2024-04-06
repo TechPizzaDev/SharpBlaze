@@ -13,7 +13,8 @@ public unsafe class Main
 
     public ViewData mViewData;
     public DestinationImage<TileDescriptor_8x16> mImage;
-    VectorImage mVectorImage;
+    private Executor executor;
+    private VectorImage mVectorImage;
 
     protected Queue<double> samples = new();
 
@@ -31,6 +32,7 @@ public unsafe class Main
         }
 
         mImage = new DestinationImage<TileDescriptor_8x16>();
+        executor = new ParallelExecutor();
 
         mViewData = new ViewData();
         mViewData.SetupCoordinateSystem((int) WindowWidth, (int) WindowHeight, mVectorImage);
@@ -47,7 +49,7 @@ public unsafe class Main
         Matrix matrix = mViewData.GetMatrix();
 
         mImage.ClearImage();
-        mImage.DrawImage(mVectorImage, matrix);
+        mImage.DrawImage(mVectorImage, matrix, executor);
 
         long raster_end = Stopwatch.GetTimestamp();
         //Console.WriteLine(clips + " - " + notClips + " - " + misses);

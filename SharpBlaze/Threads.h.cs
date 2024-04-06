@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace SharpBlaze;
@@ -9,17 +8,30 @@ using static Math;
 /**
  * Manages a pool of threads used for parallelization of rasterization tasks.
  */
-public unsafe partial class Threads
+public sealed unsafe partial class ParallelExecutor : Executor
 {
-    public Threads()
+    public ParallelExecutor(int threadCount)
+    {
+        mTaskData = new TaskList();
+
+        mThreadData = new ThreadData[threadCount];
+
+        for (int i = 0; i < mThreadData.Length; i++)
+        {
+            mThreadData[i] = new ThreadData(mTaskData);
+        }
+    }
+
+    public ParallelExecutor() : this(Min(GetHardwareThreadCount(), 128))
     {
     }
+
 
 
     private class TaskList
     {
         public int Cursor = 0;
-        public int Count = 0;
+        public int End = 0;
         public Action<int, ThreadMemory>? Fn = null;
 
         public object CV = new();
@@ -43,18 +55,24 @@ public unsafe partial class Threads
         public Thread Thread;
     }
 
-    private TaskList? mTaskData = null;
-    private ThreadData[]? mThreadData = null;
-    private int mThreadCount = 0;
-    private ThreadMemory mMainMemory = new();
+    private readonly TaskList mTaskData;
+    private readonly ThreadData[] mThreadData;
+    private bool hasStartedThreads;
+
+    public override ThreadMemory MainMemory => mThreadData[0].Memory;
+
+    public override int ThreadCount => mThreadData.Length;
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ParallelFor(int count, Action<int, ThreadMemory> loopBody)
+    public override void For(int fromInclusive, int toExclusive, Action<int, ThreadMemory> loopBody)
     {
-        RunThreads();
+        int count = toExclusive - fromInclusive;
+        if (count <= 0)
+        {
+            return;
+        }
 
-        int run = Max(Min(64, count / (mThreadCount * 32)), 1);
+        int run = Max(Min(64, count / (mThreadData.Length * 32)), 1);
 
         if (run == 1)
         {
@@ -65,7 +83,7 @@ public unsafe partial class Threads
                 memory.ResetTaskMemory();
             }
 
-            Run(count, p);
+            Run(fromInclusive, toExclusive, p);
         }
         else
         {
@@ -73,8 +91,8 @@ public unsafe partial class Threads
 
             void p(int index, ThreadMemory memory)
             {
-                int idx = run * index;
-                int maxidx = Min(count, idx + run);
+                int idx = fromInclusive + run * index;
+                int maxidx = Min(toExclusive, idx + run);
 
                 for (int i = idx; i < maxidx; i++)
                 {
@@ -84,25 +102,7 @@ public unsafe partial class Threads
                 }
             }
 
-            Run(iterationCount, p);
+            Run(0, iterationCount, p);
         }
-    }
-
-
-    public T* MainMalloc<T>() where T : unmanaged
-    {
-        return mMainMemory.FrameMalloc<T>();
-    }
-
-    
-    public T* MainMallocArray<T>(int count) where T : unmanaged
-    {
-        return mMainMemory.FrameMallocArray<T>(count);
-    }
-
-
-    public T** MainMallocPointers<T>(int count) where T : unmanaged
-    {
-        return mMainMemory.FrameMallocPointers<T>(count);
     }
 }

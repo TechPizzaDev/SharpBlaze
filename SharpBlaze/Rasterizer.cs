@@ -36,7 +36,7 @@ public unsafe partial struct Rasterizer<T>
 {
 
     public static partial void Rasterize(ReadOnlySpan<Geometry> inputGeometries,
-        in Matrix matrix, Threads threads,
+        in Matrix matrix, Executor threads,
         ImageData image);
 
 
@@ -298,7 +298,7 @@ public unsafe partial struct Rasterizer<T>
 
 
     public static partial void Rasterize(ReadOnlySpan<Geometry> inputGeometries,
-        in Matrix matrix, Threads threads,
+        in Matrix matrix, Executor threads,
         ImageData image)
     {
         int inputGeometryCount = inputGeometries.Length;
@@ -313,7 +313,7 @@ public unsafe partial struct Rasterizer<T>
         // TODO
         // Skip transform if matrix is identity.
         Geometry* geometries =
-            threads.MainMallocArray<Geometry>(inputGeometryCount);
+            threads.MainMemory.FrameMallocArray<Geometry>(inputGeometryCount);
 
         for (int i = 0; i < inputGeometryCount; i++)
         {
@@ -341,18 +341,18 @@ public unsafe partial struct Rasterizer<T>
 
         // Allocate memory for RasterizableGeometry instance pointers.
         RasterizableGeometry** rasterizables =
-            threads.MainMallocPointers<RasterizableGeometry>(inputGeometryCount);
+            threads.MainMemory.FrameMallocPointers<RasterizableGeometry>(inputGeometryCount);
 
         // Allocate memory for RasterizableGeometry instances.
         RasterizableGeometry* rasterizableGeometryMemory =
-            threads.MainMallocArray<RasterizableGeometry>(inputGeometryCount);
+            threads.MainMemory.FrameMallocArray<RasterizableGeometry>(inputGeometryCount);
 
         IntSize imageSize = new(
             image.Width,
             image.Height
         );
 
-        threads.ParallelFor(inputGeometryCount, (int index, ThreadMemory memory) =>
+        threads.For(0, inputGeometryCount, (int index, ThreadMemory memory) =>
         {
             rasterizables[index] = CreateRasterizable(
                 rasterizableGeometryMemory + index, geometries + index, imageSize,
@@ -365,7 +365,7 @@ public unsafe partial struct Rasterizer<T>
         // are copied to it.
 
         RasterizableGeometry** visibleRasterizables =
-            threads.MainMallocPointers<RasterizableGeometry>(inputGeometryCount);
+            threads.MainMemory.FrameMallocPointers<RasterizableGeometry>(inputGeometryCount);
 
         int visibleRasterizableCount = 0;
 
@@ -387,10 +387,9 @@ public unsafe partial struct Rasterizer<T>
         TileIndex rowCount = CalculateRowCount<T>(imageSize.Height);
 
         RowItemList<RasterizableItem>* rowLists =
-            threads.MainMallocArray<RowItemList<RasterizableItem>>((int) rowCount);
+            threads.MainMemory.FrameMallocArray<RowItemList<RasterizableItem>>((int) rowCount);
 
-        int threadCount = Threads.GetHardwareThreadCount();
-
+        int threadCount = threads.ThreadCount;
         Debug.Assert(threadCount > 0);
 
         int iterationHeight = (int) Math.Max((uint) ((int) rowCount / threadCount), 1);
@@ -398,7 +397,7 @@ public unsafe partial struct Rasterizer<T>
         int iterationCount = ((int) rowCount / iterationHeight) +
             (int) Math.Min((uint) ((int) rowCount % iterationHeight), 1);
 
-        threads.ParallelFor(iterationCount, (int index, ThreadMemory memory) =>
+        threads.For(0, iterationCount, (int index, ThreadMemory memory) =>
         {
             TileIndex threadY = (TileIndex) (index * iterationHeight);
             TileIndex threadHeight = (TileIndex) Math.Min(iterationHeight, (int) (rowCount - threadY));
@@ -453,7 +452,7 @@ public unsafe partial struct Rasterizer<T>
         //
         // Rasterize all intervals.
 
-        threads.ParallelFor((int) rowCount, (int rowIndex, ThreadMemory memory) =>
+        threads.For(0, (int) rowCount, (int rowIndex, ThreadMemory memory) =>
         {
             RowItemList<RasterizableItem>* item = rowLists + rowIndex;
 

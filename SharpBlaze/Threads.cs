@@ -6,7 +6,7 @@ namespace SharpBlaze;
 
 using static Math;
 
-public unsafe partial class Threads
+public sealed unsafe partial class ParallelExecutor
 {
 
     public static int GetHardwareThreadCount()
@@ -15,10 +15,11 @@ public unsafe partial class Threads
     }
 
 
-    private void Run(int count, Action<int, ThreadMemory> loopBody)
+    private void Run(int fromInclusive, int toExclusive, Action<int, ThreadMemory> loopBody)
     {
         Debug.Assert(loopBody != null);
 
+        int count = toExclusive - fromInclusive;
         if (count < 1)
         {
             return;
@@ -26,15 +27,20 @@ public unsafe partial class Threads
 
         if (count == 1)
         {
-            loopBody.Invoke(0, mMainMemory);
+            loopBody.Invoke(fromInclusive, MainMemory);
             return;
         }
 
-        mTaskData.Cursor = 0;
-        mTaskData.Count = count;
+        if (!hasStartedThreads)
+        {
+            RunThreads();
+        }
+
+        mTaskData.Cursor = fromInclusive;
+        mTaskData.End = toExclusive;
         mTaskData.Fn = loopBody;
 
-        int threadCount = Min(mThreadCount, count);
+        int threadCount = Min(mThreadData.Length, count);
 
         mTaskData.RequiredWorkerCount = threadCount;
         mTaskData.FinalizedWorkers = 0;
@@ -59,8 +65,7 @@ public unsafe partial class Threads
 
         // Cleanup.
         mTaskData.Cursor = 0;
-        mTaskData.Count = 0;
-
+        mTaskData.End = 0;
         mTaskData.Fn = null;
 
         mTaskData.RequiredWorkerCount = 0;
@@ -68,38 +73,18 @@ public unsafe partial class Threads
     }
 
 
-    public void ResetFrameMemory()
+    public override void ResetFrameMemory()
     {
-        for (int i = 0; i < mThreadCount; i++)
+        for (int i = 0; i < mThreadData.Length; i++)
         {
             mThreadData[i].Memory.ResetFrameMemory();
         }
-
-        mMainMemory.ResetFrameMemory();
     }
 
 
     private void RunThreads()
     {
-        if (mThreadData != null)
-        {
-            return;
-        }
-
-        mTaskData = new TaskList();
-
-        int cpuCount = Min(GetHardwareThreadCount(), 128);
-
-        mThreadCount = cpuCount;
-
-        mThreadData = new ThreadData[cpuCount];
-
-        for (int i = 0; i < cpuCount; i++)
-        {
-            mThreadData[i] = new ThreadData(mTaskData);
-        }
-
-        for (int i = 0; i < cpuCount; i++)
+        for (int i = 0; i < mThreadData.Length; i++)
         {
             ThreadData d = mThreadData[i];
 
@@ -107,6 +92,8 @@ public unsafe partial class Threads
             d.Thread.IsBackground = true;
             d.Thread.Start(d);
         }
+
+        hasStartedThreads = true;
     }
 
 
@@ -140,13 +127,12 @@ public unsafe partial class Threads
 
             Monitor.Exit(items.Mutex);
 
-            int count = items.Count;
+            int end = items.End;
 
-            for (; ; )
+            while (true)
             {
                 int index = Interlocked.Increment(ref items.Cursor) - 1;
-
-                if (index >= count)
+                if (index >= end)
                 {
                     break;
                 }

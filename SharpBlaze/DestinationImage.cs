@@ -14,23 +14,10 @@ public unsafe partial class DestinationImage<T>
     {
     }
 
-    public partial IntSize UpdateSize(IntSize size);
-
-    public partial void ClearImage();
-
-    public partial void DrawImage(VectorImage image, in Matrix matrix);
-
-    public partial IntSize GetImageSize();
-    public partial int GetImageWidth();
-    public partial int GetImageHeight();
-    public partial byte* GetImageData();
-    public partial int GetBytesPerRow();
-
     private byte* mImageData = null;
     private IntSize mImageSize;
     private int mBytesPerRow = 0;
     private int mImageDataSize = 0;
-    private Threads mThreads = new();
 
 
     ~DestinationImage()
@@ -39,7 +26,7 @@ public unsafe partial class DestinationImage<T>
     }
 
 
-    public partial IntSize UpdateSize(IntSize size)
+    public IntSize UpdateSize(IntSize size)
     {
         Debug.Assert(size.Width > 0);
         Debug.Assert(size.Height > 0);
@@ -73,13 +60,13 @@ public unsafe partial class DestinationImage<T>
     }
 
 
-    public partial void ClearImage()
+    public void ClearImage()
     {
         NativeMemory.Clear(mImageData, (nuint) (mImageSize.Width * 4 * mImageSize.Height));
     }
 
 
-    public partial void DrawImage(VectorImage image, in Matrix matrix)
+    public void DrawImage(VectorImage image, in Matrix matrix, Executor executor)
     {
         if (image.GetGeometryCount() < 1)
         {
@@ -89,38 +76,38 @@ public unsafe partial class DestinationImage<T>
         ImageData d = new(mImageData, mImageSize.Width, mImageSize.Height,
            mBytesPerRow);
 
-        Rasterizer<T>.Rasterize(image.GetGeometrySpan(), matrix, mThreads, d);
+        Rasterizer<T>.Rasterize(image.GetGeometrySpan(), matrix, executor, d);
 
         // Free all the memory allocated by threads.
-        mThreads.ResetFrameMemory();
+        executor.ResetFrameMemory();
     }
 
 
-    public partial IntSize GetImageSize()
+    public IntSize GetImageSize()
     {
         return mImageSize;
     }
 
 
-    public partial int GetImageWidth()
+    public int GetImageWidth()
     {
         return mImageSize.Width;
     }
 
 
-    public partial int GetImageHeight()
+    public int GetImageHeight()
     {
         return mImageSize.Height;
     }
 
 
-    public partial byte* GetImageData()
+    public byte* GetImageData()
     {
         return mImageData;
     }
 
 
-    public partial int GetBytesPerRow()
+    public int GetBytesPerRow()
     {
         return mBytesPerRow;
     }

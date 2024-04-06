@@ -21,11 +21,10 @@ public unsafe partial struct Rasterizer<T>
      * @param image Destination image. 
      */
     static void Rasterize(Geometry* geometries,
-        int geometryCount, in Matrix matrix, in Threads threads,
+        int geometryCount, in Matrix matrix, Executor threads,
         in ImageData image)
     {
-        Rasterize(geometries, geometryCount, matrix, threads,
-            image);
+        Rasterize(geometries, geometryCount, matrix, threads, image);
     }
 
 }
