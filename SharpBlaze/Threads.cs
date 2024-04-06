@@ -123,7 +123,7 @@ public sealed unsafe partial class ParallelExecutor
                 }
             }
 
-            items.RequiredWorkerCount--;
+            Interlocked.Decrement(ref items.RequiredWorkerCount);
 
             Monitor.Exit(items.Mutex);
 
