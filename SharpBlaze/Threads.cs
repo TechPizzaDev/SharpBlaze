@@ -45,23 +45,19 @@ public sealed unsafe partial class ParallelExecutor
         mTaskData.RequiredWorkerCount = threadCount;
         mTaskData.FinalizedWorkers = 0;
 
-        Monitor.Enter(mTaskData.FinalizationMutex);
-
-        // Wake all threads waiting on this condition variable.
-        lock (mTaskData.CV)
+        lock (mTaskData.FinalizationMutex)
         {
-            Monitor.PulseAll(mTaskData.CV);
-        }
-
-        while (mTaskData.FinalizedWorkers < threadCount)
-        {
-            lock (mTaskData.FinalizationCV)
+            // Wake all threads waiting on this condition variable.
+            lock (mTaskData.Mutex)
             {
-                Monitor.Wait(mTaskData.FinalizationCV);
+                Monitor.PulseAll(mTaskData.Mutex);
+            }
+
+            while (mTaskData.FinalizedWorkers < threadCount)
+            {
+                Monitor.Wait(mTaskData.FinalizationMutex);
             }
         }
-
-        Monitor.Exit(mTaskData.FinalizationMutex);
 
         // Cleanup.
         mTaskData.Cursor = 0;
@@ -108,24 +104,20 @@ public sealed unsafe partial class ParallelExecutor
         ThreadData d = (ThreadData) (p);
 
         // Loop forever waiting for next dispatch of tasks.
-        for (; ; )
+        while (true)
         {
             TaskList items = d.Tasks;
 
-            Monitor.Enter(items.Mutex);
-
-            while (items.RequiredWorkerCount < 1)
+            lock (items.Mutex)
             {
-                // Wait until required worker count becomes greater than zero.
-                lock (items.CV)
+                while (items.RequiredWorkerCount < 1)
                 {
-                    Monitor.Wait(items.CV);
+                    // Wait until required worker count becomes greater than zero.
+                    Monitor.Wait(items.Mutex);
                 }
+
+                items.RequiredWorkerCount--;
             }
-
-            Interlocked.Decrement(ref items.RequiredWorkerCount);
-
-            Monitor.Exit(items.Mutex);
 
             int end = items.End;
 
@@ -140,15 +132,11 @@ public sealed unsafe partial class ParallelExecutor
                 items.Fn.Invoke(index, d.Memory);
             }
 
-            Monitor.Enter(items.FinalizationMutex);
-
-            items.FinalizedWorkers++;
-
-            Monitor.Exit(items.FinalizationMutex);
-
-            lock (items.FinalizationCV)
+            lock (items.FinalizationMutex)
             {
-                Monitor.Pulse(items.FinalizationCV);
+                items.FinalizedWorkers++;
+
+                Monitor.Pulse(items.FinalizationMutex);
             }
         }
     }

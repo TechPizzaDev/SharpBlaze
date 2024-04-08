@@ -34,12 +34,10 @@ public sealed unsafe partial class ParallelExecutor : Executor
         public int End = 0;
         public Action<int, ThreadMemory>? Fn = null;
 
-        public object CV = new();
-        public object Mutex = new();
+        public readonly object Mutex = new();
         public volatile int RequiredWorkerCount = 0;
 
-        public object FinalizationCV => FinalizationMutex;
-        public object FinalizationMutex = new();
+        public readonly object FinalizationMutex = new();
         public volatile int FinalizedWorkers = 0;
     };
 
