@@ -52,7 +52,7 @@ public static unsafe partial class CompositionOps
         {
             var vCba = Vector128.Create(cba);
 
-            for (; x + Vector128<uint>.Count - 1 <= end; x += Vector128<uint>.Count)
+            for (; x + Vector128<uint>.Count <= end; x += Vector128<uint>.Count)
             {
                 var dd = Vector128.Load(d + x);
 
