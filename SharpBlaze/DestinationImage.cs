@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -77,6 +78,8 @@ public unsafe partial class DestinationImage<T>
            mBytesPerRow);
 
         Rasterizer<T>.Rasterize(image.GetGeometrySpan(), matrix, executor, d);
+
+        GC.KeepAlive(image);
 
         // Free all the memory allocated by threads.
         executor.ResetFrameMemory();
