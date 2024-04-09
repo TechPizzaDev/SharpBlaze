@@ -42,6 +42,7 @@ public class VectorImageBuilder
 
     public void Close()
     {
+        _tags.Add(PathTag.Close);
         _closeOffsets.Add((_tags.Count, _points.Count));
     }
 
