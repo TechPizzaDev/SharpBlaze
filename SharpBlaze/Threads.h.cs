@@ -10,8 +10,16 @@ using static Math;
  */
 public sealed unsafe partial class ParallelExecutor : Executor
 {
+    // Big tasks are usually split up by the library into smaller sub-tasks,
+    // so the cost of waking worker threads can become big overhead.
+    // There are cases where large geometries likely take more time than
+    // wake-up so keep the threshold for inline work low.
+    private const int InlineThresholdFactor = 4;
+
     public ParallelExecutor(int threadCount)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(threadCount, 1);
+
         mTaskData = new TaskList();
 
         mThreadData = new ThreadData[threadCount];
@@ -65,8 +73,15 @@ public sealed unsafe partial class ParallelExecutor : Executor
     public override void For(int fromInclusive, int toExclusive, Action<int, ThreadMemory> loopBody)
     {
         int count = toExclusive - fromInclusive;
-        if (count <= 0)
+
+        if (count <= mThreadData.Length * InlineThresholdFactor)
         {
+            for (int i = fromInclusive; i < toExclusive; i++)
+            {
+                loopBody.Invoke(i, MainMemory);
+
+                MainMemory.ResetTaskMemory();
+            }
             return;
         }
 
