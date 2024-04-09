@@ -1,4 +1,7 @@
+using System;
+using System.Buffers;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -104,6 +107,10 @@ internal unsafe partial struct BinaryReader
 
 public unsafe partial class VectorImage
 {
+    public static ReadOnlySpan<byte> Signature => "Bvec"u8;
+
+    public static uint Version => 1u;
+
     public VectorImage()
     {
         mBounds = new(0, 0, 0, 0);
@@ -122,12 +129,17 @@ public unsafe partial class VectorImage
     }
 
 
-    public bool Parse(byte* binary, ulong length)
+    public OperationStatus Parse(byte* binary, ulong length)
     {
         Debug.Assert(binary != null);
         Debug.Assert(length > 0);
 
         Free();
+
+        if (length < 4 + 4 * 6)
+        {
+            return OperationStatus.NeedMoreData;
+        }
 
         BinaryReader br = new(binary, length);
 
@@ -137,9 +149,9 @@ public unsafe partial class VectorImage
         byte e = br.ReadUInt8();
         byte c = br.ReadUInt8();
 
-        if (B != 'B' || v != 'v' || e != 'e' || c != 'c')
+        if (!Signature.SequenceEqual([B, v, e, c]))
         {
-            return false;
+            return OperationStatus.InvalidData;
         }
 
         // Read version.
@@ -147,7 +159,7 @@ public unsafe partial class VectorImage
 
         if (version != 1)
         {
-            return false;
+            return OperationStatus.InvalidData;
         }
 
         // 4 bytes, total path count.
@@ -167,7 +179,7 @@ public unsafe partial class VectorImage
         if (length < ((count * 32) + 4 + 16 + 8))
         {
             // File is smaller than it says it has paths in it.
-            return false;
+            return OperationStatus.NeedMoreData;
         }
 
         mGeometries = (Geometry*) NativeMemory.Alloc((nuint) (sizeof(Geometry) * count));
@@ -216,7 +228,48 @@ public unsafe partial class VectorImage
             mGeometryCount++;
         }
 
-        return true;
+        return OperationStatus.Done;
+    }
+
+    public void Save(Stream stream)
+    {
+        using BinaryWriter writer = new(stream);
+
+        writer.Write(Signature);
+        writer.Write(Version);
+
+        writer.Write(mGeometryCount);
+
+        writer.Write(mBounds.MinX);
+        writer.Write(mBounds.MinY);
+        writer.Write(mBounds.MaxX);
+        writer.Write(mBounds.MaxY);
+
+        for (int i = 0; i < mGeometryCount; i++)
+        {
+            Geometry* geo = &mGeometries[i];
+
+            writer.Write(geo->Color);
+
+            writer.Write(geo->PathBounds.MinX);
+            writer.Write(geo->PathBounds.MinY);
+            writer.Write(geo->PathBounds.MaxX);
+            writer.Write(geo->PathBounds.MaxY);
+
+            writer.Write((uint) geo->Rule);
+
+            writer.Write(geo->TagCount);
+            writer.Write(geo->PointCount);
+
+            writer.Write(new Span<byte>(geo->Tags, geo->TagCount));
+
+            for (int j = 0; j < geo->PointCount; j++)
+            {
+                FloatPoint point = geo->Points[j];
+                writer.Write(point.X);
+                writer.Write(point.Y);
+            }
+        }
     }
 
 
