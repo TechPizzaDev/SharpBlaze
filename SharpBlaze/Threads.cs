@@ -45,14 +45,18 @@ public sealed unsafe partial class ParallelExecutor
         mTaskData.RequiredWorkerCount = threadCount;
         mTaskData.FinalizedWorkers = 0;
 
+        // Wake all threads waiting on this condition variable.
+        lock (mTaskData.Mutex)
+        {
+            Monitor.PulseAll(mTaskData.Mutex);
+        }
+
+        while (WorkerStep(mTaskData, MainMemory))
+        {
+        }
+
         lock (mTaskData.FinalizationMutex)
         {
-            // Wake all threads waiting on this condition variable.
-            lock (mTaskData.Mutex)
-            {
-                Monitor.PulseAll(mTaskData.Mutex);
-            }
-
             while (mTaskData.FinalizedWorkers < threadCount)
             {
                 Monitor.Wait(mTaskData.FinalizationMutex);
@@ -75,21 +79,31 @@ public sealed unsafe partial class ParallelExecutor
         {
             mThreadData[i].Memory.ResetFrameMemory();
         }
+
+        MainMemory.ResetFrameMemory();
     }
 
 
     private void RunThreads()
     {
-        for (int i = 0; i < mThreadData.Length; i++)
+        lock (mThreadData)
         {
-            ThreadData d = mThreadData[i];
+            if (hasStartedThreads)
+            {
+                return;
+            }
 
-            d.Thread = new Thread(Worker);
-            d.Thread.IsBackground = true;
-            d.Thread.Start(d);
+            for (int i = 0; i < mThreadData.Length; i++)
+            {
+                ThreadData d = mThreadData[i];
+
+                d.Thread = new Thread(Worker);
+                d.Thread.IsBackground = true;
+                d.Thread.Start(d);
+            }
+
+            hasStartedThreads = true;
         }
-
-        hasStartedThreads = true;
     }
 
 
@@ -119,17 +133,8 @@ public sealed unsafe partial class ParallelExecutor
                 items.RequiredWorkerCount--;
             }
 
-            int end = items.End;
-
-            while (true)
+            while (WorkerStep(items, d.Memory))
             {
-                int index = Interlocked.Increment(ref items.Cursor) - 1;
-                if (index >= end)
-                {
-                    break;
-                }
-
-                items.Fn.Invoke(index, d.Memory);
             }
 
             lock (items.FinalizationMutex)
@@ -139,6 +144,18 @@ public sealed unsafe partial class ParallelExecutor
                 Monitor.Pulse(items.FinalizationMutex);
             }
         }
+    }
+
+    private static bool WorkerStep(TaskList items, ThreadMemory memory)
+    {
+        int index = Interlocked.Increment(ref items.Cursor) - 1;
+        if (index >= items.End)
+        {
+            return false;
+        }
+
+        items.Fn.Invoke(index, memory);
+        return true;
     }
 
 }

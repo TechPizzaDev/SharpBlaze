@@ -16,13 +16,13 @@ public sealed unsafe partial class ParallelExecutor : Executor
     // wake-up so keep the threshold for inline work low.
     private const int InlineThresholdFactor = 4;
 
-    public ParallelExecutor(int threadCount)
+    public ParallelExecutor(int workerCount)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(threadCount, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(workerCount, 0);
 
         mTaskData = new TaskList();
 
-        mThreadData = new ThreadData[threadCount];
+        mThreadData = new ThreadData[workerCount];
 
         for (int i = 0; i < mThreadData.Length; i++)
         {
@@ -30,7 +30,7 @@ public sealed unsafe partial class ParallelExecutor : Executor
         }
     }
 
-    public ParallelExecutor() : this(Min(GetHardwareThreadCount(), 128))
+    public ParallelExecutor() : this(GetHardwareThreadCount() - 1)
     {
     }
 
@@ -49,43 +49,34 @@ public sealed unsafe partial class ParallelExecutor : Executor
         public volatile int FinalizedWorkers = 0;
     };
 
-    private class ThreadData
+    private class ThreadData(TaskList tasks)
     {
-        public ThreadData(TaskList tasks)
-        {
-            Tasks = tasks;
-        }
-
-        public ThreadMemory Memory = new();
-        public TaskList Tasks;
-        public Thread Thread;
+        public readonly ThreadMemory Memory = new();
+        public readonly TaskList Tasks = tasks;
+        public Thread? Thread;
     }
 
     private readonly TaskList mTaskData;
     private readonly ThreadData[] mThreadData;
     private bool hasStartedThreads;
 
-    public override ThreadMemory MainMemory => mThreadData[0].Memory;
+    public override ThreadMemory MainMemory { get; } = new();
 
-    public override int ThreadCount => mThreadData.Length;
+    public override int WorkerCount => mThreadData.Length;
 
 
     public override void For(int fromInclusive, int toExclusive, Action<int, ThreadMemory> loopBody)
     {
         int count = toExclusive - fromInclusive;
+        int threadCount = mThreadData.Length;
 
-        if (count <= mThreadData.Length * InlineThresholdFactor)
+        if (threadCount == 0 || count <= threadCount * InlineThresholdFactor)
         {
-            for (int i = fromInclusive; i < toExclusive; i++)
-            {
-                loopBody.Invoke(i, MainMemory);
-
-                MainMemory.ResetTaskMemory();
-            }
+            SerialExecutor.SerialFor(fromInclusive, toExclusive, MainMemory, loopBody);
             return;
         }
 
-        int run = Max(Min(64, count / (mThreadData.Length * 32)), 1);
+        int run = Max(Min(64, count / (threadCount * 32)), 1);
 
         if (run == 1)
         {

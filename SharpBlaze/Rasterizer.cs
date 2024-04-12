@@ -389,8 +389,7 @@ public unsafe partial struct Rasterizer<T>
         RowItemList<RasterizableItem>* rowLists =
             threads.MainMemory.FrameMallocArray<RowItemList<RasterizableItem>>((int) rowCount);
 
-        int threadCount = threads.ThreadCount;
-        Debug.Assert(threadCount > 0);
+        int threadCount = Math.Max(1, threads.WorkerCount);
 
         int iterationHeight = (int) Math.Max((uint) ((int) rowCount / threadCount), 1);
         
