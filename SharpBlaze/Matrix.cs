@@ -130,10 +130,10 @@ public readonly partial struct Matrix
 
     public readonly partial bool IsEqual(in Matrix matrix)
     {
-        return
-            Vector128.EqualsAll(FuzzyIsEqual(m[0], matrix.m[0]), Vector128<double>.AllBitsSet) &&
-            Vector128.EqualsAll(FuzzyIsEqual(m[1], matrix.m[1]), Vector128<double>.AllBitsSet) &&
-            Vector128.EqualsAll(FuzzyIsEqual(m[2], matrix.m[2]), Vector128<double>.AllBitsSet);
+        Vector128<double> eq0 = FuzzyIsEqual(m[0], matrix.m[0]);
+        Vector128<double> eq1 = FuzzyIsEqual(m[1], matrix.m[1]);
+        Vector128<double> eq2 = FuzzyIsEqual(m[2], matrix.m[2]);
+        return Vector128.EqualsAll((eq0 & eq1 & eq2).AsInt64(), Vector128<long>.AllBitsSet);
     }
 
 
