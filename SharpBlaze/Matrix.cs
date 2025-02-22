@@ -142,6 +142,7 @@ public readonly partial struct Matrix
     {
         Vector128<double> o0 = right.m[0];
         Vector128<double> o1 = right.m[1];
+        Vector128<double> o2 = right.m[2];
 
         Vector128<double> m00 = Vector128.Shuffle(left.m[0], Vector128.Create(0L));
         Vector128<double> m01 = Vector128.Shuffle(left.m[0], Vector128.Create(1L));
@@ -153,7 +154,7 @@ public readonly partial struct Matrix
 
         Vector128<double> m20 = Vector128.Shuffle(left.m[2], Vector128.Create(0L));
         Vector128<double> m21 = Vector128.Shuffle(left.m[2], Vector128.Create(1L));
-        Vector128<double> r2 = m20 * o0 + m21 * o1 + right.m[2];
+        Vector128<double> r2 = m20 * o0 + m21 * o1 + o2;
 
         return new Matrix(r0, r1, r2);
     }
