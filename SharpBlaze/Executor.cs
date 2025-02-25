@@ -4,11 +4,13 @@ namespace SharpBlaze;
 
 public abstract class Executor
 {
+    public unsafe delegate void LoopBody(int index, void* state, ThreadMemory memory);
+    
     public abstract ThreadMemory MainMemory { get; }
 
     public abstract int WorkerCount { get; }
 
-    public abstract void For(int fromInclusive, int toExclusive, Action<int, ThreadMemory> loopBody);
+    public unsafe abstract void For(int fromInclusive, int toExclusive, void* state, LoopBody loopBody);
 
     public abstract void ResetFrameMemory();
 

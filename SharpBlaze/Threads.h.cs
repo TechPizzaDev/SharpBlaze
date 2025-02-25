@@ -36,11 +36,12 @@ public sealed partial class ParallelExecutor : Executor
     }
 
 
-    private class TaskList
+    private unsafe class TaskList
     {
         public int Cursor = 0;
         public int End = 0;
-        public Action<int, ThreadMemory>? Fn = null;
+        public LoopBody? Fn = null;
+        public void* State;
 
         public readonly SemaphoreSlim RequiredWorkerCount = new(0);
         public readonly CountdownEvent FinalizedWorkers = new(0);
@@ -58,49 +59,69 @@ public sealed partial class ParallelExecutor : Executor
 
     public override int WorkerCount => mThreadData.Length;
 
+    private unsafe struct RunState(void* state, LoopBody loopBody)
+    {
+        public required int Run;
+        public required int FromInclusive;
+        public required int ToExclusive;
 
-    public override void For(int fromInclusive, int toExclusive, Action<int, ThreadMemory> loopBody)
+        public void Invoke(int index, ThreadMemory memory)
+        {
+            loopBody.Invoke(index, state, memory);
+            
+            memory.ResetTaskMemory();
+        }
+    }
+
+    public unsafe override void For(int fromInclusive, int toExclusive, void* state, LoopBody loopBody)
     {
         int count = toExclusive - fromInclusive;
         int threadCount = mThreadData.Length;
 
         if (threadCount == 0)
         {
-            SerialExecutor.SerialFor(fromInclusive, toExclusive, MainMemory, loopBody);
+            SerialExecutor.SerialFor(fromInclusive, toExclusive, state, MainMemory, loopBody);
             return;
         }
 
         int run = Max(Min(64, count / (threadCount * 32)), 1);
+        
+        RunState runState = new(state, loopBody)
+        {
+            Run = run,
+            FromInclusive = fromInclusive,
+            ToExclusive = toExclusive,
+        };
 
         if (run == 1)
         {
-            void p(int index, ThreadMemory memory)
+            static void RunBody(int index, void* state, ThreadMemory memory)
             {
-                loopBody.Invoke(index, memory);
-
-                memory.ResetTaskMemory();
+                RunState* s = (RunState*) state;
+                
+                s->Invoke(index, memory);
             }
 
-            Run(fromInclusive, toExclusive, p);
+            Run(fromInclusive, toExclusive, &runState, RunBody);
         }
         else
         {
             int iterationCount = (count / run) + Min(count % run, 1);
 
-            void p(int index, ThreadMemory memory)
+            static void RunBody(int index, void* state, ThreadMemory memory)
             {
-                int idx = fromInclusive + run * index;
-                int maxidx = Min(toExclusive, idx + run);
+                RunState* s = (RunState*) state;
+                
+                int start = s->FromInclusive + s->Run * index;
+                int end = Min(s->ToExclusive, start + s->Run);
 
-                for (int i = idx; i < maxidx; i++)
+                for (int i = start; i < end; i++)
                 {
-                    loopBody.Invoke(i, memory);
-
-                    memory.ResetTaskMemory();
+                    s->Invoke(i, memory);
                 }
             }
-
-            Run(0, iterationCount, p);
+            
+            Run(0, iterationCount, &runState, RunBody);
         }
     }
 }

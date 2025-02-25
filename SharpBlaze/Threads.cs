@@ -14,7 +14,7 @@ public sealed partial class ParallelExecutor
     }
 
 
-    private void Run(int fromInclusive, int toExclusive, Action<int, ThreadMemory> loopBody)
+    private unsafe void Run(int fromInclusive, int toExclusive, void* state, LoopBody loopBody)
     {
         Debug.Assert(loopBody != null);
 
@@ -26,12 +26,13 @@ public sealed partial class ParallelExecutor
 
         if (count == 1)
         {
-            loopBody.Invoke(fromInclusive, MainMemory);
+            loopBody.Invoke(fromInclusive, state, MainMemory);
             return;
         }
 
         mTaskData.Cursor = fromInclusive;
         mTaskData.End = toExclusive;
+        mTaskData.State = state;
         mTaskData.Fn = loopBody;
 
         int threadCount = Min(mThreadData.Length, count);
@@ -61,6 +62,7 @@ public sealed partial class ParallelExecutor
         // Cleanup.
         mTaskData.Cursor = 0;
         mTaskData.End = 0;
+        mTaskData.State = null;
         mTaskData.Fn = null;
     }
 
@@ -100,7 +102,7 @@ public sealed partial class ParallelExecutor
         }
     }
 
-    private static bool WorkerStep(TaskList items, ThreadMemory memory)
+    private static unsafe bool WorkerStep(TaskList items, ThreadMemory memory)
     {
         int index = Interlocked.Increment(ref items.Cursor) - 1;
         if (index >= items.End)
@@ -108,7 +110,7 @@ public sealed partial class ParallelExecutor
             return false;
         }
 
-        items.Fn.Invoke(index, memory);
+        items.Fn.Invoke(index, items.State, memory);
         return true;
     }
 }

@@ -296,9 +296,10 @@ public unsafe partial struct Rasterizer<T>
     [Obsolete]
     public Rasterizer() { }
 
-
-    public static partial void Rasterize(ReadOnlySpan<Geometry> inputGeometries,
-        in Matrix matrix, Executor threads,
+    public static partial void Rasterize(
+        ReadOnlySpan<Geometry> inputGeometries,
+        in Matrix matrix,
+        Executor threads,
         ImageData image)
     {
         int inputGeometryCount = inputGeometries.Length;
@@ -334,11 +335,30 @@ public unsafe partial struct Rasterizer<T>
                 s.Rule);
         }
 
-        // Step 1.
-        //
-        // Create and array of RasterizableGeometry instances. Instances are
-        // created and prepared for further processing in parallel.
+        StepState1 state1 = Step1(threads, image, geometries, inputGeometryCount);
+        StepState2 state2 = Step2(threads, state1);
+        Step3(threads, image, state2);
+    }
 
+    private struct StepState1
+    {
+        public required RasterizableGeometry** rasterizables;
+        public required RasterizableGeometry* rasterizableGeometryMemory;
+        public required Geometry* geometries;
+        public required IntSize imageSize;
+        public int visibleRasterizableCount;
+    }
+
+    /// <summary>
+    /// Create and array of RasterizableGeometry instances. Instances are
+    /// created and prepared for further processing in parallel.
+    /// </summary>
+    private static StepState1 Step1(
+        Executor threads,
+        in ImageData image, 
+        Geometry* geometries,
+        int inputGeometryCount)
+    {
         // Allocate memory for RasterizableGeometry instance pointers.
         RasterizableGeometry** rasterizables =
             threads.MainMemory.FrameMallocPointers<RasterizableGeometry>(inputGeometryCount);
@@ -352,20 +372,27 @@ public unsafe partial struct Rasterizer<T>
             image.Height
         );
 
-        threads.For(0, inputGeometryCount, (int index, ThreadMemory memory) =>
+        StepState1 state1 = new()
         {
-            rasterizables[index] = CreateRasterizable(
-                rasterizableGeometryMemory + index, geometries + index, imageSize,
+            rasterizables = rasterizables,
+            rasterizableGeometryMemory = rasterizableGeometryMemory,
+            geometries = geometries,
+            imageSize = imageSize,
+        };
+        threads.For(0, inputGeometryCount, &state1, static (index, state, memory) =>
+        {
+            StepState1* s = (StepState1*) state;
+            
+            s->rasterizables[index] = CreateRasterizable(
+                s->rasterizableGeometryMemory + index, 
+                s->geometries + index,
+                s->imageSize,
                 memory);
         });
 
         // Linearizer may decide that some paths do not contribute to the final
-        // image. In these situations CreateRasterizable will return null. In
-        // the following step, a new array is created and only non-null items
-        // are copied to it.
-
-        RasterizableGeometry** visibleRasterizables =
-            threads.MainMemory.FrameMallocPointers<RasterizableGeometry>(inputGeometryCount);
+        // image. In these situations CreateRasterizable will return null.
+        // In the following step, non-null pointers are packed into front of array.
 
         int visibleRasterizableCount = 0;
 
@@ -375,16 +402,31 @@ public unsafe partial struct Rasterizer<T>
 
             if (rasterizable != null)
             {
-                visibleRasterizables[visibleRasterizableCount++] = rasterizable;
+                rasterizables[visibleRasterizableCount++] = rasterizable;
             }
         }
 
+        state1.visibleRasterizableCount = visibleRasterizableCount;
+        
+        return state1;
+    }
 
-        // Step 2.
-        //
-        // Create lists of rasterizable items for each interval.
+    private struct StepState2
+    {
+        public required RasterizableGeometry** visibleRasterizables;
+        public required int visibleRasterizableCount;
 
-        TileIndex rowCount = CalculateRowCount<T>(imageSize.Height);
+        public required TileIndex rowCount;
+        public required RowItemList<RasterizableItem>* rowLists;
+        public required int iterationHeight;
+    }
+
+    /// <summary>
+    /// Create lists of rasterizable items for each interval.
+    /// </summary>
+    private static StepState2 Step2(Executor threads, in StepState1 state1)
+    {
+        TileIndex rowCount = CalculateRowCount<T>(state1.imageSize.Height);
 
         RowItemList<RasterizableItem>* rowLists =
             threads.MainMemory.FrameMallocArray<RowItemList<RasterizableItem>>((int) rowCount);
@@ -396,20 +438,31 @@ public unsafe partial struct Rasterizer<T>
         int iterationCount = ((int) rowCount / iterationHeight) +
             (int) Math.Min((uint) ((int) rowCount % iterationHeight), 1);
 
-        threads.For(0, iterationCount, (int index, ThreadMemory memory) =>
+        StepState2 state2 = new()
         {
-            TileIndex threadY = (TileIndex) (index * iterationHeight);
-            TileIndex threadHeight = (TileIndex) Math.Min(iterationHeight, (int) (rowCount - threadY));
+            visibleRasterizables = state1.rasterizables,
+            visibleRasterizableCount = state1.visibleRasterizableCount,
+
+            rowCount = rowCount,
+            rowLists = rowLists,
+            iterationHeight = iterationHeight,
+        };
+        threads.For(0, iterationCount, &state2, static (index, state, memory) =>
+        {
+            StepState2* s = (StepState2*) state;
+
+            TileIndex threadY = (TileIndex) (index * s->iterationHeight);
+            TileIndex threadHeight = (TileIndex) Math.Min(s->iterationHeight, (int) (s->rowCount - threadY));
             TileIndex threadMaxY = threadY + threadHeight;
 
             for (TileIndex i = threadY; i < threadMaxY; i++)
             {
-                *(rowLists + i) = new RowItemList<RasterizableItem>();
+                *(s->rowLists + i) = new RowItemList<RasterizableItem>();
             }
 
-            for (int i = 0; i < visibleRasterizableCount; i++)
+            for (int i = 0; i < s->visibleRasterizableCount; i++)
             {
-                RasterizableGeometry* rasterizable = visibleRasterizables[i];
+                RasterizableGeometry* rasterizable = s->visibleRasterizables[i];
                 TileBounds b = rasterizable->Bounds;
 
                 TileIndex min = Clamp(b.Y, threadY, threadMaxY);
@@ -440,26 +493,43 @@ public unsafe partial struct Rasterizer<T>
                         continue;
                     }
 
-                    RowItemList<RasterizableItem>* list = rowLists + y;
+                    RowItemList<RasterizableItem>* list = s->rowLists + y;
 
                     list->Append(memory, new RasterizableItem(rasterizable, (int) localIndex));
                 }
             }
         });
 
-        // Step 3.
-        //
-        // Rasterize all intervals.
+        return state2;
+    }
 
-        threads.For(0, (int) rowCount, (int rowIndex, ThreadMemory memory) =>
+    private struct StepState3
+    {
+        public required RowItemList<RasterizableItem>* rowLists;
+        public required ImageData image;
+    }
+    
+    /// <summary>
+    /// Rasterize all intervals.
+    /// </summary>
+    private static void Step3(Executor threads, in ImageData image, in StepState2 state2)
+    {
+        StepState3 state3 = new()
         {
-            RowItemList<RasterizableItem>* item = rowLists + rowIndex;
+            rowLists = state2.rowLists,
+            image = image,
+        };
+        threads.For(0, (int) state2.rowCount, &state3, static (rowIndex, state, memory) =>
+        {
+            StepState3* s = (StepState3*) state;
+            
+            RowItemList<RasterizableItem>* item = s->rowLists + rowIndex;
 
-            RasterizeRow(item, memory, image);
+            RasterizeRow(item, memory, s->image);
         });
     }
 
-    unsafe partial struct RasterizableGeometry
+    partial struct RasterizableGeometry
     {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
