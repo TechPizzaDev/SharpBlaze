@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using TerraFX.Interop.Windows;
 
 namespace SharpBlaze.Win32;
@@ -9,6 +10,7 @@ namespace SharpBlaze.Win32;
 using static VK;
 using static Windows;
 
+[SupportedOSPlatform("windows")]
 public unsafe class Win32Main : Main
 {
     private static readonly ConcurrentDictionary<IntPtr, Win32Main> hwndToInstanceLookup = new();
