@@ -74,8 +74,7 @@ public unsafe partial class DestinationImage<T>
             return;
         }
 
-        ImageData d = new(mImageData, mImageSize.Width, mImageSize.Height,
-           mBytesPerRow);
+        ImageData d = new(mImageData, mImageSize.Width, mImageSize.Height, mBytesPerRow);
 
         Rasterizer<T>.Rasterize(image.GetGeometrySpan(), matrix, executor, d);
 

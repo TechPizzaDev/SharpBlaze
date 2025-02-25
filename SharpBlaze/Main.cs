@@ -32,7 +32,7 @@ public unsafe class Main
         }
 
         mImage = new DestinationImage<TileDescriptor_8x16>();
-        executor = new ParallelExecutor();
+        executor = Executor.CreateOptimalExecutor();
 
         mViewData = new ViewData();
         mViewData.SetupCoordinateSystem((int) WindowWidth, (int) WindowHeight, mVectorImage);

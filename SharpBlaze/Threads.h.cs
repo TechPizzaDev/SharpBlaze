@@ -8,15 +8,9 @@ using static Math;
 /**
  * Manages a pool of threads used for parallelization of rasterization tasks.
  */
-public sealed unsafe partial class ParallelExecutor : Executor
+public sealed partial class ParallelExecutor : Executor
 {
-    // Big tasks are usually split up by the library into smaller sub-tasks,
-    // so the cost of waking worker threads can become big overhead.
-    // There are cases where large geometries likely take more time than
-    // wake-up so keep the threshold for inline work low.
-    private const int InlineThresholdFactor = 4;
-
-    public ParallelExecutor(int workerCount)
+    public ParallelExecutor(int workerCount, bool allowInline)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(workerCount, 0);
 
@@ -24,16 +18,22 @@ public sealed unsafe partial class ParallelExecutor : Executor
 
         mThreadData = new ThreadData[workerCount];
 
+        this.allowInline = allowInline;
+
         for (int i = 0; i < mThreadData.Length; i++)
         {
-            mThreadData[i] = new ThreadData(mTaskData);
+            ThreadMemory memory = new();
+            Thread thread = new(Worker);
+            thread.IsBackground = true;
+            thread.Start(new ThreadStart(mTaskData, memory));
+
+            mThreadData[i] = new ThreadData(thread, memory);
         }
     }
 
-    public ParallelExecutor() : this(GetHardwareThreadCount() - 1)
+    public ParallelExecutor() : this(GetHardwareThreadCount() - 1, true)
     {
     }
-
 
 
     private class TaskList
@@ -42,23 +42,17 @@ public sealed unsafe partial class ParallelExecutor : Executor
         public int End = 0;
         public Action<int, ThreadMemory>? Fn = null;
 
-        public readonly object Mutex = new();
-        public volatile int RequiredWorkerCount = 0;
-
-        public readonly object FinalizationMutex = new();
-        public volatile int FinalizedWorkers = 0;
-    };
-
-    private class ThreadData(TaskList tasks)
-    {
-        public readonly ThreadMemory Memory = new();
-        public readonly TaskList Tasks = tasks;
-        public Thread? Thread;
+        public readonly SemaphoreSlim RequiredWorkerCount = new(0);
+        public readonly CountdownEvent FinalizedWorkers = new(0);
     }
+
+    private record ThreadStart(TaskList Tasks, ThreadMemory Memory);
+
+    private record struct ThreadData(Thread Thread, ThreadMemory Memory);
 
     private readonly TaskList mTaskData;
     private readonly ThreadData[] mThreadData;
-    private bool hasStartedThreads;
+    private readonly bool allowInline;
 
     public override ThreadMemory MainMemory { get; } = new();
 
@@ -70,7 +64,7 @@ public sealed unsafe partial class ParallelExecutor : Executor
         int count = toExclusive - fromInclusive;
         int threadCount = mThreadData.Length;
 
-        if (threadCount == 0 || count <= threadCount * InlineThresholdFactor)
+        if (threadCount == 0)
         {
             SerialExecutor.SerialFor(fromInclusive, toExclusive, MainMemory, loopBody);
             return;

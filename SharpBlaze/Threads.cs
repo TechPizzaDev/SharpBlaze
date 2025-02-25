@@ -6,9 +6,8 @@ namespace SharpBlaze;
 
 using static Math;
 
-public sealed unsafe partial class ParallelExecutor
+public sealed partial class ParallelExecutor
 {
-
     public static int GetHardwareThreadCount()
     {
         return Max(Environment.ProcessorCount, 1);
@@ -31,45 +30,38 @@ public sealed unsafe partial class ParallelExecutor
             return;
         }
 
-        if (!hasStartedThreads)
-        {
-            RunThreads();
-        }
-
         mTaskData.Cursor = fromInclusive;
         mTaskData.End = toExclusive;
         mTaskData.Fn = loopBody;
 
         int threadCount = Min(mThreadData.Length, count);
 
-        mTaskData.RequiredWorkerCount = threadCount;
-        mTaskData.FinalizedWorkers = 0;
+        mTaskData.FinalizedWorkers.Reset(threadCount);
 
         // Wake all threads waiting on this condition variable.
-        lock (mTaskData.Mutex)
-        {
-            Monitor.PulseAll(mTaskData.Mutex);
-        }
+        mTaskData.RequiredWorkerCount.Release(threadCount);
 
-        while (WorkerStep(mTaskData, MainMemory))
+        if (allowInline)
         {
-        }
-
-        lock (mTaskData.FinalizationMutex)
-        {
-            while (mTaskData.FinalizedWorkers < threadCount)
+            do
             {
-                Monitor.Wait(mTaskData.FinalizationMutex);
+                // Only do inline work if we won't steal from the awoken threads;
+                // this thread needs to be waiting on workers before they finish.
+                int remTasks = mTaskData.End - mTaskData.Cursor;
+                if (remTasks <= threadCount)
+                {
+                    break;
+                }
             }
+            while (WorkerStep(mTaskData, MainMemory));
         }
+
+        mTaskData.FinalizedWorkers.Wait();
 
         // Cleanup.
         mTaskData.Cursor = 0;
         mTaskData.End = 0;
         mTaskData.Fn = null;
-
-        mTaskData.RequiredWorkerCount = 0;
-        mTaskData.FinalizedWorkers = 0;
     }
 
 
@@ -84,29 +76,6 @@ public sealed unsafe partial class ParallelExecutor
     }
 
 
-    private void RunThreads()
-    {
-        lock (mThreadData)
-        {
-            if (hasStartedThreads)
-            {
-                return;
-            }
-
-            for (int i = 0; i < mThreadData.Length; i++)
-            {
-                ThreadData d = mThreadData[i];
-
-                d.Thread = new Thread(Worker);
-                d.Thread.IsBackground = true;
-                d.Thread.Start(d);
-            }
-
-            hasStartedThreads = true;
-        }
-    }
-
-
     private static void Worker(object? p)
     {
         Debug.Assert(p != null);
@@ -115,34 +84,19 @@ public sealed unsafe partial class ParallelExecutor
         //        pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
         //#endif // __EMSCRIPTEN__
 
-        ThreadData d = (ThreadData) (p);
+        (TaskList? items, ThreadMemory? memory) = (ThreadStart) p;
 
         // Loop forever waiting for next dispatch of tasks.
         while (true)
         {
-            TaskList items = d.Tasks;
+            // Wait until required worker count becomes greater than zero.
+            items.RequiredWorkerCount.Wait();
 
-            lock (items.Mutex)
-            {
-                while (items.RequiredWorkerCount < 1)
-                {
-                    // Wait until required worker count becomes greater than zero.
-                    Monitor.Wait(items.Mutex);
-                }
-
-                items.RequiredWorkerCount--;
-            }
-
-            while (WorkerStep(items, d.Memory))
+            while (WorkerStep(items, memory))
             {
             }
 
-            lock (items.FinalizationMutex)
-            {
-                items.FinalizedWorkers++;
-
-                Monitor.Pulse(items.FinalizationMutex);
-            }
+            items.FinalizedWorkers.Signal();
         }
     }
 
@@ -157,5 +111,4 @@ public sealed unsafe partial class ParallelExecutor
         items.Fn.Invoke(index, memory);
         return true;
     }
-
 }
