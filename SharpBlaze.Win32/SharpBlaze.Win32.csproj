@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Silk.NET.SDL" Version="2.22.0" />
         <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.22621.6" />
     </ItemGroup>
 

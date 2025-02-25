@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Runtime.Versioning;
 using TerraFX.Interop.Windows;
 
@@ -47,7 +48,7 @@ public unsafe class Win32Main : Main
         {
             void* mainHandle = (void*) GCHandle.ToIntPtr(GCHandle.Alloc(this));
             hWnd = CreateWindowW((char*) windowClass, windowName, WS.WS_SYSMENU,
-              CW_USEDEFAULT, CW_USEDEFAULT, (int) WindowWidth, (int) WindowHeight, default, default, hInstance, mainHandle);
+                CW_USEDEFAULT, CW_USEDEFAULT, (int) WindowWidth, (int) WindowHeight, default, default, hInstance, mainHandle);
         }
 
         HDC hdc = GetDC(hWnd);
@@ -97,6 +98,7 @@ public unsafe class Win32Main : Main
                 }
 
                 //main.g_rasterizer.readBackDepth(main.g_rawData);
+                var image = main.mImage;
 
                 PAINTSTRUCT ps;
                 HDC hdc = BeginPaint(hWnd, &ps);
@@ -105,12 +107,16 @@ public unsafe class Win32Main : Main
 
                 BITMAPINFO info = new();
                 info.bmiHeader.biSize = (uint) sizeof(BITMAPINFOHEADER);
-                info.bmiHeader.biWidth = main.mImage.GetImageWidth();
-                info.bmiHeader.biHeight = -main.mImage.GetImageHeight();
+                info.bmiHeader.biWidth = image.GetImageWidth();
+                info.bmiHeader.biHeight = -image.GetImageHeight();
                 info.bmiHeader.biPlanes = 1;
                 info.bmiHeader.biBitCount = 32;
                 info.bmiHeader.biCompression = BI.BI_RGB;
-                SetDIBits(hdcMem, main.g_hBitmap, 0, (uint) main.mImage.GetImageHeight(), main.mImage.GetImageData(), &info, DIB_RGB_COLORS);
+
+                int byteCount = image.GetBytesPerRow() * image.GetImageHeight();
+                byte* pixelStart = image.GetImageData();
+                SwapRedAndBlue(new Span<byte>(pixelStart, byteCount));
+                SetDIBits(hdcMem, main.g_hBitmap, 0, (uint) image.GetImageHeight(), pixelStart, &info, DIB_RGB_COLORS);
 
                 BITMAP bm;
                 HGDIOBJ hbmOld = SelectObject(hdcMem, main.g_hBitmap);
@@ -150,16 +156,16 @@ public unsafe class Win32Main : Main
 
                 if (GetAsyncKeyState('D') != 0)
                     main.mViewData.Translation -= new FloatPoint(translateSpeed, 0);
-                
+
                 if (GetAsyncKeyState(VK_UP) != 0)
-                    main.mViewData.Scale += zoomSpeed;
+                    main.mViewData.Scale += new FloatPoint(zoomSpeed);
 
                 if (GetAsyncKeyState(VK_DOWN) != 0)
-                    main.mViewData.Scale -= zoomSpeed;
-                
-                InvalidateRect(hWnd, default, FALSE);
+                    main.mViewData.Scale -= new FloatPoint(zoomSpeed);
+
+                InvalidateRect(hWnd, null, FALSE);
+                break;
             }
-            break;
 
             case WM.WM_DESTROY:
                 PostQuitMessage(0);
@@ -169,5 +175,33 @@ public unsafe class Win32Main : Main
                 return DefWindowProc(hWnd, message, wParam, lParam);
         }
         return 0;
+    }
+
+    private static void SwapRedAndBlue(Span<byte> data)
+    {
+        if (Vector128.IsHardwareAccelerated)
+        {
+            while (data.Length >= Vector128<byte>.Count)
+            {
+                Vector128<byte> rgba = Vector128.Create<byte>(data);
+                Vector128<byte> bgra = Vector128.Shuffle(
+                    rgba,
+                    Vector128.Create((byte) 2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15));
+                
+                bgra.CopyTo(data);
+                data = data.Slice(Vector128<byte>.Count);
+            }
+        }
+
+        while (data.Length >= 4)
+        {
+            byte r = data[2];
+            byte b = data[0];
+
+            data[0] = r;
+            data[2] = b;
+
+            data = data.Slice(4);
+        }
     }
 }

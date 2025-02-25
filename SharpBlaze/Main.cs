@@ -54,20 +54,6 @@ public unsafe class Main
         long raster_end = Stopwatch.GetTimestamp();
         //Console.WriteLine(clips + " - " + notClips + " - " + misses);
 
-        int pixelCount = mImage.GetBytesPerRow() * mImage.GetImageHeight();
-        byte* pixels = mImage.GetImageData();
-        byte* pixelsEnd = pixels + pixelCount;
-        while (pixels < pixelsEnd)
-        {
-            byte r = pixels[2];
-            byte b = pixels[0];
-
-            pixels[0] = r;
-            pixels[2] = b;
-
-            pixels += 4;
-        }
-
         double rasterTime = Stopwatch.GetElapsedTime(raster_start, raster_end).TotalMilliseconds;
 
         samples.Enqueue(rasterTime);
