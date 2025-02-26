@@ -296,7 +296,7 @@ public static unsafe partial class SIMD
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<int> Broadcast128(F24Dot8Point a)
     {
-        var v = Unsafe.BitCast<F24Dot8Point, Vector64<int>>(a);
-        return Vector128.Create(v, v);
+        long v = Unsafe.BitCast<F24Dot8Point, long>(a);
+        return Vector128.Create(v).AsInt32();
     }
 }
