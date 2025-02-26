@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
@@ -35,6 +36,12 @@ public static unsafe partial class CompositionOps
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<uint> BlendSourceOver(Vector512<uint> d, Vector512<uint> s)
+    {
+        return s + ApplyAlpha(d, Vector512.Create(255u) - (s >> 24));
+    }
+
     internal static void CompositeSpanSourceOver(int pos, int end, uint* d, uint alpha, uint color)
     {
         Debug.Assert(pos >= 0);
@@ -48,6 +55,17 @@ public static unsafe partial class CompositionOps
         int x = pos;
         uint cba = ApplyAlpha(color, alpha);
 
+        if (Vector512.IsHardwareAccelerated)
+        {
+            var vCba = Vector512.Create(cba);
+
+            for (; x + Vector512<uint>.Count <= end; x += Vector512<uint>.Count)
+            {
+                var dd = Vector512.Load(d + x);
+                BlendSourceOver(dd, vCba).Store(d + x);
+            }
+        }
+
         if (Vector128.IsHardwareAccelerated)
         {
             var vCba = Vector128.Create(cba);
@@ -55,7 +73,6 @@ public static unsafe partial class CompositionOps
             for (; x + Vector128<uint>.Count <= end; x += Vector128<uint>.Count)
             {
                 var dd = Vector128.Load(d + x);
-
                 BlendSourceOver(dd, vCba).Store(d + x);
             }
         }
@@ -63,7 +80,6 @@ public static unsafe partial class CompositionOps
         for (; x < end; x++)
         {
             uint dd = d[x];
-
             if (dd == 0)
             {
                 d[x] = cba;
