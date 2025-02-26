@@ -57,7 +57,7 @@ public sealed partial class ParallelExecutor : Executor
 
     public override ThreadMemory MainMemory { get; } = new();
 
-    public override int WorkerCount => mThreadData.Length;
+    public override int WorkerCount => mThreadData.Length + (allowInline ? 1 : 0);
 
     private unsafe struct RunState(void* state, LoopBody loopBody)
     {
@@ -76,13 +76,7 @@ public sealed partial class ParallelExecutor : Executor
     public unsafe override void For(int fromInclusive, int toExclusive, void* state, LoopBody loopBody)
     {
         int count = toExclusive - fromInclusive;
-        int threadCount = mThreadData.Length;
-
-        if (threadCount == 0)
-        {
-            SerialExecutor.SerialFor(fromInclusive, toExclusive, state, MainMemory, loopBody);
-            return;
-        }
+        int threadCount = WorkerCount;
 
         int run = Max(Min(64, count / (threadCount * 32)), 1);
         

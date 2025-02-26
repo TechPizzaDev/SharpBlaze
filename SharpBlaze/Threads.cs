@@ -49,7 +49,7 @@ public sealed partial class ParallelExecutor
                 // Only do inline work if we won't steal from the awoken threads;
                 // this thread needs to be waiting on workers before they finish.
                 int remTasks = mTaskData.End - mTaskData.Cursor;
-                if (remTasks <= threadCount)
+                if (remTasks <= threadCount + 1)
                 {
                     break;
                 }
