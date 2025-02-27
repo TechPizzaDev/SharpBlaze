@@ -615,12 +615,12 @@ public unsafe partial struct Rasterizer<T>
         }
     }
 
-    private static partial void IterateLinesX32Y16(RasterizableItem* item, BitVector** bitVectorTable, int** coverAreaTable)
+    private static partial void IterateLinesX32Y16(
+        RasterizableItem* item, BitVector** bitVectorTable, int** coverAreaTable)
     {
         int count = item->GetFirstBlockLineCount();
 
-        LineArrayX32Y16Block* v =
-           (LineArrayX32Y16Block*) (item->GetLineArray());
+        LineArrayX32Y16Block* v = (LineArrayX32Y16Block*) item->GetLineArray();
 
         while (v != null)
         {
@@ -634,9 +634,10 @@ public unsafe partial struct Rasterizer<T>
                 F24Dot8 x0 = xx0[i];
                 F24Dot8 x1 = xx1[i];
 
-                RasterizeLine(x0, UnpackLoFromF8Dot8x2(y0y1), x1,
-                    UnpackHiFromF8Dot8x2(y0y1), bitVectorTable,
-                    coverAreaTable);
+                F24Dot8 y0 = UnpackLoFromF8Dot8x2(y0y1);
+                F24Dot8 y1 = UnpackHiFromF8Dot8x2(y0y1);
+                
+                RasterizeLine(x0, y0, x1, y1, bitVectorTable, coverAreaTable);
             }
 
             v = v->Next;
@@ -645,12 +646,12 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    private static partial void IterateLinesX16Y16(RasterizableItem* item, BitVector** bitVectorTable, int** coverAreaTable)
+    private static partial void IterateLinesX16Y16(
+        RasterizableItem* item, BitVector** bitVectorTable, int** coverAreaTable)
     {
         int count = item->GetFirstBlockLineCount();
 
-        LineArrayX16Y16Block* v =
-           (LineArrayX16Y16Block*) (item->GetLineArray());
+        LineArrayX16Y16Block* v = (LineArrayX16Y16Block*) item->GetLineArray();
 
         while (v != null)
         {
@@ -666,7 +667,8 @@ public unsafe partial struct Rasterizer<T>
                     UnpackLoFromF8Dot8x2(x0x1),
                     UnpackLoFromF8Dot8x2(y0y1),
                     UnpackHiFromF8Dot8x2(x0x1),
-                    UnpackHiFromF8Dot8x2(y0y1), bitVectorTable,
+                    UnpackHiFromF8Dot8x2(y0y1), 
+                    bitVectorTable,
                     coverAreaTable);
             }
 
@@ -731,31 +733,34 @@ public unsafe partial struct Rasterizer<T>
 
         TileBounds bounds = CalculateTileBounds<T>(minx, miny, maxx, maxy);
 
-        bool narrow =
-            128 > (bounds.ColumnCount * T.TileW);
+        bool narrow = 128 > (bounds.ColumnCount * T.TileW);
 
         if (narrow)
         {
-            return Linearize<LineArrayX16Y16>(placement, geometry, bounds,
+            return Linearize<LineArrayX16Y16>(
+                placement, geometry, bounds,
                 imageSize, new(&IterateLinesX16Y16), memory);
         }
         else
         {
-            return Linearize<LineArrayX32Y16>(placement, geometry, bounds,
+            return Linearize<LineArrayX32Y16>(
+                placement, geometry, bounds,
                 imageSize, new(&IterateLinesX32Y16), memory);
         }
     }
 
 
     private static partial RasterizableGeometry* Linearize<L>(
-        RasterizableGeometry* placement, Geometry* geometry,
-        TileBounds bounds, IntSize imageSize,
-        LineIterationFunction iterationFunction, ThreadMemory memory)
+        RasterizableGeometry* placement,
+        Geometry* geometry,
+        TileBounds bounds,
+        IntSize imageSize,
+        LineIterationFunction iterationFunction,
+        ThreadMemory memory)
         where L : unmanaged, ILineArrayBlock<L>
     {
         RasterizableGeometry* linearized = placement;
-        *linearized = new RasterizableGeometry(
-            geometry, iterationFunction, bounds);
+        *linearized = new RasterizableGeometry(geometry, iterationFunction, bounds);
 
         // Determine if path is completely within destination image bounds. If
         // geometry bounds fit within destination image, a shortcut can be made
@@ -806,8 +811,8 @@ public unsafe partial struct Rasterizer<T>
 
                 if (t != null && T.CoverArrayContainsOnlyZeroes(t))
                 {
-                    // Don't need cover array after all, all segments cancelled
-                    // each other.
+                    // Don't need cover array after all,
+                    // all segments cancelled each other.
                     startCoverTable[i] = null;
                 }
             }
@@ -819,9 +824,12 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    private static partial void Vertical_Down(BitVector** bitVectorTable,
-        int** coverAreaTable, PixelIndex columnIndex, F24Dot8 y0,
-        F24Dot8 y1, F24Dot8 x)
+    private static partial void Vertical_Down(
+        BitVector** bitVectorTable,
+        int** coverAreaTable,
+        PixelIndex columnIndex, 
+        F24Dot8 y0, F24Dot8 y1,
+        F24Dot8 x)
     {
         Debug.Assert(y0 < y1);
 
@@ -836,23 +844,24 @@ public unsafe partial struct Rasterizer<T>
             CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex0, fx, fy0, fy1);
             return;
         }
-        else
+        
+        CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex0, fx, fy0, F24Dot8_1);
+
+        for (PixelIndex i = rowIndex0 + 1; i < rowIndex1; i++)
         {
-            CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex0, fx, fy0, F24Dot8_1);
-
-            for (PixelIndex i = rowIndex0 + 1; i < rowIndex1; i++)
-            {
-                CellVertical(bitVectorTable, coverAreaTable, columnIndex, i, fx, 0, F24Dot8_1);
-            }
-
-            CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex1, fx, 0, fy1);
+            CellVertical(bitVectorTable, coverAreaTable, columnIndex, i, fx, 0, F24Dot8_1);
         }
+
+        CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex1, fx, 0, fy1);
     }
 
 
-    private static partial void Vertical_Up(BitVector** bitVectorTable,
-        int** coverAreaTable, PixelIndex columnIndex, F24Dot8 y0,
-        F24Dot8 y1, F24Dot8 x)
+    private static partial void Vertical_Up(
+        BitVector** bitVectorTable,
+        int** coverAreaTable, 
+        PixelIndex columnIndex, 
+        F24Dot8 y0, F24Dot8 y1,
+        F24Dot8 x)
     {
         Debug.Assert(y0 > y1);
 
@@ -865,24 +874,27 @@ public unsafe partial struct Rasterizer<T>
         if (rowIndex0 == rowIndex1)
         {
             CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex0, fx, fy0, fy1);
+            return;
         }
-        else
+        
+        CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex0, fx, fy0, 0);
+
+        for (PixelIndex i = rowIndex0 - 1; i > rowIndex1; i--)
         {
-            CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex0, fx, fy0, 0);
-
-            for (PixelIndex i = rowIndex0 - 1; i > rowIndex1; i--)
-            {
-                CellVertical(bitVectorTable, coverAreaTable, columnIndex, i, fx, F24Dot8_1, 0);
-            }
-
-            CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex1, fx, F24Dot8_1, fy1);
+            CellVertical(bitVectorTable, coverAreaTable, columnIndex, i, fx, F24Dot8_1, 0);
         }
+
+        CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex1, fx, F24Dot8_1, fy1);
     }
 
 
-    private static partial void CellVertical(BitVector** bitVectorTable,
-        int** coverAreaTable, PixelIndex px, PixelIndex py,
-        F24Dot8 x, F24Dot8 y0, F24Dot8 y1)
+    private static partial void CellVertical(
+        BitVector** bitVectorTable,
+        int** coverAreaTable, 
+        PixelIndex px, 
+        PixelIndex py,
+        F24Dot8 x,
+        F24Dot8 y0, F24Dot8 y1)
     {
         Debug.Assert(px >= 0);
         Debug.Assert(py >= 0);
@@ -911,8 +923,12 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    private static partial void Cell(BitVector* bitVector, int* coverArea,
-        PixelIndex px, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
+    private static partial void Cell(
+        BitVector* bitVector,
+        int* coverArea,
+        PixelIndex px, 
+        F24Dot8 x0, F24Dot8 y0, 
+        F24Dot8 x1, F24Dot8 y1)
     {
         Debug.Assert(px >= 0);
 
@@ -939,9 +955,12 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    private static partial void RowDownR(BitVector** bitVectorTable,
-        int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
-        F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
+    private static partial void RowDownR(
+        BitVector** bitVectorTable,
+        int** coverAreaTable, 
+        PixelIndex rowIndex,
+        F24Dot8 p0x, F24Dot8 p0y,
+        F24Dot8 p1x, F24Dot8 p1y)
     {
         Debug.Assert(rowIndex >= 0);
         Debug.Assert(rowIndex < T.TileH);
@@ -972,59 +991,61 @@ public unsafe partial struct Rasterizer<T>
         if (columnIndex0 == columnIndex1)
         {
             Cell(bitVector, coverArea, columnIndex0, fx0, p0y, fx1, p1y);
+            return;
         }
-        else
+        
+        // Horizontal and vertical deltas.
+        F24Dot8 dx = p1x - p0x;
+        F24Dot8 dy = p1y - p0y;
+
+        F24Dot8 pp = (F24Dot8_1 - fx0) * dy;
+
+        F24Dot8 cy = p0y + (pp / dx);
+
+        Cell(bitVector, coverArea, columnIndex0, fx0, p0y,
+            F24Dot8_1, cy);
+
+        PixelIndex idx = columnIndex0 + 1;
+
+        if (idx != columnIndex1)
         {
-            // Horizontal and vertical deltas.
-            F24Dot8 dx = p1x - p0x;
-            F24Dot8 dy = p1y - p0y;
+            F24Dot8 mod = (pp % dx) - dx;
 
-            F24Dot8 pp = (F24Dot8_1 - fx0) * dy;
+            F24Dot8 p = F24Dot8_1 * dy;
+            F24Dot8 lift = p / dx;
+            F24Dot8 rem = p % dx;
 
-            F24Dot8 cy = p0y + (pp / dx);
-
-            Cell(bitVector, coverArea, columnIndex0, fx0, p0y,
-                F24Dot8_1, cy);
-
-            PixelIndex idx = columnIndex0 + 1;
-
-            if (idx != columnIndex1)
+            for (; idx != columnIndex1; idx++)
             {
-                F24Dot8 mod = (pp % dx) - dx;
+                F24Dot8 delta = lift;
 
-                F24Dot8 p = F24Dot8_1 * dy;
-                F24Dot8 lift = p / dx;
-                F24Dot8 rem = p % dx;
+                mod += rem;
 
-                for (; idx != columnIndex1; idx++)
+                if (mod >= 0)
                 {
-                    F24Dot8 delta = lift;
-
-                    mod += rem;
-
-                    if (mod >= 0)
-                    {
-                        mod -= dx;
-                        delta++;
-                    }
-
-                    F24Dot8 ny = cy + delta;
-
-                    Cell(bitVector, coverArea, idx, 0, cy, F24Dot8_1, ny);
-
-                    cy = ny;
+                    mod -= dx;
+                    delta++;
                 }
-            }
 
-            Cell(bitVector, coverArea, columnIndex1, 0, cy, fx1, p1y);
+                F24Dot8 ny = cy + delta;
+
+                Cell(bitVector, coverArea, idx, 0, cy, F24Dot8_1, ny);
+
+                cy = ny;
+            }
         }
+
+        Cell(bitVector, coverArea, columnIndex1, 0, cy, fx1, p1y);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static partial void RowDownR_V(BitVector** bitVectorTable,
-        int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
-        F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
+    private static partial void RowDownR_V(
+        BitVector** bitVectorTable,
+        int** coverAreaTable,
+        PixelIndex rowIndex,
+        F24Dot8 p0x, F24Dot8 p0y,
+        F24Dot8 p1x, F24Dot8 p1y)
     {
         Debug.Assert(p0x <= p1x);
         Debug.Assert(p0y >= 0);
@@ -1080,58 +1101,60 @@ public unsafe partial struct Rasterizer<T>
         if (columnIndex0 == columnIndex1)
         {
             Cell(bitVector, coverArea, columnIndex0, fx0, p0y, fx1, p1y);
+            return;
         }
-        else
+        
+        // Horizontal and vertical deltas.
+        F24Dot8 dx = p1x - p0x;
+        F24Dot8 dy = p0y - p1y;
+
+        F24Dot8 pp = (F24Dot8_1 - fx0) * dy;
+
+        F24Dot8 cy = p0y - (pp / dx);
+
+        Cell(bitVector, coverArea, columnIndex0, fx0, p0y, F24Dot8_1, cy);
+
+        PixelIndex idx = columnIndex0 + 1;
+
+        if (idx != columnIndex1)
         {
-            // Horizontal and vertical deltas.
-            F24Dot8 dx = p1x - p0x;
-            F24Dot8 dy = p0y - p1y;
+            F24Dot8 mod = (pp % dx) - dx;
 
-            F24Dot8 pp = (F24Dot8_1 - fx0) * dy;
+            F24Dot8 p = F24Dot8_1 * dy;
+            F24Dot8 lift = p / dx;
+            F24Dot8 rem = p % dx;
 
-            F24Dot8 cy = p0y - (pp / dx);
-
-            Cell(bitVector, coverArea, columnIndex0, fx0, p0y, F24Dot8_1, cy);
-
-            PixelIndex idx = columnIndex0 + 1;
-
-            if (idx != columnIndex1)
+            for (; idx != columnIndex1; idx++)
             {
-                F24Dot8 mod = (pp % dx) - dx;
+                F24Dot8 delta = lift;
 
-                F24Dot8 p = F24Dot8_1 * dy;
-                F24Dot8 lift = p / dx;
-                F24Dot8 rem = p % dx;
+                mod += rem;
 
-                for (; idx != columnIndex1; idx++)
+                if (mod >= 0)
                 {
-                    F24Dot8 delta = lift;
-
-                    mod += rem;
-
-                    if (mod >= 0)
-                    {
-                        mod -= dx;
-                        delta++;
-                    }
-
-                    F24Dot8 ny = cy - delta;
-
-                    Cell(bitVector, coverArea, idx, 0, cy, F24Dot8_1, ny);
-
-                    cy = ny;
+                    mod -= dx;
+                    delta++;
                 }
-            }
 
-            Cell(bitVector, coverArea, columnIndex1, 0, cy, fx1, p1y);
+                F24Dot8 ny = cy - delta;
+
+                Cell(bitVector, coverArea, idx, 0, cy, F24Dot8_1, ny);
+
+                cy = ny;
+            }
         }
+
+        Cell(bitVector, coverArea, columnIndex1, 0, cy, fx1, p1y);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static partial void RowUpR_V(BitVector** bitVectorTable,
-        int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
-        F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
+    private static partial void RowUpR_V(
+        BitVector** bitVectorTable,
+        int** coverAreaTable,
+        PixelIndex rowIndex,
+        F24Dot8 p0x, F24Dot8 p0y,
+        F24Dot8 p1x, F24Dot8 p1y)
     {
         Debug.Assert(p0x <= p1x);
         Debug.Assert(p0y >= 0);
@@ -1187,58 +1210,60 @@ public unsafe partial struct Rasterizer<T>
         if (columnIndex0 == columnIndex1)
         {
             Cell(bitVector, coverArea, columnIndex0, fx0, p0y, fx1, p1y);
+            return;
         }
-        else
+        
+        // Horizontal and vertical deltas.
+        F24Dot8 dx = p0x - p1x;
+        F24Dot8 dy = p1y - p0y;
+
+        F24Dot8 pp = fx0 * dy;
+
+        F24Dot8 cy = p0y + (pp / dx);
+
+        Cell(bitVector, coverArea, columnIndex0, fx0, p0y, 0, cy);
+
+        PixelIndex idx = columnIndex0 - 1;
+
+        if (idx != columnIndex1)
         {
-            // Horizontal and vertical deltas.
-            F24Dot8 dx = p0x - p1x;
-            F24Dot8 dy = p1y - p0y;
+            F24Dot8 mod = (pp % dx) - dx;
 
-            F24Dot8 pp = fx0 * dy;
+            F24Dot8 p = F24Dot8_1 * dy;
+            F24Dot8 lift = p / dx;
+            F24Dot8 rem = p % dx;
 
-            F24Dot8 cy = p0y + (pp / dx);
-
-            Cell(bitVector, coverArea, columnIndex0, fx0, p0y, 0, cy);
-
-            PixelIndex idx = columnIndex0 - 1;
-
-            if (idx != columnIndex1)
+            for (; idx != columnIndex1; idx--)
             {
-                F24Dot8 mod = (pp % dx) - dx;
+                F24Dot8 delta = lift;
 
-                F24Dot8 p = F24Dot8_1 * dy;
-                F24Dot8 lift = p / dx;
-                F24Dot8 rem = p % dx;
+                mod += rem;
 
-                for (; idx != columnIndex1; idx--)
+                if (mod >= 0)
                 {
-                    F24Dot8 delta = lift;
-
-                    mod += rem;
-
-                    if (mod >= 0)
-                    {
-                        mod -= dx;
-                        delta++;
-                    }
-
-                    F24Dot8 ny = cy + delta;
-
-                    Cell(bitVector, coverArea, idx, F24Dot8_1, cy, 0, ny);
-
-                    cy = ny;
+                    mod -= dx;
+                    delta++;
                 }
-            }
 
-            Cell(bitVector, coverArea, columnIndex1, F24Dot8_1, cy, fx1, p1y);
+                F24Dot8 ny = cy + delta;
+
+                Cell(bitVector, coverArea, idx, F24Dot8_1, cy, 0, ny);
+
+                cy = ny;
+            }
         }
+
+        Cell(bitVector, coverArea, columnIndex1, F24Dot8_1, cy, fx1, p1y);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static partial void RowDownL_V(BitVector** bitVectorTable,
-        int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
-        F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
+    private static partial void RowDownL_V(
+        BitVector** bitVectorTable,
+        int** coverAreaTable,
+        PixelIndex rowIndex,
+        F24Dot8 p0x, F24Dot8 p0y,
+        F24Dot8 p1x, F24Dot8 p1y)
     {
         Debug.Assert(p0x >= p1x);
         Debug.Assert(p0y >= 0);
@@ -1261,9 +1286,12 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    private static partial void RowUpL(BitVector** bitVectorTable,
-        int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
-        F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
+    private static partial void RowUpL(
+        BitVector** bitVectorTable,
+        int** coverAreaTable,
+        PixelIndex rowIndex,
+        F24Dot8 p0x, F24Dot8 p0y,
+        F24Dot8 p1x, F24Dot8 p1y)
     {
         Debug.Assert(rowIndex >= 0);
         Debug.Assert(rowIndex < T.TileH);
@@ -1294,58 +1322,60 @@ public unsafe partial struct Rasterizer<T>
         if (columnIndex0 == columnIndex1)
         {
             Cell(bitVector, coverArea, columnIndex0, fx0, p0y, fx1, p1y);
+            return;
         }
-        else
+        
+        // Horizontal and vertical deltas.
+        F24Dot8 dx = p0x - p1x;
+        F24Dot8 dy = p0y - p1y;
+
+        F24Dot8 pp = fx0 * dy;
+
+        F24Dot8 cy = p0y - (pp / dx);
+
+        Cell(bitVector, coverArea, columnIndex0, fx0, p0y, 0, cy);
+
+        PixelIndex idx = columnIndex0 - 1;
+
+        if (idx != columnIndex1)
         {
-            // Horizontal and vertical deltas.
-            F24Dot8 dx = p0x - p1x;
-            F24Dot8 dy = p0y - p1y;
+            F24Dot8 mod = (pp % dx) - dx;
 
-            F24Dot8 pp = fx0 * dy;
+            F24Dot8 p = F24Dot8_1 * dy;
+            F24Dot8 lift = p / dx;
+            F24Dot8 rem = p % dx;
 
-            F24Dot8 cy = p0y - (pp / dx);
-
-            Cell(bitVector, coverArea, columnIndex0, fx0, p0y, 0, cy);
-
-            PixelIndex idx = columnIndex0 - 1;
-
-            if (idx != columnIndex1)
+            for (; idx != columnIndex1; idx--)
             {
-                F24Dot8 mod = (pp % dx) - dx;
+                F24Dot8 delta = lift;
 
-                F24Dot8 p = F24Dot8_1 * dy;
-                F24Dot8 lift = p / dx;
-                F24Dot8 rem = p % dx;
+                mod += rem;
 
-                for (; idx != columnIndex1; idx--)
+                if (mod >= 0)
                 {
-                    F24Dot8 delta = lift;
-
-                    mod += rem;
-
-                    if (mod >= 0)
-                    {
-                        mod -= dx;
-                        delta++;
-                    }
-
-                    F24Dot8 ny = cy - delta;
-
-                    Cell(bitVector, coverArea, idx, F24Dot8_1, cy, 0, ny);
-
-                    cy = ny;
+                    mod -= dx;
+                    delta++;
                 }
-            }
 
-            Cell(bitVector, coverArea, columnIndex1, F24Dot8_1, cy, fx1, p1y);
+                F24Dot8 ny = cy - delta;
+
+                Cell(bitVector, coverArea, idx, F24Dot8_1, cy, 0, ny);
+
+                cy = ny;
+            }
         }
+
+        Cell(bitVector, coverArea, columnIndex1, F24Dot8_1, cy, fx1, p1y);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static partial void RowUpL_V(BitVector** bitVectorTable,
-        int** coverAreaTable, PixelIndex rowIndex, F24Dot8 p0x,
-        F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
+    private static partial void RowUpL_V(
+        BitVector** bitVectorTable,
+        int** coverAreaTable,
+        PixelIndex rowIndex,
+        F24Dot8 p0x, F24Dot8 p0y,
+        F24Dot8 p1x, F24Dot8 p1y)
     {
         Debug.Assert(p0x >= p1x);
         Debug.Assert(p0y >= 0);
@@ -1368,9 +1398,12 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    private static partial void LineDownR(BitVector** bitVectorTable,
-        int** coverAreaTable, PixelIndex rowIndex0,
-        PixelIndex rowIndex1, F24Dot8 x0, F24Dot8 y0,
+    private static partial void LineDownR(
+        BitVector** bitVectorTable,
+        int** coverAreaTable,
+        PixelIndex rowIndex0,
+        PixelIndex rowIndex1,
+        F24Dot8 x0, F24Dot8 y0,
         F24Dot8 x1, F24Dot8 y1)
     {
         Debug.Assert(y0 < y1);
@@ -1429,9 +1462,12 @@ public unsafe partial struct Rasterizer<T>
     /**
      * ⬈
      */
-    private static partial void LineUpR(BitVector** bitVectorTable,
-        int** coverAreaTable, PixelIndex rowIndex0,
-        PixelIndex rowIndex1, F24Dot8 x0, F24Dot8 y0,
+    private static partial void LineUpR(
+        BitVector** bitVectorTable,
+        int** coverAreaTable,
+        PixelIndex rowIndex0,
+        PixelIndex rowIndex1,
+        F24Dot8 x0, F24Dot8 y0,
         F24Dot8 x1, F24Dot8 y1)
     {
         Debug.Assert(y0 > y1);
@@ -1488,9 +1524,12 @@ public unsafe partial struct Rasterizer<T>
     /**
      * ⬋
      */
-    private static partial void LineDownL(BitVector** bitVectorTable,
-        int** coverAreaTable, PixelIndex rowIndex0,
-        PixelIndex rowIndex1, F24Dot8 x0, F24Dot8 y0,
+    private static partial void LineDownL(
+        BitVector** bitVectorTable,
+        int** coverAreaTable,
+        PixelIndex rowIndex0,
+        PixelIndex rowIndex1,
+        F24Dot8 x0, F24Dot8 y0,
         F24Dot8 x1, F24Dot8 y1)
     {
         Debug.Assert(y0 < y1);
@@ -1549,9 +1588,12 @@ public unsafe partial struct Rasterizer<T>
     /**
      * ⬉
      */
-    private static partial void LineUpL(BitVector** bitVectorTable,
-        int** coverAreaTable, PixelIndex rowIndex0,
-        PixelIndex rowIndex1, F24Dot8 x0, F24Dot8 y0,
+    private static partial void LineUpL(
+        BitVector** bitVectorTable,
+        int** coverAreaTable,
+        PixelIndex rowIndex0,
+        PixelIndex rowIndex1, 
+        F24Dot8 x0, F24Dot8 y0,
         F24Dot8 x1, F24Dot8 y1)
     {
         Debug.Assert(y0 > y1);
@@ -1605,8 +1647,9 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    private static partial void RasterizeLine(F24Dot8 X0,
-        F24Dot8 Y0, F24Dot8 X1, F24Dot8 Y1,
+    private static partial void RasterizeLine(
+        F24Dot8 X0, F24Dot8 Y0, 
+        F24Dot8 X1, F24Dot8 Y1,
         BitVector** bitVectorTable, int** coverAreaTable)
     {
         Debug.Assert(Y0 != Y1);
@@ -1622,111 +1665,115 @@ public unsafe partial struct Rasterizer<T>
             {
                 // Line is going down ↓
                 Vertical_Down(bitVectorTable, coverAreaTable, columnIndex, Y0, Y1, X0);
-                return;
             }
             else
             {
                 // Line is going up ↑
                 Vertical_Up(bitVectorTable, coverAreaTable, columnIndex, Y0, Y1, X0);
-                return;
             }
+            return;
         }
 
         if (Y0 < Y1)
         {
-            // Line is going down ↓
-            PixelIndex rowIndex0 = F24Dot8ToPixelIndex(Y0);
-            PixelIndex rowIndex1 = F24Dot8ToPixelIndex(Y1 - 1);
-
-            Debug.Assert(rowIndex0 <= rowIndex1);
-
-            if (rowIndex0 == rowIndex1)
-            {
-                // Entire line is completely within horizontal band. For curves
-                // this is common case.
-                F24Dot8 ty = PixelIndexToF24Dot8(rowIndex0);
-                F24Dot8 y0 = Y0 - ty;
-                F24Dot8 y1 = Y1 - ty;
-
-                if (X0 < X1)
-                {
-                    RowDownR(bitVectorTable, coverAreaTable, rowIndex0,
-                        X0, y0, X1, y1);
-                    return;
-                }
-                else
-                {
-                    RowDownL(bitVectorTable, coverAreaTable, rowIndex0,
-                        X0, y0, X1, y1);
-                    return;
-                }
-            }
-            else if (X0 < X1)
-            {
-                // Line is going from left to right →
-                LineDownR(bitVectorTable, coverAreaTable, rowIndex0,
-                    rowIndex1, X0, Y0, X1, Y1);
-                return;
-            }
-            else
-            {
-                // Line is going right to left ←
-                LineDownL(bitVectorTable, coverAreaTable, rowIndex0,
-                    rowIndex1, X0, Y0, X1, Y1);
-                return;
-            }
+            RasterizeLineDown(X0, Y0, X1, Y1, bitVectorTable, coverAreaTable);
         }
         else
         {
-            // Line is going up ↑
-            PixelIndex rowIndex0 = F24Dot8ToPixelIndex(Y0 - 1);
-            PixelIndex rowIndex1 = F24Dot8ToPixelIndex(Y1);
+            RasterizeLineUp(X0, Y0, X1, Y1, bitVectorTable, coverAreaTable);
+        }
+    }
 
-            Debug.Assert(rowIndex1 <= rowIndex0);
+    private static void RasterizeLineDown(
+        F24Dot8 X0, F24Dot8 Y0, F24Dot8 X1, F24Dot8 Y1,
+        BitVector** bitVectorTable,
+        int** coverAreaTable)
+    {
+        // Line is going down ↓
+        PixelIndex rowIndex0 = F24Dot8ToPixelIndex(Y0);
+        PixelIndex rowIndex1 = F24Dot8ToPixelIndex(Y1 - 1);
 
-            if (rowIndex0 == rowIndex1)
+        Debug.Assert(rowIndex0 <= rowIndex1);
+
+        if (rowIndex0 == rowIndex1)
+        {
+            // Entire line is completely within horizontal band. For curves
+            // this is common case.
+            F24Dot8 ty = PixelIndexToF24Dot8(rowIndex0);
+            F24Dot8 y0 = Y0 - ty;
+            F24Dot8 y1 = Y1 - ty;
+
+            if (X0 < X1)
             {
-                // Entire line is completely within horizontal band. For curves
-                // this is common case.
-                F24Dot8 ty = PixelIndexToF24Dot8(rowIndex0);
-                F24Dot8 y0 = Y0 - ty;
-                F24Dot8 y1 = Y1 - ty;
-
-                if (X0 < X1)
-                {
-                    RowUpR(bitVectorTable, coverAreaTable, rowIndex0,
-                        X0, y0, X1, y1);
-                    return;
-                }
-                else
-                {
-                    RowUpL(bitVectorTable, coverAreaTable, rowIndex0,
-                        X0, y0, X1, y1);
-                    return;
-                }
-            }
-            else if (X0 < X1)
-            {
-                // Line is going from left to right →
-                LineUpR(bitVectorTable, coverAreaTable, rowIndex0,
-                    rowIndex1, X0, Y0, X1, Y1);
-                return;
+                RowDownR(bitVectorTable, coverAreaTable, rowIndex0, X0, y0, X1, y1);
             }
             else
             {
-                // Line is going right to left ←
-                LineUpL(bitVectorTable, coverAreaTable, rowIndex0,
-                    rowIndex1, X0, Y0, X1, Y1);
-                return;
+                RowDownL(bitVectorTable, coverAreaTable, rowIndex0, X0, y0, X1, y1);
             }
+        }
+        else if (X0 < X1)
+        {
+            // Line is going from left to right →
+            LineDownR(bitVectorTable, coverAreaTable, rowIndex0, rowIndex1, X0, Y0, X1, Y1);
+        }
+        else
+        {
+            // Line is going right to left ←
+            LineDownL(bitVectorTable, coverAreaTable, rowIndex0, rowIndex1, X0, Y0, X1, Y1);
+        }
+    }
+
+    private static void RasterizeLineUp(
+        F24Dot8 X0, F24Dot8 Y0, 
+        F24Dot8 X1, F24Dot8 Y1,
+        BitVector** bitVectorTable,
+        int** coverAreaTable)
+    {
+        // Line is going up ↑
+        PixelIndex rowIndex0 = F24Dot8ToPixelIndex(Y0 - 1);
+        PixelIndex rowIndex1 = F24Dot8ToPixelIndex(Y1);
+
+        Debug.Assert(rowIndex1 <= rowIndex0);
+
+        if (rowIndex0 == rowIndex1)
+        {
+            // Entire line is completely within horizontal band. For curves
+            // this is common case.
+            F24Dot8 ty = PixelIndexToF24Dot8(rowIndex0);
+            F24Dot8 y0 = Y0 - ty;
+            F24Dot8 y1 = Y1 - ty;
+
+            if (X0 < X1)
+            {
+                RowUpR(bitVectorTable, coverAreaTable, rowIndex0, X0, y0, X1, y1);
+            }
+            else
+            {
+                RowUpL(bitVectorTable, coverAreaTable, rowIndex0, X0, y0, X1, y1);
+            }
+        }
+        else if (X0 < X1)
+        {
+            // Line is going from left to right →
+            LineUpR(bitVectorTable, coverAreaTable, rowIndex0, rowIndex1, X0, Y0, X1, Y1);
+        }
+        else
+        {
+            // Line is going right to left ←
+            LineUpL(bitVectorTable, coverAreaTable, rowIndex0, rowIndex1, X0, Y0, X1, Y1);
         }
     }
 
 
     private static partial void RenderOneLine<B, F>(byte* image,
-        BitVector* bitVectorTable, int bitVectorCount,
-        int* coverAreaTable, int x, int rowLength,
-        int startCover, B blender)
+        BitVector* bitVectorTable,
+        int bitVectorCount,
+        int* coverAreaTable,
+        int x,
+        int rowLength,
+        int startCover, 
+        B blender)
         where B : ISpanBlender
         where F : IFillRuleFn
     {
@@ -1792,8 +1839,7 @@ public unsafe partial struct Rasterizer<T>
                     }
                     else
                     {
-                        // Alpha is not zero, but not equal to previous span
-                        // alpha.
+                        // Alpha is not zero, but not equal to previous span alpha.
                         if (spanAlpha != 0)
                         {
                             blender.CompositeSpan((int) spanX, (int) spanEnd, d, spanAlpha);
@@ -1883,8 +1929,11 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    private static partial void RasterizeOneItem(RasterizableItem* item,
-        BitVector** bitVectorTable, int** coverAreaTable, int columnCount,
+    private static partial void RasterizeOneItem(
+        RasterizableItem* item,
+        BitVector** bitVectorTable, 
+        int** coverAreaTable,
+        int columnCount,
         ImageData image)
     {
         // A maximum number of horizontal tiles.
@@ -1986,7 +2035,8 @@ public unsafe partial struct Rasterizer<T>
      * Rasterize all items in one row.
      */
     private static partial void RasterizeRow(
-        RowItemList<RasterizableItem>* rowList, ThreadMemory memory,
+        RowItemList<RasterizableItem>* rowList, 
+        ThreadMemory memory,
         ImageData image)
     {
         // How many columns can fit into image.
@@ -2031,7 +2081,8 @@ public unsafe partial struct Rasterizer<T>
 
             while (itm < e)
             {
-                RasterizeOneItem(itm++, bitVectorTable, coverAreaTable,
+                RasterizeOneItem(
+                    itm++, bitVectorTable, coverAreaTable,
                     (int) columnCount, image);
             }
 
