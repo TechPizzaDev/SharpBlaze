@@ -2,17 +2,20 @@ using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
 
-public static unsafe partial class CompositionOps
+public static partial class CompositionOps
 {
     // This must only be included from CompositionOps.h
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint ApplyAlpha64(uint x, uint a)
+    private static uint ApplyAlpha64(uint x, byte a)
     {
-        ulong a0 = ((((ulong) x) | (((ulong) x) << 24)) & 0x00ff00ff00ff00ff) * a;
-        ulong a1 = (a0 + ((a0 >> 8) & 0x00ff00ff00ff00ff) + 0x80008000800080) >> 8;
-        ulong a2 = a1 & 0x00ff00ff00ff00ff;
+        const ulong rgbaMask = 0x00ff_00ff_00ff_00ff;
+        const ulong offset = 0x0080_0080_0080_0080;
+        
+        ulong a0 = ((x | (((ulong) x) << 24)) & rgbaMask) * a;
+        ulong a1 = (a0 + ((a0 >> 8) & rgbaMask) + offset) >> 8;
+        ulong a2 = a1 & rgbaMask;
 
         return ((uint) a2) | ((uint) (a2 >> 24));
     }

@@ -1,15 +1,15 @@
 using System;
 using System.Diagnostics;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace SharpBlaze;
 
 public static unsafe partial class CompositionOps
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint ApplyAlpha(uint x, uint a)
+    private static uint ApplyAlpha(uint x, byte a)
     {
         if (sizeof(nint) == 8)
         {
@@ -23,23 +23,24 @@ public static unsafe partial class CompositionOps
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint BlendSourceOver(uint d, uint s)
+    public static uint BlendSourceOver(uint d, uint s, byte a)
     {
-        return s + ApplyAlpha(d, 255 - (s >> 24));
+        return s + ApplyAlpha(d, a);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<uint> BlendSourceOver(Vector128<uint> d, Vector128<uint> s)
+    public static Vector128<uint> BlendSourceOver(Vector128<uint> d, uint s, byte a)
     {
-        return s + ApplyAlpha(d, Vector128.Create(255u) - (s >> 24));
+        Vector128<uint> mixed = Avx2.IsSupported ? ApplyAlpha_Avx2(d, a) : ApplyAlpha(d, a);
+        return Vector128.Create(s) + mixed;
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector512<uint> BlendSourceOver(Vector512<uint> d, Vector512<uint> s)
+    public static Vector256<uint> BlendSourceOver_Avx512BW(Vector256<uint> d, uint s, byte a)
     {
-        return s + ApplyAlpha(d, Vector512.Create(255u) - (s >> 24));
+        return Vector256.Create(s) + ApplyAlpha_Avx512BW(d, a);
     }
 
     internal static void CompositeSpanSourceOver(int pos, int end, uint* d, uint alpha, uint color)
@@ -53,27 +54,24 @@ public static unsafe partial class CompositionOps
         Debug.Assert(alpha != 255 || (color >> 24) < 255);
 
         int x = pos;
-        uint cba = ApplyAlpha(color, alpha);
-
-        if (Vector512.IsHardwareAccelerated)
+        uint cba = ApplyAlpha(color, (byte) alpha);
+        byte a = (byte) (255u - (cba >> 24));
+        
+        if (Avx512BW.IsSupported)
         {
-            var vCba = Vector512.Create(cba);
-
-            for (; x + Vector512<uint>.Count <= end; x += Vector512<uint>.Count)
+            for (; x + Vector256<uint>.Count <= end; x += Vector256<uint>.Count)
             {
-                var dd = Vector512.Load(d + x);
-                BlendSourceOver(dd, vCba).Store(d + x);
+                Vector256<uint> dd = Vector256.Load(d + x);
+                BlendSourceOver_Avx512BW(dd, cba, a).Store(d + x);
             }
         }
 
         if (Vector128.IsHardwareAccelerated)
         {
-            var vCba = Vector128.Create(cba);
-
             for (; x + Vector128<uint>.Count <= end; x += Vector128<uint>.Count)
             {
-                var dd = Vector128.Load(d + x);
-                BlendSourceOver(dd, vCba).Store(d + x);
+                Vector128<uint> dd = Vector128.Load(d + x);
+                BlendSourceOver(dd, cba, a).Store(d + x);
             }
         }
 
@@ -86,7 +84,7 @@ public static unsafe partial class CompositionOps
             }
             else
             {
-                d[x] = BlendSourceOver(dd, cba);
+                d[x] = BlendSourceOver(dd, cba, a);
             }
         }
     }
