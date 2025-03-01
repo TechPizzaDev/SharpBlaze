@@ -564,7 +564,7 @@ public unsafe partial struct Linearizer<T, L>
             return;
         }
 
-        if (y0 >= clip.MaxY && y1 >= clip.MaxY)
+        if (y0 >= clip.Max.Y && y1 >= clip.Max.Y)
         {
             // Line is on bottom, completely discarded.
             return;
@@ -573,7 +573,7 @@ public unsafe partial struct Linearizer<T, L>
         double x0 = p0.X;
         double x1 = p1.X;
 
-        if (x0 >= clip.MaxX && x1 >= clip.MaxX)
+        if (x0 >= clip.Max.X && x1 >= clip.Max.X)
         {
             // Line is on the right, completely discarded.
             return;
@@ -634,25 +634,25 @@ public unsafe partial struct Linearizer<T, L>
                 ry0 = 0;
             }
 
-            if (y1 > clip.MaxY)
+            if (y1 > clip.Max.Y)
             {
                 // Cut again at max-y.
-                double t = (clip.MaxY - y0) / deltay_v;
+                double t = (clip.Max.Y - y0) / deltay_v;
 
                 rx1 = x0 + (deltax_v * t);
-                ry1 = clip.MaxY;
+                ry1 = clip.Max.Y;
             }
         }
         else
         {
             // Line is going ↑.
-            if (y0 > clip.MaxY)
+            if (y0 > clip.Max.Y)
             {
                 // Cut at max-y.
-                double t = (y0 - clip.MaxY) / deltay_v;
+                double t = (y0 - clip.Max.Y) / deltay_v;
 
                 rx0 = x0 + (deltax_v * t);
-                ry0 = clip.MaxY;
+                ry0 = clip.Max.Y;
             }
 
             if (y1 < 0)
@@ -666,13 +666,13 @@ public unsafe partial struct Linearizer<T, L>
         }
 
         // Find out if remaining line is on the right.
-        if (rx0 >= clip.MaxX && rx1 >= clip.MaxX)
+        if (rx0 >= clip.Max.X && rx1 >= clip.Max.X)
         {
             // Line is on the right, completely discarded.
             return;
         }
 
-        if (rx0 > 0 && rx1 > 0 && rx0 < clip.MaxX && rx1 < clip.MaxX)
+        if (rx0 > 0 && rx1 > 0 && rx0 < clip.Max.X && rx1 < clip.Max.X)
         {
             // Inside.
             F24Dot8Point a;
@@ -710,13 +710,13 @@ public unsafe partial struct Linearizer<T, L>
             double bx1 = rx1;
             double by1 = ry1;
 
-            if (rx1 > clip.MaxX)
+            if (rx1 > clip.Max.X)
             {
                 // Cut off at max-x.
-                double t = (clip.MaxX - rx0) / deltax_h;
+                double t = (clip.Max.X - rx0) / deltax_h;
 
                 by1 = ry0 + (deltay_h * t);
-                bx1 = clip.MaxX;
+                bx1 = clip.Max.X;
             }
 
             if (rx0 < 0)
@@ -759,13 +759,13 @@ public unsafe partial struct Linearizer<T, L>
             double bx0 = rx0;
             double by0 = ry0;
 
-            if (rx0 > clip.MaxX)
+            if (rx0 > clip.Max.X)
             {
                 // Cut off at max-x.
-                double t = (rx0 - clip.MaxX) / deltax_h;
+                double t = (rx0 - clip.Max.X) / deltax_h;
 
                 by0 = ry0 + (deltay_h * t);
-                bx0 = clip.MaxX;
+                bx0 = clip.Max.X;
             }
 
             if (rx1 < 0)
@@ -943,7 +943,7 @@ public unsafe partial struct Linearizer<T, L>
 
         double minx = pmin.GetElement(0);
 
-        if (minx >= clip.MaxX)
+        if (minx >= clip.Max.X)
         {
             // Curve is to the right of clipping bounds.
             return;
@@ -951,7 +951,7 @@ public unsafe partial struct Linearizer<T, L>
 
         double miny = pmin.GetElement(1);
 
-        if (miny >= clip.MaxY)
+        if (miny >= clip.Max.Y)
         {
             // Curve is below clipping bounds.
             return;
@@ -971,7 +971,7 @@ public unsafe partial struct Linearizer<T, L>
 
         // First test if primitive intersects with any of horizontal axes of
         // clipping bounds.
-        if (miny >= 0 && maxy <= clip.MaxY)
+        if (miny >= 0 && maxy <= clip.Max.Y)
         {
             // Primitive is within clipping bounds vertically.
             double maxx = pmax.GetElement(0);
@@ -988,7 +988,7 @@ public unsafe partial struct Linearizer<T, L>
                 return;
             }
 
-            if (maxx <= clip.MaxX && minx >= 0)
+            if (maxx <= clip.Max.X && minx >= 0)
             {
                 // Curve is completely inside.
                 F24Dot8PointX3 q;
@@ -1084,7 +1084,7 @@ public unsafe partial struct Linearizer<T, L>
         double sx = p[0].X;
         double px = p[2].X;
 
-        if (sx >= clip.MaxX && px >= clip.MaxX)
+        if (sx >= clip.Max.X && px >= clip.Max.X)
         {
             // Completely on the right.
             return;
@@ -1099,7 +1099,7 @@ public unsafe partial struct Linearizer<T, L>
             return;
         }
 
-        if (sy >= clip.MaxY && py >= clip.MaxY)
+        if (sy >= clip.Max.Y && py >= clip.Max.Y)
         {
             // Completely on bottom.
             return;
@@ -1114,10 +1114,10 @@ public unsafe partial struct Linearizer<T, L>
         if (sy > py)
         {
             // Curve is going ↑.
-            if (sy > clip.MaxY)
+            if (sy > clip.Max.Y)
             {
                 // Cut-off at bottom.
-                if (CutMonotonicQuadraticAtY(pts, clip.MaxY, out double t))
+                if (CutMonotonicQuadraticAtY(pts, clip.Max.Y, out double t))
                 {
                     // Cut quadratic at t and keep upper part of curve (since we
                     // are handling ascending curve and cutting at off bottom).
@@ -1151,10 +1151,10 @@ public unsafe partial struct Linearizer<T, L>
         else if (sy < py)
         {
             // Curve is going ↓.
-            if (py > clip.MaxY)
+            if (py > clip.Max.Y)
             {
                 // Cut-off at bottom.
-                if (CutMonotonicQuadraticAtY(pts, clip.MaxY, out double t))
+                if (CutMonotonicQuadraticAtY(pts, clip.Max.Y, out double t))
                 {
                     // Cut quadratic at t and keep upper part of curve (since we are
                     // handling descending curve and cutting at off bottom).
@@ -1211,7 +1211,7 @@ public unsafe partial struct Linearizer<T, L>
         if (sx > px)
         {
             // Curve is going ←.
-            if (px >= clip.MaxX)
+            if (px >= clip.Max.X)
             {
                 // Completely on right.
                 return;
@@ -1229,10 +1229,10 @@ public unsafe partial struct Linearizer<T, L>
                 return;
             }
 
-            if (sx > clip.MaxX)
+            if (sx > clip.Max.X)
             {
                 // Cut-off at right.
-                if (CutMonotonicQuadraticAtX(p, clip.MaxX, out double t))
+                if (CutMonotonicQuadraticAtX(p, clip.Max.X, out double t))
                 {
                     // Cut quadratic at t and keep left part of curve (since we are
                     // handling right-to-left curve and cutting at off right part).
@@ -1297,7 +1297,7 @@ public unsafe partial struct Linearizer<T, L>
         else if (sx < px)
         {
             // Curve is going →.
-            if (sx >= clip.MaxX)
+            if (sx >= clip.Max.X)
             {
                 // Completely on right.
                 return;
@@ -1315,10 +1315,10 @@ public unsafe partial struct Linearizer<T, L>
                 return;
             }
 
-            if (px > clip.MaxX)
+            if (px > clip.Max.X)
             {
                 // Cut-off at right.
-                if (CutMonotonicQuadraticAtX(p, clip.MaxX, out double t))
+                if (CutMonotonicQuadraticAtX(p, clip.Max.X, out double t))
                 {
                     // Cut quadratic at t and keep left part of curve (since we are
                     // handling left-to-right curve and cutting at off right part).
@@ -1383,7 +1383,7 @@ public unsafe partial struct Linearizer<T, L>
         else
         {
             // Vertical line.
-            if (px < clip.MaxX)
+            if (px < clip.Max.X)
             {
                 if (px <= 0)
                 {
@@ -1460,7 +1460,7 @@ public unsafe partial struct Linearizer<T, L>
 
         double minx = pmin.GetElement(0);
 
-        if (minx >= clip.MaxX)
+        if (minx >= clip.Max.X)
         {
             // Curve is to the right of clipping bounds.
             return;
@@ -1468,7 +1468,7 @@ public unsafe partial struct Linearizer<T, L>
 
         double miny = pmin.GetElement(1);
 
-        if (miny >= clip.MaxY)
+        if (miny >= clip.Max.Y)
         {
             // Curve is below clipping bounds.
             return;
@@ -1488,7 +1488,7 @@ public unsafe partial struct Linearizer<T, L>
 
         // First test if primitive intersects with any of horizontal axes of
         // clipping bounds.
-        if (miny >= 0 && maxy <= clip.MaxY)
+        if (miny >= 0 && maxy <= clip.Max.Y)
         {
             // Primitive is within clipping bounds vertically.
             double maxx = pmax.GetElement(0);
@@ -1506,7 +1506,7 @@ public unsafe partial struct Linearizer<T, L>
                 return;
             }
 
-            if (maxx <= clip.MaxX && minx >= 0)
+            if (maxx <= clip.Max.X && minx >= 0)
             {
                 F24Dot8PointX4 c;
                 Unsafe.SkipInit(out c);
@@ -1602,7 +1602,8 @@ public unsafe partial struct Linearizer<T, L>
         double sx = p[0].X;
         double px = p[3].X;
 
-        if (sx >= clip.MaxX && px >= clip.MaxX)
+        if (sx >= clip.Max.X &&
+            px >= clip.Max.X)
         {
             // Completely on the right.
             return;
@@ -1617,7 +1618,8 @@ public unsafe partial struct Linearizer<T, L>
             return;
         }
 
-        if (sy >= clip.MaxY && py >= clip.MaxY)
+        if (sy >= clip.Max.Y && 
+            py >= clip.Max.Y)
         {
             // Completely on bottom.
             return;
@@ -1633,10 +1635,10 @@ public unsafe partial struct Linearizer<T, L>
         if (sy > py)
         {
             // Curve is ascending.
-            if (sy > clip.MaxY)
+            if (sy > clip.Max.Y)
             {
                 // Cut-off at bottom.
-                if (CutMonotonicCubicAtY(p, clip.MaxY, out double t))
+                if (CutMonotonicCubicAtY(p, clip.Max.Y, out double t))
                 {
                     // Cut cubic at t and keep upper part of curve (since we are
                     // handling ascending curve and cutting at off bottom).
@@ -1672,10 +1674,10 @@ public unsafe partial struct Linearizer<T, L>
         else if (sy < py)
         {
             // Curve is descending.
-            if (py > clip.MaxY)
+            if (py > clip.Max.Y)
             {
                 // Cut-off at bottom.
-                if (CutMonotonicCubicAtY(pts, clip.MaxY, out double t))
+                if (CutMonotonicCubicAtY(pts, clip.Max.Y, out double t))
                 {
                     // Cut cubic at t and keep upper part of curve (since we are
                     // handling descending curve and cutting at off bottom).
@@ -1730,7 +1732,7 @@ public unsafe partial struct Linearizer<T, L>
         if (sx > px)
         {
             // Curve is going from right to left.
-            if (px >= clip.MaxX)
+            if (px >= clip.Max.X)
             {
                 // Completely on right.
                 return;
@@ -1748,10 +1750,10 @@ public unsafe partial struct Linearizer<T, L>
                 return;
             }
 
-            if (sx > clip.MaxX)
+            if (sx > clip.Max.X)
             {
                 // Cut-off at right.
-                if (CutMonotonicCubicAtX(p, clip.MaxX, out double t))
+                if (CutMonotonicCubicAtX(p, clip.Max.X, out double t))
                 {
                     // Cut cubic at t and keep left part of curve (since we are
                     // handling right-to-left curve and cutting at off right part).
@@ -1825,7 +1827,7 @@ public unsafe partial struct Linearizer<T, L>
         else if (sx < px)
         {
             // Curve is going from left to right.
-            if (sx >= clip.MaxX)
+            if (sx >= clip.Max.X)
             {
                 // Completely on right.
                 return;
@@ -1843,10 +1845,10 @@ public unsafe partial struct Linearizer<T, L>
                 return;
             }
 
-            if (px > clip.MaxX)
+            if (px > clip.Max.X)
             {
                 // Cut-off at right.
-                if (CutMonotonicCubicAtX(p, clip.MaxX, out double t))
+                if (CutMonotonicCubicAtX(p, clip.Max.X, out double t))
                 {
                     // Cut cubic at t and keep left part of curve (since we are
                     // handling left-to-right curve and cutting at off right part).
@@ -1920,7 +1922,7 @@ public unsafe partial struct Linearizer<T, L>
         else
         {
             // Vertical line.
-            if (px < clip.MaxX)
+            if (px < clip.Max.X)
             {
                 if (px <= 0)
                 {

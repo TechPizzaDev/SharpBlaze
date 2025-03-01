@@ -14,13 +14,11 @@ public struct ClipBounds
         Debug.Assert(maxx > 0);
         Debug.Assert(maxy > 0);
 
-        MaxX = maxx;
-        MaxY = maxy;
+        Max = new FloatPoint(maxx, maxy);
         FMax = new F24Dot8Point(maxx << 8, maxy << 8);
     }
 
-    public readonly double MaxX;
-    public readonly double MaxY;
+    public readonly FloatPoint Max;
     public readonly F24Dot8Point FMax;
 
     // Prevent creating this with empty bounds as this is most likely not an
