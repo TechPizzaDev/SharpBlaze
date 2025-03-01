@@ -15,14 +15,16 @@ namespace SharpBlaze;
 // __builtin_popcountl. And the rest of the API can use these functions
 // without worrying that compiler will get confused which version to call.
 
-
 public struct BitVector
 {
     private nuint _value;
 
     public static implicit operator nuint(BitVector value) => value._value;
 
-    public static implicit operator BitVector(nuint value) => new BitVector() { _value = value };
+    public static implicit operator BitVector(nuint value) => new()
+    {
+        _value = value
+    };
 }
 
 public static class BitOps
@@ -80,33 +82,20 @@ public static class BitOps
      * @param index Bit index to test and set. Must be at least 0.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe bool ConditionalSetBit<T>(T* vec, uint index)
-        where T : unmanaged, IBinaryInteger<T>
+    public static unsafe bool ConditionalSetBit(Span<BitVector> vec, uint index)
     {
-        Debug.Assert(vec != null);
-        Debug.Assert(index >= 0);
+        (uint vecIndex, uint localIndex) = Math.DivRem(index, (uint) sizeof(nuint) * 8U);
 
-        uint vecIndex = index / (uint) (sizeof(T) * 8);
+        nuint current = vec[(int) vecIndex];
+        nuint bit = ((nuint) 1) << (int) localIndex;
 
-        T* v = vec + vecIndex;
-
-        uint localIndex = index % (uint) (sizeof(T) * 8);
-        T current = *v;
-        T bit = T.One << (int) localIndex;
-
-        if ((current & bit) == T.Zero)
+        if ((current & bit) == 0)
         {
-            v[0] = current | bit;
+            vec[(int) vecIndex] = current | bit;
             return true;
         }
 
         return false;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe bool ConditionalSetBit(BitVector* vec, uint index)
-    {
-        return ConditionalSetBit((nuint*) vec, index);
     }
 
 

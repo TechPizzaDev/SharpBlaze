@@ -2,10 +2,11 @@
 
 namespace SharpBlaze;
 
-public unsafe interface ILineArray<T>
+public interface ILineArray<T>
     where T : unmanaged, ILineArray<T>
 {
-    static abstract void Construct(Span<T> placement,
+    static abstract void Construct(
+        Span<T> placement,
         TileIndex columnCount,
         ThreadMemory memory);
 

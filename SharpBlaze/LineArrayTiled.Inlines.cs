@@ -33,7 +33,7 @@ public unsafe partial struct LineArrayTiled<T>
 
         for (int i = 0; i < rowCount; i++)
         {
-            placement[i] = new LineArrayTiled<T>(bitVectors, blocks, covers, counts);
+            placement[i] = new LineArrayTiled<T>(bitVectors, bitVectorsPerRow, blocks, covers, counts);
 
             bitVectors += bitVectorsPerRow;
             blocks += columnCount;
@@ -534,7 +534,7 @@ public unsafe partial struct LineArrayTiled<T>
         TileIndex columnIndex, F24Dot8 x0, F24Dot8 y0,
         F24Dot8 x1, F24Dot8 y1)
     {
-        if (BitOps.ConditionalSetBit(mBitVectors, columnIndex))
+        if (BitOps.ConditionalSetBit(new(mBitVectors, mBitVectorCount), columnIndex))
         {
             // First time line is inserted into this column.
             LineArrayTiledBlock* b = memory.FrameNewTiledBlock(null);

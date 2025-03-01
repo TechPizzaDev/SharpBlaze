@@ -51,10 +51,15 @@ public unsafe partial struct LineArrayTiled<T> : ILineArray<LineArrayTiled<T>>
         return lte0 & db;
     }
 
-    private LineArrayTiled(BitVector* bitVectors,
-        LineArrayTiledBlock** blocks, int** covers, int* counts)
+    private LineArrayTiled(
+        BitVector* bitVectors,
+        int bitVectorCount,
+        LineArrayTiledBlock** blocks,
+        int** covers,
+        int* counts)
     {
         mBitVectors = bitVectors;
+        mBitVectorCount = bitVectorCount;
         mBlocks = blocks;
         mCovers = covers;
         mCounts = counts;
@@ -62,6 +67,8 @@ public unsafe partial struct LineArrayTiled<T> : ILineArray<LineArrayTiled<T>>
 
     // One bit for each tile column.
     private BitVector* mBitVectors = null;
+
+    private int mBitVectorCount; 
 
     // One block pointer for each tile column. Not zero-filled at the
     // beginning, individual pointers initialized to newly allocated blocks
