@@ -43,39 +43,37 @@ public static unsafe partial class CompositionOps
         return Vector256.Create(s) + ApplyAlpha_Avx512BW(d, a);
     }
 
-    internal static void CompositeSpanSourceOver(int pos, int end, uint* d, uint alpha, uint color)
+    internal static void CompositeSpanSourceOver(Span<uint> d, uint alpha, uint color)
     {
-        Debug.Assert(pos >= 0);
-        Debug.Assert(pos < end);
-        Debug.Assert(d != null);
         Debug.Assert(alpha <= 255);
 
         // For opaque colors, use opaque span composition version.
         Debug.Assert(alpha != 255 || (color >> 24) < 255);
 
-        int x = pos;
         uint cba = ApplyAlpha(color, (byte) alpha);
         byte a = (byte) (255u - (cba >> 24));
         
         if (Avx512BW.IsSupported)
         {
-            for (; x + Vector256<uint>.Count <= end; x += Vector256<uint>.Count)
+            while (d.Length >= Vector256<uint>.Count)
             {
-                Vector256<uint> dd = Vector256.Load(d + x);
-                BlendSourceOver_Avx512BW(dd, cba, a).Store(d + x);
+                Vector256<uint> dd = Vector256.Create<uint>(d);
+                BlendSourceOver_Avx512BW(dd, cba, a).CopyTo(d);
+                d = d.Slice(Vector256<uint>.Count);
             }
         }
 
         if (Vector128.IsHardwareAccelerated)
         {
-            for (; x + Vector128<uint>.Count <= end; x += Vector128<uint>.Count)
+            while (d.Length >= Vector128<uint>.Count)
             {
-                Vector128<uint> dd = Vector128.Load(d + x);
-                BlendSourceOver(dd, cba, a).Store(d + x);
+                Vector128<uint> dd = Vector128.Create<uint>(d);
+                BlendSourceOver(dd, cba, a).CopyTo(d);
+                d = d.Slice(Vector128<uint>.Count);
             }
         }
 
-        for (; x < end; x++)
+        for (int x = 0; x < d.Length; x++)
         {
             uint dd = d[x];
             if (dd == 0)
@@ -90,32 +88,25 @@ public static unsafe partial class CompositionOps
     }
 
 
-    internal static void CompositeSpanSourceOverOpaque(int pos, int end, uint* d, uint alpha, uint color)
+    internal static void CompositeSpanSourceOverOpaque(Span<uint> d, uint alpha, uint color)
     {
-        Debug.Assert(pos >= 0);
-        Debug.Assert(pos < end);
-        Debug.Assert(d != null);
         Debug.Assert(alpha <= 255);
         Debug.Assert((color >> 24) == 255);
 
         if (alpha == 255)
         {
             // Solid span, write only.
-            int length = end - pos;
-            if (length > 0)
-            {
-                new Span<uint>(d + pos, end - pos).Fill(color);
-            }
+            d.Fill(color);
         }
         else
         {
             // Transparent span.
-            CompositeSpanSourceOver(pos, end, d, alpha, color);
+            CompositeSpanSourceOver(d, alpha, color);
         }
     }
 }
 
-public readonly unsafe struct SpanBlender : ISpanBlender
+public readonly struct SpanBlender : ISpanBlender
 {
     public SpanBlender(uint color)
     {
@@ -125,16 +116,16 @@ public readonly unsafe struct SpanBlender : ISpanBlender
     readonly uint Color = 0;
 
 
-    public void CompositeSpan(int pos, int end, uint* d, uint alpha)
+    public void CompositeSpan(Span<uint> d, uint alpha)
     {
-        CompositionOps.CompositeSpanSourceOver(pos, end, d, alpha, Color);
+        CompositionOps.CompositeSpanSourceOver(d, alpha, Color);
     }
 }
 
 /**
  * Span blender which assumes source color is opaque.
  */
-public readonly unsafe struct SpanBlenderOpaque : ISpanBlender
+public readonly struct SpanBlenderOpaque : ISpanBlender
 {
     public SpanBlenderOpaque(uint color)
     {
@@ -144,8 +135,8 @@ public readonly unsafe struct SpanBlenderOpaque : ISpanBlender
     readonly uint Color = 0;
 
 
-    public void CompositeSpan(int pos, int end, uint* d, uint alpha)
+    public void CompositeSpan(Span<uint> d, uint alpha)
     {
-        CompositionOps.CompositeSpanSourceOverOpaque(pos, end, d, alpha, Color);
+        CompositionOps.CompositeSpanSourceOverOpaque(d, alpha, Color);
     }
 }

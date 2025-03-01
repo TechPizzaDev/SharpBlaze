@@ -272,7 +272,8 @@ public unsafe partial struct Rasterizer<T>
         int** coverAreaTable);
 
 
-    private static partial void RenderOneLine<B, F>(byte* image, BitVector* bitVectorTable,
+    private static partial void RenderOneLine<B, F>(
+        Span<byte> image, BitVector* bitVectorTable,
         int bitVectorCount, int* coverAreaTable, int x,
         int rowLength, int startCover, B blender)
         where B : ISpanBlender
@@ -1766,7 +1767,8 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    private static partial void RenderOneLine<B, F>(byte* image,
+    private static partial void RenderOneLine<B, F>(
+        Span<byte> image,
         BitVector* bitVectorTable,
         int bitVectorCount,
         int* coverAreaTable,
@@ -1786,32 +1788,32 @@ public unsafe partial struct Rasterizer<T>
         // X must be aligned on tile boundary.
         Debug.Assert((x & (T.TileW - 1)) == 0);
 
-        uint* d = (uint*) (image);
+        Span<uint> d = MemoryMarshal.Cast<byte, uint>(image);
 
         // Cover accumulation.
         int cover = startCover;
 
         // Span state.
-        uint spanX = (uint) x;
-        uint spanEnd = (uint) x;
+        int spanX = x;
+        int spanEnd = x;
         uint spanAlpha = 0;
 
-        for (uint i = 0; i < bitVectorCount; i++)
+        for (int i = 0; i < bitVectorCount; i++)
         {
             BitVector bitset = bitVectorTable[i];
 
             while (bitset != 0)
             {
                 BitVector t = bitset & (nuint) (-(nint) (nuint) bitset);
-                uint r = (uint) BitOperations.TrailingZeroCount(bitset);
-                uint index = (uint) ((i * sizeof(BitVector) * 8) + r);
+                int r = BitOperations.TrailingZeroCount(bitset);
+                int index = (i * sizeof(BitVector) * 8) + r;
 
                 bitset ^= t;
 
                 // Note that index is in local geometry coordinates.
-                uint tableIndex = index << 1;
-                uint edgeX = (uint) (index + x);
-                uint nextEdgeX = edgeX + 1;
+                int tableIndex = index << 1;
+                int edgeX = index + x;
+                int nextEdgeX = edgeX + 1;
 
                 // Signed area for pixel at bit index.
                 int area = coverAreaTable[tableIndex + 1] + (cover << 9);
@@ -1826,7 +1828,7 @@ public unsafe partial struct Rasterizer<T>
                     {
                         if (spanAlpha != 0)
                         {
-                            blender.CompositeSpan((int) spanX, (int) spanEnd, d, spanAlpha);
+                            blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
                         }
 
                         spanX = nextEdgeX;
@@ -1842,7 +1844,7 @@ public unsafe partial struct Rasterizer<T>
                         // Alpha is not zero, but not equal to previous span alpha.
                         if (spanAlpha != 0)
                         {
-                            blender.CompositeSpan((int) spanX, (int) spanEnd, d, spanAlpha);
+                            blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
                         }
 
                         spanX = edgeX;
@@ -1861,7 +1863,7 @@ public unsafe partial struct Rasterizer<T>
                         // Fill span if there is one and reset current span.
                         if (spanAlpha != 0)
                         {
-                            blender.CompositeSpan((int) spanX, (int) spanEnd, d, spanAlpha);
+                            blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
                         }
 
                         spanX = edgeX;
@@ -1885,7 +1887,7 @@ public unsafe partial struct Rasterizer<T>
                             else
                             {
                                 // Only gap alpha matches current span.
-                                blender.CompositeSpan((int) spanX, (int) edgeX, d, spanAlpha);
+                                blender.CompositeSpan(d[spanX..edgeX], spanAlpha);
 
                                 spanX = edgeX;
                                 spanEnd = nextEdgeX;
@@ -1896,11 +1898,11 @@ public unsafe partial struct Rasterizer<T>
                         {
                             if (spanAlpha != 0)
                             {
-                                blender.CompositeSpan((int) spanX, (int) spanEnd, d, spanAlpha);
+                                blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
                             }
 
                             // Compose gap.
-                            blender.CompositeSpan((int) spanEnd, (int) edgeX, d, gapAlpha);
+                            blender.CompositeSpan(d[spanEnd..edgeX], gapAlpha);
 
                             spanX = edgeX;
                             spanEnd = nextEdgeX;
@@ -1916,7 +1918,7 @@ public unsafe partial struct Rasterizer<T>
         if (spanAlpha != 0)
         {
             // Composite current span.
-            blender.CompositeSpan((int) spanX, (int) spanEnd, d, spanAlpha);
+            blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
         }
 
         if (cover != 0 && spanEnd < rowLength)
@@ -1924,7 +1926,7 @@ public unsafe partial struct Rasterizer<T>
             // Composite anything that goes to the edge of destination image.
             int alpha = F.ApplyFillRule(cover << 9);
 
-            blender.CompositeSpan((int) spanEnd, rowLength, d, (uint) alpha);
+            blender.CompositeSpan(d[spanEnd..rowLength], (uint) alpha);
         }
     }
 
@@ -1967,7 +1969,8 @@ public unsafe partial struct Rasterizer<T>
         int maxpy = py + T.TileH;
 
         // Start row.
-        byte* ptr = image.Data + (py * image.BytesPerRow);
+        Span<byte> imageData = new(image.Data, image.Height * image.BytesPerRow);
+        Span<byte> ptr = imageData.Slice(py * image.BytesPerRow);
 
         // Calculate maximum height. This can only get less than 8 when rendering
         // the last row of the image and image height is not multiple of row
@@ -1988,7 +1991,7 @@ public unsafe partial struct Rasterizer<T>
                         bitVectorTable[i], bitVectorsPerRow, coverAreaTable[i], x,
                         image.Width, coversStart[i], new(color));
 
-                    ptr += image.BytesPerRow;
+                    ptr = ptr.Slice(image.BytesPerRow);
                 }
             }
             else
@@ -1999,7 +2002,7 @@ public unsafe partial struct Rasterizer<T>
                         bitVectorTable[i], bitVectorsPerRow, coverAreaTable[i], x,
                         image.Width, coversStart[i], new(color));
 
-                    ptr += image.BytesPerRow;
+                    ptr = ptr.Slice(image.BytesPerRow);
                 }
             }
         }
@@ -2013,7 +2016,7 @@ public unsafe partial struct Rasterizer<T>
                         bitVectorTable[i], bitVectorsPerRow, coverAreaTable[i], x,
                         image.Width, coversStart[i], new(color));
 
-                    ptr += image.BytesPerRow;
+                    ptr = ptr.Slice(image.BytesPerRow);
                 }
             }
             else
@@ -2024,7 +2027,7 @@ public unsafe partial struct Rasterizer<T>
                         bitVectorTable[i], bitVectorsPerRow, coverAreaTable[i], x,
                         image.Width, coversStart[i], new(color));
 
-                    ptr += image.BytesPerRow;
+                    ptr = ptr.Slice(image.BytesPerRow);
                 }
             }
         }

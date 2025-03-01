@@ -1,6 +1,8 @@
-﻿namespace SharpBlaze;
+﻿using System;
 
-public unsafe interface ISpanBlender
+namespace SharpBlaze;
+
+public interface ISpanBlender
 {
-    void CompositeSpan(int pos, int end, uint* d, uint alpha);
+    void CompositeSpan(Span<uint> d, uint alpha);
 }
