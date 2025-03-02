@@ -507,7 +507,7 @@ public unsafe partial struct Linearizer<T, L>
 
                     points += 2;
 
-                    AddUncontainedQuadratic(memory, clip, in Unsafe.As<FloatPointX4, FloatPointX3>(ref segment));
+                    AddUncontainedQuadratic(memory, clip, segment.Get3(0));
 
                     segment[0] = segment[2];
 
@@ -1032,8 +1032,7 @@ public unsafe partial struct Linearizer<T, L>
 
                 for (int j = 0; j < nX; j++)
                 {
-                    AddUncontainedMonotonicQuadratic(memory, clip,
-                        Unsafe.As<FloatPoint, FloatPointX3>(ref monoX[j * 2]));
+                    AddUncontainedMonotonicQuadratic(memory, clip, monoX.Get3(j * 2));
                 }
             }
             else
@@ -1042,7 +1041,7 @@ public unsafe partial struct Linearizer<T, L>
 
                 for (int i = 0; i < nY; i++)
                 {
-                    ref FloatPointX3 my = ref Unsafe.As<FloatPoint, FloatPointX3>(ref monoY[i * 2]);
+                    FloatPointX3 my = monoY.Get3(i * 2);
 
                     if (QuadraticControlPointBetweenEndPointsX(my))
                     {
@@ -1054,8 +1053,7 @@ public unsafe partial struct Linearizer<T, L>
 
                         for (int j = 0; j < nX; j++)
                         {
-                            AddUncontainedMonotonicQuadratic(memory, clip,
-                                Unsafe.As<FloatPoint, FloatPointX3>(ref monoX[j * 2]));
+                            AddUncontainedMonotonicQuadratic(memory, clip, monoX.Get3(j * 2));
                         }
                     }
                 }
@@ -1442,9 +1440,9 @@ public unsafe partial struct Linearizer<T, L>
             F24Dot8PointX5 split;
             SplitQuadratic(out split, q);
 
-            AddContainedQuadraticF24Dot8(memory, Unsafe.As<F24Dot8PointX5, F24Dot8PointX3>(ref split));
+            AddContainedQuadraticF24Dot8(memory, split.Get3(0));
 
-            AddContainedQuadraticF24Dot8(memory, Unsafe.As<F24Dot8Point, F24Dot8PointX3>(ref split[2]));
+            AddContainedQuadraticF24Dot8(memory, split.Get3(2));
         }
     }
 
@@ -1551,18 +1549,18 @@ public unsafe partial struct Linearizer<T, L>
                 // in X direction.
                 int nX = CutCubicAtXExtrema(p, out FloatPointX10 monoX);
 
-                for (int j = 0; j < nX; j++)
-                {
-                    AddUncontainedMonotonicCubic(memory, clip, Unsafe.As<FloatPoint, FloatPointX4>(ref monoX[j * 3]));
-                }
-            }
-            else
+            for (int j = 0; j < nX; j++)
             {
-                int nY = CutCubicAtYExtrema(p, out FloatPointX10 monoY);
+                AddUncontainedMonotonicCubic(memory, clip, monoX.Get4(j * 3));
+            }
+            return;
+        }
+        
+        int nY = CutCubicAtYExtrema(p, out FloatPointX10 monoY);
 
-                for (int i = 0; i < nY; i++)
-                {
-                    ref FloatPointX4 my = ref Unsafe.As<FloatPoint, FloatPointX4>(ref monoY[i * 3]);
+        for (int i = 0; i < nY; i++)
+        {
+            FloatPointX4 my = monoY.Get4(i * 3);
 
                     if (CubicControlPointsBetweenEndPointsX(my))
                     {
@@ -1572,12 +1570,9 @@ public unsafe partial struct Linearizer<T, L>
                     {
                         int nX = CutCubicAtXExtrema(my, out FloatPointX10 monoX);
 
-                        for (int j = 0; j < nX; j++)
-                        {
-                            AddUncontainedMonotonicCubic(memory, clip,
-                                Unsafe.As<FloatPoint, FloatPointX4>(ref monoX[j * 3]));
-                        }
-                    }
+                for (int j = 0; j < nX; j++)
+                {
+                    AddUncontainedMonotonicCubic(memory, clip, monoX.Get4(j * 3));
                 }
             }
         }
@@ -2071,9 +2066,9 @@ public unsafe partial struct Linearizer<T, L>
         {
             SplitCubic(out F24Dot8PointX7 split, c);
 
-            AddContainedCubicF24Dot8(memory, Unsafe.As<F24Dot8PointX7, F24Dot8PointX4>(ref split));
+            AddContainedCubicF24Dot8(memory, split.Get4(0));
 
-            AddContainedCubicF24Dot8(memory, Unsafe.As<F24Dot8Point, F24Dot8PointX4>(ref split[3]));
+            AddContainedCubicF24Dot8(memory, split.Get4(3));
         }
     }
 

@@ -28,24 +28,68 @@ public struct FloatPointX3
 public struct FloatPointX4
 {
     private FloatPoint _e0;
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public FloatPointX3 Get3(int start)
+    {
+        Unsafe.SkipInit(out FloatPointX3 result);
+        for (int i = 0; i < 3; i++)
+        {
+            result[i] = this[start + i];
+        }
+        return result;
+    }
 }
 
 [InlineArray(5)]
 public struct FloatPointX5
 {
     private FloatPoint _e0;
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public FloatPointX3 Get3(int start)
+    {
+        Unsafe.SkipInit(out FloatPointX3 result);
+        for (int i = 0; i < 3; i++)
+        {
+            result[i] = this[start + i];
+        }
+        return result;
+    }
 }
 
 [InlineArray(7)]
 public struct FloatPointX7
 {
     private FloatPoint _e0;
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public FloatPointX4 Get4(int start)
+    {
+        Unsafe.SkipInit(out FloatPointX4 result);
+        for (int i = 0; i < 4; i++)
+        {
+            result[i] = this[start + i];
+        }
+        return result;
+    }
 }
 
 [InlineArray(10)]
 public struct FloatPointX10
 {
     private FloatPoint _e0;
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public FloatPointX4 Get4(int start)
+    {
+        Unsafe.SkipInit(out FloatPointX4 result);
+        for (int i = 0; i < 4; i++)
+        {
+            result[i] = this[start + i];
+        }
+        return result;
+    }
 }
 
 public static unsafe partial class CurveUtils

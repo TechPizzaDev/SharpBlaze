@@ -20,12 +20,34 @@ public struct F24Dot8PointX4
 public struct F24Dot8PointX5
 {
     private F24Dot8Point _e0;
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public F24Dot8PointX3 Get3(int start)
+    {
+        Unsafe.SkipInit(out F24Dot8PointX3 result);
+        for (int i = 0; i < 3; i++)
+        {
+            result[i] = this[start + i];
+        }
+        return result;
+    }
 }
 
 [InlineArray(7)]
 public struct F24Dot8PointX7
 {
     private F24Dot8Point _e0;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public F24Dot8PointX4 Get4(int start)
+    {
+        Unsafe.SkipInit(out F24Dot8PointX4 result);
+        for (int i = 0; i < 4; i++)
+        {
+            result[i] = this[start + i];
+        }
+        return result;
+    }
 }
 
 public static unsafe class LinearizerUtils

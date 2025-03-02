@@ -213,11 +213,13 @@ public static unsafe partial class CurveUtils
 
             Debug.Assert(double.IsFinite(d));
 
-            // Clamp to make sure we don't go out of range due to limited
-            // precision.
+            // Clamp to make sure we don't go out of range due to limited precision.
             double tt = Clamp((t[1] - t[0]) / d, 0.0, 1.0);
 
-            CutCubicAt(in Unsafe.As<FloatPoint, FloatPointX4>(ref tmp[3]), out Unsafe.As<FloatPoint, FloatPointX7>(ref dst[3]), tt);
+            CutCubicAt(
+                tmp.Get4(3), 
+                out Unsafe.As<FloatPoint, FloatPointX7>(ref dst[3]),
+                tt);
 
             // Make sure curve tangents at extremas are horizontal.
             double y0 = dst[3].Y;
@@ -290,11 +292,13 @@ public static unsafe partial class CurveUtils
 
             Debug.Assert(double.IsFinite(d));
 
-            // Clamp to make sure we don't go out of range due to limited
-            // precision.
+            // Clamp to make sure we don't go out of range due to limited precision.
             double tt = Clamp((t[1] - t[0]) / d, 0.0, 1.0);
 
-            CutCubicAt(in Unsafe.As<FloatPoint, FloatPointX4>(ref tmp[3]), out Unsafe.As<FloatPoint, FloatPointX7>(ref dst[3]), tt);
+            CutCubicAt(
+                tmp.Get4(3), 
+                out Unsafe.As<FloatPoint, FloatPointX7>(ref dst[3]), 
+                tt);
 
             // Make sure curve tangents at extremas are horizontal.
             double x0 = dst[3].X;
