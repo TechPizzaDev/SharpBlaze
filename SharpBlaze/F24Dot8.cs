@@ -10,7 +10,7 @@ namespace SharpBlaze;
 [DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
 public readonly struct F24Dot8
 {
-    private readonly int _value;
+    internal readonly int _value;
 
     private F24Dot8(int value) => _value = value;
 

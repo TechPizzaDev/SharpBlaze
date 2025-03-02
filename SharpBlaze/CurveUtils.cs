@@ -6,7 +6,7 @@ namespace SharpBlaze;
 
 using static Utils;
 
-public static unsafe partial class CurveUtils
+public static partial class CurveUtils
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int AcceptRoot(out double t, double root)
@@ -23,8 +23,7 @@ public static unsafe partial class CurveUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static partial int FindQuadraticRoots(double a, double b, double c,
-        out DoubleX2 roots)
+    public static partial int FindQuadraticRoots(double a, double b, double c, out DoubleX2 roots)
     {
         //Debug.Assert(roots != null);
         Unsafe.SkipInit(out roots);
@@ -83,8 +82,7 @@ public static unsafe partial class CurveUtils
     }
 
 
-    static int FindQuadraticRootsWithin(double a, double b,
-        double c, out DoubleX2 roots)
+    static int FindQuadraticRootsWithin(double a, double b, double c, out DoubleX2 roots)
     {
         //Debug.Assert(roots != null);
         Unsafe.SkipInit(out roots);
@@ -154,8 +152,7 @@ public static unsafe partial class CurveUtils
     }
 
 
-    static int FindCubicExtrema(double a, double b, double c,
-        double d, out DoubleX2 t)
+    static int FindCubicExtrema(double a, double b, double c, double d, out DoubleX2 t)
     {
         double A = d - a + 3.0 * (b - c);
         double B = 2.0 * (a - b - b + c);
@@ -165,7 +162,7 @@ public static unsafe partial class CurveUtils
     }
 
 
-    public static partial int CutCubicAtYExtrema(in FloatPointX4 src, out FloatPointX10 dst)
+    public static partial int CutCubicAtYExtrema(FloatPointX4 src, out FloatPointX10 dst)
     {
         Unsafe.SkipInit(out dst);
 
@@ -244,7 +241,7 @@ public static unsafe partial class CurveUtils
     }
 
 
-    public static partial int CutCubicAtXExtrema(in FloatPointX4 src, out FloatPointX10 dst)
+    public static partial int CutCubicAtXExtrema(FloatPointX4 src, out FloatPointX10 dst)
     {
         Unsafe.SkipInit(out dst);
 
@@ -337,7 +334,7 @@ public static unsafe partial class CurveUtils
     }
 
 
-    public static partial int CutQuadraticAtYExtrema(in FloatPointX3 src, out FloatPointX5 dst)
+    public static partial int CutQuadraticAtYExtrema(FloatPointX3 src, out FloatPointX5 dst)
     {
         Unsafe.SkipInit(out dst);
 
@@ -385,7 +382,7 @@ public static unsafe partial class CurveUtils
     }
 
 
-    public static partial int CutQuadraticAtXExtrema(in FloatPointX3 src, out FloatPointX5 dst)
+    public static partial int CutQuadraticAtXExtrema(FloatPointX3 src, out FloatPointX5 dst)
     {
         Unsafe.SkipInit(out dst);
 

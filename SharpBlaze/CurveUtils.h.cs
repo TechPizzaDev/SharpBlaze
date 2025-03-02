@@ -92,7 +92,7 @@ public struct FloatPointX10
     }
 }
 
-public static unsafe partial class CurveUtils
+public static partial class CurveUtils
 {
     /*
      * Roots must not be nullptr. Returns 0, 1 or 2.
@@ -117,7 +117,7 @@ public static unsafe partial class CurveUtils
      * @param dst Pointer to memory for destination curves. Must be large enough
      * to keep 5 FloatPoint values.
      */
-    public static partial int CutQuadraticAtXExtrema(in FloatPointX3 src, out FloatPointX5 dst);
+    public static partial int CutQuadraticAtXExtrema(FloatPointX3 src, out FloatPointX5 dst);
 
 
     /**
@@ -137,7 +137,7 @@ public static unsafe partial class CurveUtils
      * @param dst Pointer to memory for destination curves. Must be large enough
      * to keep 10 FloatPoint values.
      */
-    public static partial int CutCubicAtXExtrema(in FloatPointX4 src, out FloatPointX10 dst);
+    public static partial int CutCubicAtXExtrema(FloatPointX4 src, out FloatPointX10 dst);
 
 
     /**
@@ -156,7 +156,7 @@ public static unsafe partial class CurveUtils
      * @param dst Pointer to memory for destination curves. Must be large enough
      * to keep 5 FloatPoint values.
      */
-    public static partial int CutQuadraticAtYExtrema(in FloatPointX3 src, out FloatPointX5 dst);
+    public static partial int CutQuadraticAtYExtrema(FloatPointX3 src, out FloatPointX5 dst);
 
 
     /**
@@ -176,7 +176,7 @@ public static unsafe partial class CurveUtils
      * @param dst Pointer to memory for destination curves. Must be large enough
      * to keep 10 FloatPoint values.
      */
-    public static partial int CutCubicAtYExtrema(in FloatPointX4 src, out FloatPointX10 dst);
+    public static partial int CutCubicAtYExtrema(FloatPointX4 src, out FloatPointX10 dst);
 
 
 
@@ -205,7 +205,7 @@ public static unsafe partial class CurveUtils
      * Use this function for fast monotonicity checks.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CubicControlPointsBetweenEndPointsX(in FloatPointX4 pts)
+    public static bool CubicControlPointsBetweenEndPointsX(FloatPointX4 pts)
     {
         return
             IsValueBetweenAAndB(pts[0].X, pts[1].X, pts[3].X) &&
@@ -214,7 +214,7 @@ public static unsafe partial class CurveUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool QuadraticControlPointBetweenEndPointsX(in FloatPointX3 pts)
+    public static bool QuadraticControlPointBetweenEndPointsX(FloatPointX3 pts)
     {
         return IsValueBetweenAAndB(pts[0].X, pts[1].X, pts[2].X);
     }
@@ -228,7 +228,7 @@ public static unsafe partial class CurveUtils
      * Use this function for fast monotonicity checks.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CubicControlPointsBetweenEndPointsY(in FloatPointX4 pts)
+    public static bool CubicControlPointsBetweenEndPointsY(FloatPointX4 pts)
     {
         return
             IsValueBetweenAAndB(pts[0].Y, pts[1].Y, pts[3].Y) &&
@@ -237,14 +237,14 @@ public static unsafe partial class CurveUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool QuadraticControlPointBetweenEndPointsY(in FloatPointX3 pts)
+    public static bool QuadraticControlPointBetweenEndPointsY(FloatPointX3 pts)
     {
         return IsValueBetweenAAndB(pts[0].Y, pts[1].Y, pts[2].Y);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void InterpolateQuadraticCoordinates(in FloatPointX3 src, out FloatPointX5 dst, Vector128<double> t)
+    public static void InterpolateQuadraticCoordinates(FloatPointX3 src, out FloatPointX5 dst, Vector128<double> t)
     {
         Vector128<double> ab = InterpolateLinear(src[0].AsVector128(), src[1].AsVector128(), t);
         Vector128<double> bc = InterpolateLinear(src[1].AsVector128(), src[2].AsVector128(), t);
@@ -259,7 +259,7 @@ public static unsafe partial class CurveUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void CutQuadraticAt(in FloatPointX3 src, out FloatPointX5 dst, double t)
+    public static void CutQuadraticAt(FloatPointX3 src, out FloatPointX5 dst, double t)
     {
         Debug.Assert(t >= 0.0);
         Debug.Assert(t <= 1.0);
@@ -269,7 +269,7 @@ public static unsafe partial class CurveUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void InterpolateCubicCoordinates(in FloatPointX4 src, out FloatPointX7 dst, Vector128<double> t)
+    private static void InterpolateCubicCoordinates(FloatPointX4 src, out FloatPointX7 dst, Vector128<double> t)
     {
         Vector128<double> ab = InterpolateLinear(src[0].AsVector128(), src[1].AsVector128(), t);
         Vector128<double> bc = InterpolateLinear(src[1].AsVector128(), src[2].AsVector128(), t);
@@ -290,7 +290,7 @@ public static unsafe partial class CurveUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void CutCubicAt(in FloatPointX4 src, out FloatPointX7 dst, double t)
+    public static void CutCubicAt(FloatPointX4 src, out FloatPointX7 dst, double t)
     {
         Debug.Assert(t >= 0.0);
         Debug.Assert(t <= 1.0);

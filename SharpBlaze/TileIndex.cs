@@ -1,29 +1,22 @@
 ﻿
 namespace SharpBlaze;
 
-public struct TileIndex
+public readonly struct TileIndex
 {
-    uint _value;
+    internal readonly uint _value;
 
-    public static implicit operator uint(TileIndex value)
+    private TileIndex(uint value)
     {
-        return value._value;
+        _value = value;
     }
 
-    public static explicit operator int(TileIndex value)
-    {
-        return (int) value._value;
-    }
+    public static implicit operator uint(TileIndex value) => value._value;
 
-    public static implicit operator TileIndex(uint value)
-    {
-        return new TileIndex() { _value = value };
-    }
+    public static explicit operator int(TileIndex value) => (int) value._value;
 
-    public static explicit operator TileIndex(int value)
-    {
-        return new TileIndex() { _value = (uint) value };
-    }
+    public static implicit operator TileIndex(uint value) => new(value);
+
+    public static explicit operator TileIndex(int value) => new((uint) value);
 
     public override string ToString()
     {

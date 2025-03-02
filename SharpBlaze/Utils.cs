@@ -41,7 +41,7 @@ public static class Utils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 Clamp(F24Dot8 val, F24Dot8 min, F24Dot8 max)
     {
-        return Clamp((int) val, (int) min, (int) max);
+        return Clamp(val._value, min._value, max._value);
     }
 
 
@@ -51,7 +51,7 @@ public static class Utils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TileIndex Clamp(TileIndex val, TileIndex min, TileIndex max)
     {
-        return Clamp((uint) val, (uint) min, (uint) max);
+        return Clamp(val._value, min._value, max._value);
     }
 
 
