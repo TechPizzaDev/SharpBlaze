@@ -572,7 +572,7 @@ public unsafe partial struct Linearizer<T, L>
         if (x0 == x1)
         {
             // Vertical line.
-            F24Dot8Point p0c = p0.ToF24Dot8().Clamp(default, clip.FMax);
+            F24Dot8Point p0c = p0.ToF24Dot8(default, clip.FMax);
             F24Dot8 p1y = Clamp(DoubleToF24Dot8(y1), 0, clip.FMax.Y);
 
             if (p0c.X == 0)
@@ -706,7 +706,7 @@ public unsafe partial struct Linearizer<T, L>
                 b.X = 0;
                 b.Y = Clamp(DoubleToF24Dot8(ry0 + (deltay_h * t)), 0, clip.FMax.Y);
 
-                F24Dot8Point c = new FloatPoint(bx1, by1).ToF24Dot8().Clamp(default, clip.FMax);
+                F24Dot8Point c = new FloatPoint(bx1, by1).ToF24Dot8(default, clip.FMax);
                 
                 UpdateStartCovers(memory, a, b.Y);
 
@@ -742,7 +742,7 @@ public unsafe partial struct Linearizer<T, L>
                 // Split at min-x.
                 double t = rx0 / deltax_h;
 
-                F24Dot8Point a = new FloatPoint(bx0, by0).ToF24Dot8().Clamp(default, clip.FMax);
+                F24Dot8Point a = new FloatPoint(bx0, by0).ToF24Dot8(default, clip.FMax);
                 
                 F24Dot8Point b;
                 b.X = 0;

@@ -41,7 +41,7 @@ public struct FloatPoint : IEquatable<FloatPoint>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly F24Dot8Point ToF24Dot8()
+    public readonly F24Dot8Point ToF24Dot8(F24Dot8Point min, F24Dot8Point max)
     {
         Vector128<double> scaled = AsVector128() * Vector128.Create(256.0);
 
@@ -59,6 +59,10 @@ public struct FloatPoint : IEquatable<FloatPoint>
             conv = Vector128.ConvertToInt32(narrow);
 #endif
         }
+
+        // Operating on vectors is cheaper than clamping extracted scalars later.
+        conv = Utils.Clamp(conv, min.ToVector128(), max.ToVector128());
+        
         return new F24Dot8Point(conv.GetElement(0), conv.GetElement(1));
     }
 
