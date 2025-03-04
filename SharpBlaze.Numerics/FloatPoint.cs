@@ -31,19 +31,20 @@ public struct FloatPoint : IEquatable<FloatPoint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FloatPoint(Vector128<double> xy)
     {
-        this = Unsafe.BitCast<Vector128<double>, FloatPoint>(xy);
+        X = xy.GetElement(0);
+        Y = xy.GetElement(1);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector128<double> AsVector128()
     {
-        return Unsafe.BitCast<FloatPoint, Vector128<double>>(this);
+        return Vector128.Create(X, Y);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly F24Dot8Point ToF24Dot8(F24Dot8Point min, F24Dot8Point max)
     {
-        Vector128<double> scaled = AsVector128() * Vector128.Create(256.0);
+        Vector128<double> scaled = AsVector128() * 256.0;
 
         Vector128<int> conv;
         if (Sse2.IsSupported)

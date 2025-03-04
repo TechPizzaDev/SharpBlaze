@@ -2,6 +2,8 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.X86;
 
 namespace SharpBlaze;
 
@@ -18,20 +20,36 @@ public struct F24Dot8PointX2
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<int> FromFloatToV128(FloatPoint p0, FloatPoint p1)
+    internal static Vector128<int> FromFloatToV128(Vector128<double> p0, Vector128<double> p1)
     {
         Vector128<double> factor = Vector128.Create(256.0);
-        Vector128<double> s0 = p0.AsVector128() * factor;
-        Vector128<double> s1 = p1.AsVector128() * factor;
+        Vector128<double> s0 = p0 * factor;
+        Vector128<double> s1 = p1 * factor;
+        return ConvertToInt32(s0, s1);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Vector128<int> ConvertToInt32(Vector128<double> p0, Vector128<double> p1)
+    {
+        if (AdvSimd.Arm64.IsSupported)
+        {
+            Vector128<long> r0 = AdvSimd.Arm64.ConvertToInt64RoundToEven(p0);
+            Vector128<long> r1 = AdvSimd.Arm64.ConvertToInt64RoundToEven(p1);
+            return AdvSimd.ExtractNarrowingUpper(AdvSimd.ExtractNarrowingLower(r0), r1);
+        }
+        else if (Sse2.IsSupported)
+        {
+            Vector128<long> r0 = Sse2.ConvertToVector128Int32(p0).AsInt64();
+            Vector128<long> r1 = Sse2.ConvertToVector128Int32(p1).AsInt64();
+            return Sse2.UnpackLow(r0, r1).AsInt32();
+        }
 
-        Vector128<float> narrow01 = Vector128.Narrow(s0, s1);
-        
+        Vector128<float> narrow01 = Vector128.Narrow(p0, p1);
 #if NET9_0_OR_GREATER
-        Vector128<int> conv01 = Vector128.ConvertToInt32Native(narrow01);
+        return Vector128.ConvertToInt32Native(narrow01);
 #else
-        Vector128<int> conv01 = Vector128.ConvertToInt32(narrow01);
+        return Vector128.ConvertToInt32(narrow01);
 #endif
-        return conv01;
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -39,7 +57,7 @@ public struct F24Dot8PointX2
         FloatPoint p0, FloatPoint p1,
         F24Dot8Point min, F24Dot8Point max)
     {
-        Vector128<int> p01 = FromFloatToV128(p0, p1);
+        Vector128<int> p01 = FromFloatToV128(p0.AsVector128(), p1.AsVector128());
         Vector128<int> vMin = min.ToVector128();
         Vector128<int> vMax = max.ToVector128();
         
@@ -64,12 +82,12 @@ public struct F24Dot8PointX3
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static (Vector128<int> P01, Vector128<int> P2) FromFloatToV128(
-        FloatPoint p0, FloatPoint p1, FloatPoint p2)
+        Vector128<double> p0, Vector128<double> p1, Vector128<double> p2)
     {
         Vector128<double> factor = Vector128.Create(256.0);
-        Vector128<double> s0 = p0.AsVector128() * factor;
-        Vector128<double> s1 = p1.AsVector128() * factor;
-        Vector128<double> s2 = p2.AsVector128() * factor;
+        Vector128<double> s0 = p0 * factor;
+        Vector128<double> s1 = p1 * factor;
+        Vector128<double> s2 = p2 * factor;
 
         Vector128<float> narrow01 = Vector128.Narrow(s0, s1);
         Vector128<float> narrow22 = Vector128.Narrow(s2, s2);
@@ -94,27 +112,22 @@ public struct F24Dot8PointX3
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void FromFloat(
-        FloatPoint p0, FloatPoint p1, FloatPoint p2, 
-        out F24Dot8PointX3 result)
-    {
-        (Vector128<int> p01, Vector128<int> p22) = FromFloatToV128(p0, p1, p2);
-        FromV128(p01, p22, out result);
-    }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ClampFromFloat(
         FloatPointX3 p,
         F24Dot8Point min, 
         F24Dot8Point max,
         out F24Dot8PointX3 result)
     {
-        (Vector128<int> p01, Vector128<int> p22) = FromFloatToV128(p[0], p[1], p[2]);
+        (Vector128<int> p01, Vector128<int> p22) = FromFloatToV128(
+            p[0].AsVector128(),
+            p[1].AsVector128(),
+            p[2].AsVector128());
+
         Vector128<int> vMin = min.ToVector128();
         Vector128<int> vMax = max.ToVector128();
-        
         p01 = Utils.Clamp(p01, vMin, vMax);
         p22 = Utils.Clamp(p22, vMin, vMax);
+
         FromV128(p01, p22, out result);
     }
 }
@@ -126,13 +139,13 @@ public struct F24Dot8PointX4
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static (Vector128<int> P01, Vector128<int> P23) FromFloatToV128(
-        FloatPoint p0, FloatPoint p1, FloatPoint p2, FloatPoint p3)
+        Vector128<double> p0, Vector128<double> p1, Vector128<double> p2, Vector128<double> p3)
     {
         Vector128<double> factor = Vector128.Create(256.0);
-        Vector128<double> s0 = p0.AsVector128() * factor;
-        Vector128<double> s1 = p1.AsVector128() * factor;
-        Vector128<double> s2 = p2.AsVector128() * factor;
-        Vector128<double> s3 = p3.AsVector128() * factor;
+        Vector128<double> s0 = p0 * factor;
+        Vector128<double> s1 = p1 * factor;
+        Vector128<double> s2 = p2 * factor;
+        Vector128<double> s3 = p3 * factor;
 
         Vector128<float> narrow01 = Vector128.Narrow(s0, s1);
         Vector128<float> narrow23 = Vector128.Narrow(s2, s3);
@@ -162,7 +175,11 @@ public struct F24Dot8PointX4
         FloatPoint p0, FloatPoint p1, FloatPoint p2, FloatPoint p3,
         out F24Dot8PointX4 result)
     {
-        (Vector128<int> p01, Vector128<int> p23) = FromFloatToV128(p0, p1, p2, p3);
+        (Vector128<int> p01, Vector128<int> p23) = FromFloatToV128(
+            p0.AsVector128(), 
+            p1.AsVector128(),
+            p2.AsVector128(), 
+            p3.AsVector128());
         FromV128(p01, p23, out result);
     }
     
@@ -173,12 +190,17 @@ public struct F24Dot8PointX4
         F24Dot8Point max,
         out F24Dot8PointX4 result)
     {
-        (Vector128<int> p01, Vector128<int> p23) = FromFloatToV128(p[0], p[1], p[2], p[3]);
+        (Vector128<int> p01, Vector128<int> p23) = FromFloatToV128(
+            p[0].AsVector128(), 
+            p[1].AsVector128(), 
+            p[2].AsVector128(), 
+            p[3].AsVector128());
+
         Vector128<int> vMin = min.ToVector128();
         Vector128<int> vMax = max.ToVector128();
-        
         p01 = Utils.Clamp(p01, vMin, vMax);
         p23 = Utils.Clamp(p23, vMin, vMax);
+
         FromV128(p01, p23, out result);
     }
 
@@ -186,10 +208,11 @@ public struct F24Dot8PointX4
     public F24Dot8PointX4 Clamp(F24Dot8Point min, F24Dot8Point max)
     {
         Vector256<int> value = Unsafe.BitCast<F24Dot8PointX4, Vector256<int>>(this);
+
         Vector256<int> vMin = min.ToVector256();
         Vector256<int> vMax = max.ToVector256();
-        
         Vector256<int> clamped = Utils.Clamp(value, vMin, vMax);
+
         return Unsafe.BitCast<Vector256<int>, F24Dot8PointX4>(clamped);
     }
 }

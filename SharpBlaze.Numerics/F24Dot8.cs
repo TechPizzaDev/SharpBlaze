@@ -35,17 +35,23 @@ public readonly struct F24Dot8
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 DoubleToF24Dot8(double v)
     {
-        double s = v * 256.0;
+        return new(ConvertToInt32(v * 256.0));
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int ConvertToInt32(double v)
+    {
         if (Sse2.IsSupported)
         {
-            return Sse2.ConvertToInt32(Vector128.CreateScalarUnsafe(s));
+            return Sse2.ConvertToInt32(Vector128.CreateScalarUnsafe(v));
         }
 
-        double r = Math.Round(s);
+        double r = Math.Round(v);
 #if NET9_0_OR_GREATER
         return double.ConvertToIntegerNative<int>(r);
-#endif
+#else
         return (int) r;
+#endif
     }
 
 
