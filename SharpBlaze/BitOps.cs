@@ -17,14 +17,7 @@ namespace SharpBlaze;
 
 public struct BitVector
 {
-    private nuint _value;
-
-    public static implicit operator nuint(BitVector value) => value._value;
-
-    public static implicit operator BitVector(nuint value) => new()
-    {
-        _value = value
-    };
+    internal nuint _value;
 }
 
 public static class BitOps
@@ -60,11 +53,11 @@ public static class BitOps
 
         for (int i = 0; i < count; i++)
         {
-            BitVector value = vec[i];
+            nuint value = vec[i]._value;
 
             if (value != 0)
             {
-                num += BitOperations.PopCount((nuint) value);
+                num += BitOperations.PopCount(value);
             }
         }
 
@@ -86,12 +79,12 @@ public static class BitOps
     {
         (uint vecIndex, uint localIndex) = Math.DivRem(index, (uint) sizeof(nuint) * 8U);
 
-        nuint current = vec[(int) vecIndex];
+        nuint current = vec[(int) vecIndex]._value;
         nuint bit = ((nuint) 1) << (int) localIndex;
 
         if ((current & bit) == 0)
         {
-            vec[(int) vecIndex] = current | bit;
+            vec[(int) vecIndex]._value = current | bit;
             return true;
         }
 
@@ -118,7 +111,7 @@ public static class BitOps
 
         for (; i < maxBitVectorCount; i++)
         {
-            if (vec[i] != 0)
+            if (vec[i]._value != 0)
             {
                 return i;
             }

@@ -17,13 +17,13 @@ public struct F24Dot8Point
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector128<int> ToVector128()
     {
-        return Vector128.Create(Unsafe.BitCast<F24Dot8Point, ulong>(this)).AsInt32();
+        return Vector128.Create((uint)X._value | ((ulong)Y._value << 32)).AsInt32();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector256<int> ToVector256()
     {
-        return Vector256.Create(Unsafe.BitCast<F24Dot8Point, ulong>(this)).AsInt32();
+        return Vector256.Create((uint)X._value | ((ulong)Y._value << 32)).AsInt32();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

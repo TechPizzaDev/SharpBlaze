@@ -72,8 +72,8 @@ public static unsafe partial class SIMD
         int i = 0;
         if (Vector128.IsHardwareAccelerated)
         {
-            Vector128<int> vOrigin = Broadcast128(origin);
-            Vector128<int> vSize = Broadcast128(size);
+            Vector128<int> vOrigin = origin.ToVector128();
+            Vector128<int> vSize = size.ToVector128();
 
             for (; i + 1 < count; i += 2)
             {
@@ -106,8 +106,8 @@ public static unsafe partial class SIMD
         if (Vector128.IsHardwareAccelerated)
         {
             Vector128<double> t = matrix.M3();
-            Vector128<int> vOrigin = Broadcast128(origin);
-            Vector128<int> vSize = Broadcast128(size);
+            Vector128<int> vOrigin = origin.ToVector128();
+            Vector128<int> vSize = size.ToVector128();
 
             for (; i + 1 < count; i += 2)
             {
@@ -145,8 +145,8 @@ public static unsafe partial class SIMD
         int i = 0;
         if (Vector128.IsHardwareAccelerated)
         {
-            Vector128<int> vOrigin = Broadcast128(origin);
-            Vector128<int> vSize = Broadcast128(size);
+            Vector128<int> vOrigin = origin.ToVector128();
+            Vector128<int> vSize = size.ToVector128();
             Vector128<double> s = Vector128.Create(sx, sy);
 
             for (; i + 1 < count; i += 2)
@@ -184,8 +184,8 @@ public static unsafe partial class SIMD
         {
             Vector128<double> s = Vector128.Create(m.M11(), m.M22());
             Vector128<double> t = m.M3();
-            Vector128<int> vOrigin = Broadcast128(origin);
-            Vector128<int> vSize = Broadcast128(size);
+            Vector128<int> vOrigin = origin.ToVector128();
+            Vector128<int> vSize = size.ToVector128();
 
             for (; i + 1 < count; i += 2)
             {
@@ -227,8 +227,8 @@ public static unsafe partial class SIMD
             Vector128<double> f0 = Vector128.Create(m.M11(), m.M21());
             Vector128<double> f1 = Vector128.Create(m.M12(), m.M22());
             Vector128<double> t = m.M3();
-            Vector128<int> vOrigin = Broadcast128(origin);
-            Vector128<int> vSize = Broadcast128(size);
+            Vector128<int> vOrigin = origin.ToVector128();
+            Vector128<int> vSize = size.ToVector128();
 
             for (; i + 1 < count; i += 2)
             {
@@ -291,12 +291,5 @@ public static unsafe partial class SIMD
                 (int) Math.Round(b.GetElement(0)),
                 (int) Math.Round(b.GetElement(1)));
         }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<int> Broadcast128(F24Dot8Point a)
-    {
-        var v = Unsafe.BitCast<F24Dot8Point, Vector64<int>>(a);
-        return Vector128.Create(v, v);
     }
 }

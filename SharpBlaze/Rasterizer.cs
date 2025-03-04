@@ -717,6 +717,7 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void CellVertical(
         Span2D<BitVector> bitVectorTable,
         Span2D<int> coverAreaTable, 
@@ -749,6 +750,7 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Cell(
         Span<BitVector> bitVector,
         Span<int> coverArea,
@@ -783,6 +785,7 @@ public unsafe partial struct Rasterizer<T>
     /// 
     /// Rasterize line within single pixel row. Line must go from left to right.
     /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void RowDownR(
         Span2D<BitVector> bitVectorTable,
         Span2D<int> coverAreaTable, 
@@ -1023,6 +1026,7 @@ public unsafe partial struct Rasterizer<T>
     /// 
     /// Rasterize line within single pixel row. Line must go from right to left.
     /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void RowDownL(
         Span2D<BitVector> bitVectorTable,
         Span2D<int> coverAreaTable, 
@@ -1112,7 +1116,6 @@ public unsafe partial struct Rasterizer<T>
     /// Rasterize line within single pixel row. Line must go from right to
     /// left or be vertical.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void RowDownL_V(
         Span2D<BitVector> bitVectorTable,
         Span2D<int> coverAreaTable,
@@ -1653,11 +1656,11 @@ public unsafe partial struct Rasterizer<T>
 
         for (int i = 0; i < bitVectorTable.Length; i++)
         {
-            BitVector bitset = bitVectorTable[i];
+            nuint bitset = bitVectorTable[i]._value;
 
             while (bitset != 0)
             {
-                BitVector t = bitset & (nuint) (-(nint) (nuint) bitset);
+                nuint t = bitset & (nuint) (-(nint) bitset);
                 int r = BitOperations.TrailingZeroCount(bitset);
                 int index = (i * sizeof(BitVector) * 8) + r;
 

@@ -10,6 +10,7 @@ public struct F24Dot8PointX2
 {
     private F24Dot8Point _e0;
    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Deconstruct(out F24Dot8Point a, out F24Dot8Point b)
     {
         a = this[0];

@@ -58,6 +58,21 @@ public readonly struct F24Dot8
         int mask = v >> 31;
         return (v + mask) ^ mask;
     }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8 operator +(F24Dot8 a, F24Dot8 b) => new(a._value + b._value);
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8 operator -(F24Dot8 a, F24Dot8 b) => new(a._value - b._value);
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8 operator *(F24Dot8 a, F24Dot8 b) => new(a._value * b._value);
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8 operator /(F24Dot8 a, F24Dot8 b) => new(a._value / b._value);
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8 operator %(F24Dot8 a, F24Dot8 b) => new(a._value % b._value);
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
