@@ -168,6 +168,9 @@ public static unsafe partial class SIMD
         {
             dst[0] = Clamp(ConvertToInt32(src[i].X * sx) - origin.X, 0, size.X);
             dst[1] = Clamp(ConvertToInt32(src[i].Y * sy) - origin.Y, 0, size.Y);
+            
+            src = src.Slice(1);
+            dst = dst.Slice(2);
         }
     }
 
@@ -215,6 +218,9 @@ public static unsafe partial class SIMD
         {
             dst[0] = Clamp(ConvertToInt32((src[0].X * sx) + tx) - origin.X, 0, size.X);
             dst[1] = Clamp(ConvertToInt32((src[0].Y * sy) + ty) - origin.Y, 0, size.Y);
+
+            src = src.Slice(1);
+            dst = dst.Slice(2);
         }
     }
 
