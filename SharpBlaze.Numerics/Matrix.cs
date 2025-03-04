@@ -100,11 +100,11 @@ public readonly partial struct Matrix
     {
         Vector128<double> topLeft = Map(rect.Min).AsVector128();
         Vector128<double> topRight = Map(rect.Max.X, rect.Min.Y).AsVector128();
-        Vector128<double> bottomLeft = Map(rect.Min.X, rect.Max.Y).AsVector128();
-        Vector128<double> bottomRight = Map(rect.Max).AsVector128();
+        Vector128<double> botLeft = Map(rect.Min.X, rect.Max.Y).AsVector128();
+        Vector128<double> botRight = Map(rect.Max).AsVector128();
 
-        Vector128<double> min = Vector128.Min(topLeft, Vector128.Min(topRight, Vector128.Min(bottomLeft, bottomRight)));
-        Vector128<double> max = Vector128.Max(topLeft, Vector128.Max(topRight, Vector128.Max(bottomLeft, bottomRight)));
+        Vector128<double> min = MinNative(topLeft, MinNative(topRight, MinNative(botLeft, botRight)));
+        Vector128<double> max = MaxNative(topLeft, MaxNative(topRight, MaxNative(botLeft, botRight)));
 
         return new FloatRect(new FloatPoint(min), new FloatPoint(max));
     }

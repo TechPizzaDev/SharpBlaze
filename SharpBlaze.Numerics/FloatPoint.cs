@@ -70,21 +70,21 @@ public struct FloatPoint : IEquatable<FloatPoint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly FloatPoint Clamp(FloatPoint min, FloatPoint max)
     {
-        Vector128<double> left = Vector128.Max(AsVector128(), min.AsVector128());
-        return new FloatPoint(Vector128.Min(left, max.AsVector128()));
+        Vector128<double> left = Utils.MaxNative(AsVector128(), min.AsVector128());
+        return new FloatPoint(Utils.MinNative(left, max.AsVector128()));
     }
 
-    public bool Equals(FloatPoint other)
+    public readonly bool Equals(FloatPoint other)
     {
         return this == other;
     }
 
-    public override bool Equals([NotNullWhen(true)] object? obj)
+    public override readonly bool Equals([NotNullWhen(true)] object? obj)
     {
         return obj is FloatPoint other && Equals(other);
     }
 
-    public override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         return HashCode.Combine(X, Y);
     }
@@ -124,7 +124,7 @@ public struct FloatPoint : IEquatable<FloatPoint>
         return !(a == b);
     }
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         string separator = NumberFormatInfo.GetInstance(null).NumberGroupSeparator;
 

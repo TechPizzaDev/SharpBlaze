@@ -121,8 +121,8 @@ public class VectorImageBuilder
         {
             Vector128<double> p = src[i].AsVector128();
 
-            min = Vector128.Min(min, p);
-            max = Vector128.Max(max, p);
+            min = Utils.MinNative(min, p);
+            max = Utils.MaxNative(max, p);
 
             dst[i] = new FloatPoint(p);
         }
