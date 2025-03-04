@@ -37,7 +37,7 @@ public unsafe partial struct Rasterizer<T>
 
     public static partial void Rasterize(
         ReadOnlyMemory<Geometry> inputGeometries,
-        in Matrix matrix, 
+        in Matrix matrix,
         Executor threads,
         ImageData image);
 
@@ -58,10 +58,10 @@ public unsafe partial struct Rasterizer<T>
 
     readonly struct LineIterationFunction
     {
-        public readonly delegate* managed<in RasterizableItem, Span2D<BitVector>, Span2D<int>, void> value;
+        public readonly delegate* managed<in RasterizableItem, Span2D<BitVector>, Span2D<CoverArea>, void> value;
 
         public LineIterationFunction(
-            delegate* managed<in RasterizableItem, Span2D<BitVector>, Span2D<int>, void> value)
+            delegate* managed<in RasterizableItem, Span2D<BitVector>, Span2D<CoverArea>, void> value)
         {
             this.value = value;
         }
@@ -117,7 +117,7 @@ public unsafe partial struct Rasterizer<T>
     private static partial void RasterizeRow(
         RowItemList<RasterizableItem>* rowList,
         ReadOnlySpan<Geometry> geometries,
-        ThreadMemory memory, 
+        ThreadMemory memory,
         ImageData image);
 
     [Obsolete]
@@ -184,7 +184,7 @@ public unsafe partial struct Rasterizer<T>
     /// </summary>
     private static StepState1 Step1(
         Executor threads,
-        in ImageData image, 
+        in ImageData image,
         ReadOnlyMemory<Geometry> geometries,
         int inputGeometryCount)
     {
@@ -211,7 +211,7 @@ public unsafe partial struct Rasterizer<T>
         threads.For(0, inputGeometryCount, &state1, static (index, state, memory) =>
         {
             StepState1* s = (StepState1*) state;
-            
+
             s->rasterizables[index] = CreateRasterizable(
                 s->rasterizableGeometryMemory + index,
                 s->geometries.Span[index],
@@ -237,7 +237,7 @@ public unsafe partial struct Rasterizer<T>
         }
 
         state1.visibleRasterizableCount = visibleRasterizableCount;
-        
+
         return state1;
     }
 
@@ -264,7 +264,7 @@ public unsafe partial struct Rasterizer<T>
         int threadCount = Math.Max(1, threads.WorkerCount);
 
         int iterationHeight = (int) Math.Max((uint) ((int) rowCount / threadCount), 1);
-        
+
         int iterationCount = ((int) rowCount / iterationHeight) +
             (int) Math.Min((uint) ((int) rowCount % iterationHeight), 1);
 
@@ -339,7 +339,7 @@ public unsafe partial struct Rasterizer<T>
         public required ImageData image;
         public required Memory<Geometry> geometries;
     }
-    
+
     /// <summary>
     /// Rasterize all intervals.
     /// </summary>
@@ -354,7 +354,7 @@ public unsafe partial struct Rasterizer<T>
         threads.For(0, (int) state2.rowCount, &state3, static (rowIndex, state, memory) =>
         {
             StepState3* s = (StepState3*) state;
-            
+
             RowItemList<RasterizableItem>* item = s->rowLists + rowIndex;
 
             RasterizeRow(item, s->geometries.Span, memory, s->image);
@@ -448,7 +448,7 @@ public unsafe partial struct Rasterizer<T>
     }
 
     private static void IterateLinesX32Y16(
-        in RasterizableItem item, Span2D<BitVector> bitVectorTable, Span2D<int> coverAreaTable)
+        in RasterizableItem item, Span2D<BitVector> bitVectorTable, Span2D<CoverArea> coverAreaTable)
     {
         int count = item.GetFirstBlockLineCount();
 
@@ -468,7 +468,7 @@ public unsafe partial struct Rasterizer<T>
 
                 F24Dot8 y0 = UnpackLoFromF8Dot8x2(y0y1);
                 F24Dot8 y1 = UnpackHiFromF8Dot8x2(y0y1);
-                
+
                 RasterizeLine(x0, y0, x1, y1, bitVectorTable, coverAreaTable);
             }
 
@@ -479,7 +479,7 @@ public unsafe partial struct Rasterizer<T>
 
 
     private static void IterateLinesX16Y16(
-        in RasterizableItem item, Span2D<BitVector> bitVectorTable, Span2D<int> coverAreaTable)
+        in RasterizableItem item, Span2D<BitVector> bitVectorTable, Span2D<CoverArea> coverAreaTable)
     {
         int count = item.GetFirstBlockLineCount();
 
@@ -499,7 +499,7 @@ public unsafe partial struct Rasterizer<T>
                     UnpackLoFromF8Dot8x2(x0x1),
                     UnpackLoFromF8Dot8x2(y0y1),
                     UnpackHiFromF8Dot8x2(x0x1),
-                    UnpackHiFromF8Dot8x2(y0y1), 
+                    UnpackHiFromF8Dot8x2(y0y1),
                     bitVectorTable,
                     coverAreaTable);
             }
@@ -510,10 +510,10 @@ public unsafe partial struct Rasterizer<T>
     }
 
     private static RasterizableGeometry* CreateRasterizable(
-        RasterizableGeometry* placement, 
+        RasterizableGeometry* placement,
         in Geometry geometry,
-        int geometryIndex, 
-        IntSize imageSize, 
+        int geometryIndex,
+        IntSize imageSize,
         ThreadMemory memory)
     {
         Debug.Assert(placement != null);
@@ -576,7 +576,7 @@ public unsafe partial struct Rasterizer<T>
                 placement, geometry, geometryIndex, bounds,
                 imageSize, new(&IterateLinesX16Y16), memory);
         }
-        
+
         return Linearize<LineArrayX32Y16>(
             placement, geometry, geometryIndex, bounds,
             imageSize, new(&IterateLinesX32Y16), memory);
@@ -660,8 +660,8 @@ public unsafe partial struct Rasterizer<T>
 
     private static void Vertical_Down(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable,
-        PixelIndex columnIndex, 
+        Span2D<CoverArea> coverAreaTable,
+        PixelIndex columnIndex,
         F24Dot8 y0, F24Dot8 y1,
         F24Dot8 x)
     {
@@ -678,7 +678,7 @@ public unsafe partial struct Rasterizer<T>
             CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex0, fx, fy0, fy1);
             return;
         }
-        
+
         CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex0, fx, fy0, F24Dot8_1);
 
         for (PixelIndex i = rowIndex0 + 1; i < rowIndex1; i++)
@@ -692,8 +692,8 @@ public unsafe partial struct Rasterizer<T>
 
     private static void Vertical_Up(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable, 
-        PixelIndex columnIndex, 
+        Span2D<CoverArea> coverAreaTable,
+        PixelIndex columnIndex,
         F24Dot8 y0, F24Dot8 y1,
         F24Dot8 x)
     {
@@ -710,7 +710,7 @@ public unsafe partial struct Rasterizer<T>
             CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex0, fx, fy0, fy1);
             return;
         }
-        
+
         CellVertical(bitVectorTable, coverAreaTable, columnIndex, rowIndex0, fx, fy0, 0);
 
         for (PixelIndex i = rowIndex0 - 1; i > rowIndex1; i--)
@@ -725,65 +725,56 @@ public unsafe partial struct Rasterizer<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void CellVertical(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable, 
-        PixelIndex px, 
+        Span2D<CoverArea> coverAreaTable,
+        PixelIndex px,
         PixelIndex py,
         F24Dot8 x,
         F24Dot8 y0, F24Dot8 y1)
     {
-        Debug.Assert(px >= 0);
-        Debug.Assert(py >= 0);
-        Debug.Assert(py < T.TileH);
+        ref CoverArea ca = ref coverAreaTable[(int) py][(int) px];
 
-        F24Dot8 delta = y0 - y1;
-        F24Dot8 a = delta * (F24Dot8_2 - x - x);
-        int index = (int) px << 1;
-        Span<int> ca = coverAreaTable[(int) py];
-
-        if (ConditionalSetBit(bitVectorTable[(int) py], px))
-        {
-            // New.
-            ca[index] = delta;
-            ca[index + 1] = a;
-        }
-        else
-        {
-            // Update old.
-            ca[index] += delta;
-            ca[index + 1] += a;
-        }
+        Cell(bitVectorTable[(int) py], ref ca, px, x, y0, x, y1);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Cell(
         Span<BitVector> bitVector,
-        Span<int> coverArea,
-        PixelIndex px, 
-        F24Dot8 x0, F24Dot8 y0, 
+        Span<CoverArea> coverArea,
+        PixelIndex px,
+        F24Dot8 x0, F24Dot8 y0,
         F24Dot8 x1, F24Dot8 y1)
     {
-        Debug.Assert(px >= 0);
+        ref CoverArea ca = ref coverArea[(int) px];
 
-        F24Dot8 delta = y0 - y1;
-        F24Dot8 a = delta * (F24Dot8_2 - x0 - x1);
-        int index = (int) px << 1;
-        Span<int> ca = coverArea;
+        Cell(bitVector, ref ca, px, x0, y0, x1, y1);
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Cell(
+        Span<BitVector> bitVector,
+        ref CoverArea ca,
+        PixelIndex px,
+        F24Dot8 x0, F24Dot8 y0,
+        F24Dot8 x1, F24Dot8 y1)
+    {
+        int delta = y0 - y1;
+        int a = delta * (F24Dot8_2 - x0 - x1);
 
         if (ConditionalSetBit(bitVector, px))
         {
             // New.
-            ca[index] = delta;
-            ca[index + 1] = a;
+            ca.Delta = delta;
+            ca.Area = a;
         }
         else
         {
             // Update old.
-            ca[index] += delta;
-            ca[index + 1] += a;
+            ca.Delta += delta;
+            ca.Area += a;
         }
     }
-
 
     /// <summary>
     /// ⬊
@@ -793,7 +784,7 @@ public unsafe partial struct Rasterizer<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void RowDownR(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable, 
+        Span2D<CoverArea> coverAreaTable,
         PixelIndex rowIndex,
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
@@ -807,8 +798,8 @@ public unsafe partial struct Rasterizer<T>
         Debug.Assert(p1y <= T.TileHF24Dot8);
         Debug.Assert(p0y <= p1y);
 
-        Span<BitVector> bitVector = bitVectorTable[(int)rowIndex];
-        Span<int> coverArea = coverAreaTable[(int)rowIndex];
+        Span<BitVector> bitVector = bitVectorTable[(int) rowIndex];
+        Span<CoverArea> coverArea = coverAreaTable[(int) rowIndex];
 
         PixelIndex columnIndex0 = F24Dot8ToPixelIndex(p0x);
         PixelIndex columnIndex1 = F24Dot8ToPixelIndex(p1x - 1);
@@ -829,7 +820,7 @@ public unsafe partial struct Rasterizer<T>
             Cell(bitVector, coverArea, columnIndex0, fx0, p0y, fx1, p1y);
             return;
         }
-        
+
         // Horizontal and vertical deltas.
         F24Dot8 dx = p1x - p0x;
         F24Dot8 dy = p1y - p0y;
@@ -883,7 +874,7 @@ public unsafe partial struct Rasterizer<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void RowDownR_V(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable,
+        Span2D<CoverArea> coverAreaTable,
         PixelIndex rowIndex,
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
@@ -914,9 +905,10 @@ public unsafe partial struct Rasterizer<T>
     ///
     /// Rasterize line within single pixel row. Line must go from left to right.
     /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void RowUpR(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable,
+        Span2D<CoverArea> coverAreaTable,
         PixelIndex rowIndex,
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
@@ -931,7 +923,7 @@ public unsafe partial struct Rasterizer<T>
         Debug.Assert(p0y >= p1y);
 
         Span<BitVector> bitVector = bitVectorTable[(int) rowIndex];
-        Span<int> coverArea = coverAreaTable[(int) rowIndex];
+        Span<CoverArea> coverArea = coverAreaTable[(int) rowIndex];
 
         PixelIndex columnIndex0 = F24Dot8ToPixelIndex(p0x);
         PixelIndex columnIndex1 = F24Dot8ToPixelIndex(p1x - 1);
@@ -952,7 +944,7 @@ public unsafe partial struct Rasterizer<T>
             Cell(bitVector, coverArea, columnIndex0, fx0, p0y, fx1, p1y);
             return;
         }
-        
+
         // Horizontal and vertical deltas.
         F24Dot8 dx = p1x - p0x;
         F24Dot8 dy = p0y - p1y;
@@ -973,7 +965,8 @@ public unsafe partial struct Rasterizer<T>
             F24Dot8 lift = p / dx;
             F24Dot8 rem = p % dx;
 
-            for (; idx != columnIndex1; idx++)
+            Span<CoverArea> coverSpan = coverArea.Slice(0, (int) columnIndex1);
+            for (PixelIndex i = idx; i < coverSpan.Length; i++)
             {
                 F24Dot8 delta = lift;
 
@@ -987,7 +980,7 @@ public unsafe partial struct Rasterizer<T>
 
                 F24Dot8 ny = cy - delta;
 
-                Cell(bitVector, coverArea, idx, 0, cy, F24Dot8_1, ny);
+                Cell(bitVector, coverSpan, i, 0, cy, F24Dot8_1, ny);
 
                 cy = ny;
             }
@@ -1000,7 +993,7 @@ public unsafe partial struct Rasterizer<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void RowUpR_V(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable,
+        Span2D<CoverArea> coverAreaTable,
         PixelIndex rowIndex,
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
@@ -1034,8 +1027,8 @@ public unsafe partial struct Rasterizer<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void RowDownL(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable, 
-        PixelIndex rowIndex, 
+        Span2D<CoverArea> coverAreaTable,
+        PixelIndex rowIndex,
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
     {
@@ -1049,7 +1042,7 @@ public unsafe partial struct Rasterizer<T>
         Debug.Assert(p0y <= p1y);
 
         Span<BitVector> bitVector = bitVectorTable[(int) rowIndex];
-        Span<int> coverArea = coverAreaTable[(int) rowIndex];
+        Span<CoverArea> coverArea = coverAreaTable[(int) rowIndex];
 
         PixelIndex columnIndex0 = F24Dot8ToPixelIndex(p0x - 1);
         PixelIndex columnIndex1 = F24Dot8ToPixelIndex(p1x);
@@ -1070,7 +1063,7 @@ public unsafe partial struct Rasterizer<T>
             Cell(bitVector, coverArea, columnIndex0, fx0, p0y, fx1, p1y);
             return;
         }
-        
+
         // Horizontal and vertical deltas.
         F24Dot8 dx = p0x - p1x;
         F24Dot8 dy = p1y - p0y;
@@ -1123,7 +1116,7 @@ public unsafe partial struct Rasterizer<T>
     /// </summary>
     private static void RowDownL_V(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable,
+        Span2D<CoverArea> coverAreaTable,
         PixelIndex rowIndex,
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
@@ -1154,9 +1147,10 @@ public unsafe partial struct Rasterizer<T>
     ///
     /// Rasterize line within single pixel row. Line must go from right to left.
     /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void RowUpL(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable,
+        Span2D<CoverArea> coverAreaTable,
         PixelIndex rowIndex,
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
@@ -1171,7 +1165,7 @@ public unsafe partial struct Rasterizer<T>
         Debug.Assert(p0y >= p1y);
 
         Span<BitVector> bitVector = bitVectorTable[(int) rowIndex];
-        Span<int> coverArea = coverAreaTable[(int) rowIndex];
+        Span<CoverArea> coverArea = coverAreaTable[(int) rowIndex];
 
         PixelIndex columnIndex0 = F24Dot8ToPixelIndex(p0x - 1);
         PixelIndex columnIndex1 = F24Dot8ToPixelIndex(p1x);
@@ -1192,7 +1186,7 @@ public unsafe partial struct Rasterizer<T>
             Cell(bitVector, coverArea, columnIndex0, fx0, p0y, fx1, p1y);
             return;
         }
-        
+
         // Horizontal and vertical deltas.
         F24Dot8 dx = p0x - p1x;
         F24Dot8 dy = p0y - p1y;
@@ -1246,7 +1240,7 @@ public unsafe partial struct Rasterizer<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void RowUpL_V(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable,
+        Span2D<CoverArea> coverAreaTable,
         PixelIndex rowIndex,
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
@@ -1277,7 +1271,7 @@ public unsafe partial struct Rasterizer<T>
     /// </summary>
     private static void LineDownR(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable,
+        Span2D<CoverArea> coverAreaTable,
         PixelIndex rowIndex0,
         PixelIndex rowIndex1,
         F24Dot8 x0, F24Dot8 y0,
@@ -1324,8 +1318,7 @@ public unsafe partial struct Rasterizer<T>
 
                 F24Dot8 nx = cx + delta;
 
-                RowDownR_V(bitVectorTable, coverAreaTable, idy, cx, 0, nx,
-                    F24Dot8_1);
+                RowDownR_V(bitVectorTable, coverAreaTable, idy, cx, 0, nx, F24Dot8_1);
 
                 cx = nx;
             }
@@ -1340,7 +1333,7 @@ public unsafe partial struct Rasterizer<T>
      */
     private static void LineUpR(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable,
+        Span2D<CoverArea> coverAreaTable,
         PixelIndex rowIndex0,
         PixelIndex rowIndex1,
         F24Dot8 x0, F24Dot8 y0,
@@ -1402,7 +1395,7 @@ public unsafe partial struct Rasterizer<T>
      */
     private static void LineDownL(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable,
+        Span2D<CoverArea> coverAreaTable,
         PixelIndex rowIndex0,
         PixelIndex rowIndex1,
         F24Dot8 x0, F24Dot8 y0,
@@ -1449,8 +1442,7 @@ public unsafe partial struct Rasterizer<T>
 
                 F24Dot8 nx = cx - delta;
 
-                RowDownL_V(bitVectorTable, coverAreaTable, idy, cx, 0, nx,
-                    F24Dot8_1);
+                RowDownL_V(bitVectorTable, coverAreaTable, idy, cx, 0, nx, F24Dot8_1);
 
                 cx = nx;
             }
@@ -1465,9 +1457,9 @@ public unsafe partial struct Rasterizer<T>
      */
     private static void LineUpL(
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable,
+        Span2D<CoverArea> coverAreaTable,
         PixelIndex rowIndex0,
-        PixelIndex rowIndex1, 
+        PixelIndex rowIndex1,
         F24Dot8 x0, F24Dot8 y0,
         F24Dot8 x1, F24Dot8 y1)
     {
@@ -1523,10 +1515,10 @@ public unsafe partial struct Rasterizer<T>
 
 
     private static void RasterizeLine(
-        F24Dot8 X0, F24Dot8 Y0, 
+        F24Dot8 X0, F24Dot8 Y0,
         F24Dot8 X1, F24Dot8 Y1,
-        Span2D<BitVector> bitVectorTable, 
-        Span2D<int> coverAreaTable)
+        Span2D<BitVector> bitVectorTable,
+        Span2D<CoverArea> coverAreaTable)
     {
         Debug.Assert(Y0 != Y1);
 
@@ -1561,7 +1553,7 @@ public unsafe partial struct Rasterizer<T>
     private static void RasterizeLineDown(
         F24Dot8 X0, F24Dot8 Y0, F24Dot8 X1, F24Dot8 Y1,
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable)
+        Span2D<CoverArea> coverAreaTable)
     {
         // Line is going down ↓
         PixelIndex rowIndex0 = F24Dot8ToPixelIndex(Y0);
@@ -1599,10 +1591,10 @@ public unsafe partial struct Rasterizer<T>
     }
 
     private static void RasterizeLineUp(
-        F24Dot8 X0, F24Dot8 Y0, 
+        F24Dot8 X0, F24Dot8 Y0,
         F24Dot8 X1, F24Dot8 Y1,
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable)
+        Span2D<CoverArea> coverAreaTable)
     {
         // Line is going up ↑
         PixelIndex rowIndex0 = F24Dot8ToPixelIndex(Y0 - 1);
@@ -1641,9 +1633,9 @@ public unsafe partial struct Rasterizer<T>
 
 
     private static void RenderOneLine<B, F>(
-        Span<uint> image, 
+        Span<uint> image,
         ReadOnlySpan<BitVector> bitVectorTable,
-        ReadOnlySpan<int> coverAreaTable,
+        ReadOnlySpan<CoverArea> coverAreaTable,
         int startCover,
         B blender)
         where B : ISpanBlender
@@ -1672,12 +1664,11 @@ public unsafe partial struct Rasterizer<T>
                 bitset ^= t;
 
                 // Note that index is in local geometry coordinates.
-                int tableIndex = index << 1;
                 int edgeX = index;
                 int nextEdgeX = edgeX + 1;
 
                 // Signed area for pixel at bit index.
-                int area = coverAreaTable[tableIndex + 1] + (cover << 9);
+                int area = coverAreaTable[index].Area + (cover << 9);
 
                 // Area converted to alpha according to fill rule.
                 uint alpha = (uint) F.ApplyFillRule(area);
@@ -1772,7 +1763,7 @@ public unsafe partial struct Rasterizer<T>
                     }
                 }
 
-                cover += coverAreaTable[tableIndex];
+                cover += coverAreaTable[index].Delta;
             }
         }
 
@@ -1799,8 +1790,8 @@ public unsafe partial struct Rasterizer<T>
         in RasterizableItem item,
         ReadOnlySpan<Geometry> geometries,
         Span2D<BitVector> bitVectorTable,
-        Span2D<int> coverAreaTable,
-        int columnCount, 
+        Span2D<CoverArea> coverAreaTable,
+        int columnCount,
         ImageData image)
     {
         // A maximum number of horizontal tiles.
@@ -1838,7 +1829,7 @@ public unsafe partial struct Rasterizer<T>
         // Start row.
         int bytesPerRow = image.BytesPerRow;
         int bytesPerSpan = (image.Width - x) * sizeof(uint);
-        
+
         Span<byte> imageData = new(image.Data, image.Height * bytesPerRow);
         Span<byte> rowData = imageData.Slice(py * bytesPerRow + x * sizeof(uint));
 
@@ -1884,13 +1875,13 @@ public unsafe partial struct Rasterizer<T>
     }
 
     private static void RenderLines<B, F>(
-        Span<byte> rowData, 
-        int height, 
+        Span<byte> rowData,
+        int height,
         int bytesPerRow,
         int bytesPerSpan,
         ReadOnlySpan2D<BitVector> bitVectorTable,
         int bitVectorsPerRow,
-        ReadOnlySpan2D<int> coverAreaTable,
+        ReadOnlySpan2D<CoverArea> coverAreaTable,
         ReadOnlySpan<int> coversStart,
         B blender)
         where B : ISpanBlender
@@ -1900,12 +1891,12 @@ public unsafe partial struct Rasterizer<T>
         {
             int rowStart = y * bytesPerRow;
             Span<byte> row = rowData.Slice(rowStart, bytesPerSpan);
-            
+
             RenderOneLine<B, F>(
                 MemoryMarshal.Cast<byte, uint>(row),
                 bitVectorTable[y].Slice(0, bitVectorsPerRow),
-                coverAreaTable[y], 
-                coversStart[y], 
+                coverAreaTable[y],
+                coversStart[y],
                 blender);
         }
     }
@@ -1933,11 +1924,11 @@ public unsafe partial struct Rasterizer<T>
             T.TileH);
 
         // Create cover/area table.
-        int coverAreaPerRow = (int) columnCount * T.TileW * 2;
+        int coverAreaPerRow = (int) columnCount * T.TileW;
         int coverAreaCount = coverAreaPerRow * T.TileH;
 
-        Span2D<int> coverArea = new(
-            memory.TaskMallocArray<int>(coverAreaCount),
+        Span2D<CoverArea> coverArea = new(
+            memory.TaskMallocArray<CoverArea>(coverAreaCount),
             coverAreaPerRow,
             T.TileH);
 
@@ -1953,9 +1944,9 @@ public unsafe partial struct Rasterizer<T>
             while (itm < e)
             {
                 RasterizeOneItem(
-                    in *itm++, 
+                    in *itm++,
                     geometries,
-                    bitVectors, 
+                    bitVectors,
                     coverArea,
                     (int) columnCount,
                     image);
