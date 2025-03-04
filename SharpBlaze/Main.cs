@@ -17,6 +17,7 @@ public unsafe class Main
     private VectorImage mVectorImage;
 
     protected Queue<double> samples = new();
+    private double[] sampleBuffer = new double[60 * 10];
 
     public Main(uint width, uint height)
     {
@@ -54,24 +55,50 @@ public unsafe class Main
         long raster_end = Stopwatch.GetTimestamp();
         //Console.WriteLine(clips + " - " + notClips + " - " + misses);
 
-        double rasterTime = Stopwatch.GetElapsedTime(raster_start, raster_end).TotalMilliseconds;
+        double rasterTime = Stopwatch.GetElapsedTime(raster_start, raster_end).TotalMicroseconds;
 
         samples.Enqueue(rasterTime);
 
-        while (samples.Count > 60 * 10)
+        while (samples.Count > sampleBuffer.Length)
         {
             samples.Dequeue();
         }
     }
 
-    public (double avgTime, double stDev, double median) GetTimings()
+    public (TimeSpan avgTime, TimeSpan stDev, TimeSpan median) GetTimings()
     {
-        double avgRasterTime = samples.Sum() / samples.Count;
-        double sqSum = samples.Select(x => x * x).Sum();
-        double stDev = Math.Sqrt(sqSum / samples.Count - avgRasterTime * avgRasterTime);
+        samples.CopyTo(sampleBuffer, 0);
+        Span<double> span = sampleBuffer.AsSpan(0, samples.Count);
 
-        double median = samples.Order().ElementAt(samples.Count / 2);
+        double avgTime = 0;
+        double sqSum = 0;
+        foreach (double x in span)
+        {
+            avgTime += x;
+            sqSum += x * x;
+        }
+        avgTime /= span.Length;
+        double stDev = Math.Sqrt(sqSum / span.Length - avgTime * avgTime);
+        
+        span.Sort();
+        double median = span[span.Length / 2];
 
-        return (avgRasterTime, median, stDev);
+        return (
+            TimeSpan.FromMicroseconds(avgTime),
+            TimeSpan.FromMicroseconds(stDev), 
+            TimeSpan.FromMicroseconds(median));
+    }
+
+    public string GetWindowTitle()
+    {
+        (TimeSpan avgRasterTime, TimeSpan stDev, TimeSpan median) = GetTimings();
+        double fps = 1.0 / avgRasterTime.TotalSeconds;
+
+        string title =
+            $"FPS: {fps:#0.0} - " +
+            $"{avgRasterTime.TotalMilliseconds:#0.00}±" +
+            $"{stDev.TotalMilliseconds:#0.00}ms stdev / {median.TotalMilliseconds:#0.00} median";
+
+        return title;
     }
 }

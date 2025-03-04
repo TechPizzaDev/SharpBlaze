@@ -20,14 +20,14 @@ public unsafe class SdlMain : Main, IDisposable
             "Rasterizer",
             Sdl.WindowposUndefined,
             Sdl.WindowposUndefined,
-            (int)width,
-            (int)height,
-            (uint)WindowFlags.Hidden);
+            (int) width,
+            (int) height,
+            (uint) WindowFlags.Hidden);
 
         windowSurface = this.sdl.GetWindowSurface(window);
 
         drawSurface = this.sdl.CreateRGBSurfaceWithFormat(
-            0, (int)width, (int)height, 32, (uint)PixelFormatEnum.Abgr8888);
+            0, (int) width, (int) height, 32, (uint) PixelFormatEnum.Abgr8888);
 
         sdl.SetSurfaceBlendMode(drawSurface, BlendMode.None);
     }
@@ -45,7 +45,7 @@ public unsafe class SdlMain : Main, IDisposable
         {
             while (sdl.PollEvent(ref ev) != 0)
             {
-                var evType = (EventType)ev.Type;
+                var evType = (EventType) ev.Type;
                 switch (evType)
                 {
                     case EventType.Quit:
@@ -90,11 +90,7 @@ public unsafe class SdlMain : Main, IDisposable
 
             Rasterize();
 
-            (double avgRasterTime, double stDev, double median) = GetTimings();
-            int fps = (int)(1000.0f / avgRasterTime);
-
-            string title = $"FPS: {fps} - Raster time: {avgRasterTime:0.000}±{stDev:0.000}ms stddev / {median:0.000}ms median";
-            sdl.SetWindowTitle(window, title);
+            sdl.SetWindowTitle(window, GetWindowTitle());
 
             sdl.LockSurface(drawSurface);
             {

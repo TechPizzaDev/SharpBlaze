@@ -87,12 +87,7 @@ public unsafe class Win32Main : Main
                 Win32Main main = hwndToInstanceLookup[(IntPtr) hWnd.Value];
                 main.Rasterize();
 
-                (double avgRasterTime, double stDev, double median) = main.GetTimings();
-
-                int fps = (int) (1000.0f / avgRasterTime);
-
-                string title = $"FPS: {fps}      Rasterization time: {avgRasterTime:0.000}±{stDev:0.000}ms stddev / {median:0.000}ms median";
-                fixed (char* titlePtr = title)
+                fixed (char* titlePtr = main.GetWindowTitle())
                 {
                     SetWindowText(hWnd, titlePtr);
                 }
@@ -187,7 +182,7 @@ public unsafe class Win32Main : Main
                 Vector128<byte> bgra = Vector128.Shuffle(
                     rgba,
                     Vector128.Create((byte) 2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15));
-                
+
                 bgra.CopyTo(data);
                 data = data.Slice(Vector128<byte>.Count);
             }
