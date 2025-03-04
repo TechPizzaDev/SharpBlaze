@@ -8,7 +8,7 @@ namespace SharpBlaze;
 /**
  * A helper class for managing an image to draw on.
  */
-public unsafe partial class DestinationImage<T>
+public unsafe class DestinationImage<T>
     where T : unmanaged, ITileDescriptor
 {
     public DestinationImage()
@@ -77,8 +77,8 @@ public unsafe partial class DestinationImage<T>
 
         ImageData d = new(mImageData, mImageSize.Width, mImageSize.Height, mBytesPerRow);
 
-        Rasterizer<T>.Rasterize(geometries, matrix, executor, d);
-
+        Rasterizer<T>.Rasterize(geometries.Span, matrix, executor, d);
+        
         GC.KeepAlive(image);
 
         // Free all the memory allocated by threads.

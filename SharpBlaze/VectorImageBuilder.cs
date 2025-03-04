@@ -53,7 +53,7 @@ public class VectorImageBuilder
         _closeOffsets.Clear();
     }
 
-    public unsafe VectorImage ToVectorImage(uint color)
+    public VectorImage ToVectorImage(uint color)
     {
         int geometryCapacity = _closeOffsets.Count + 1;
         Geometry[] geometries = new Geometry[geometryCapacity];
@@ -83,7 +83,7 @@ public class VectorImageBuilder
         return new VectorImage(geometries, fullBounds);
     }
 
-    private unsafe bool TryCreateGeo(
+    private bool TryCreateGeo(
         FillRule fillRule, uint color,
         Range tagRange, Range pointRange, ref IntRect fullBounds, out Geometry geometry)
     {

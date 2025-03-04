@@ -36,7 +36,7 @@ public unsafe partial struct Rasterizer<T>
 {
 
     public static partial void Rasterize(
-        ReadOnlyMemory<Geometry> inputGeometries,
+        ReadOnlySpan<Geometry> geometries,
         in Matrix matrix,
         Executor threads,
         ImageData image);
@@ -93,7 +93,7 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    unsafe partial struct RasterizableItem
+    partial struct RasterizableItem
     {
         public RasterizableItem(RasterizableGeometry* rasterizable, int localRowIndex)
         {
@@ -124,56 +124,28 @@ public unsafe partial struct Rasterizer<T>
     public Rasterizer() { }
 
     public static partial void Rasterize(
-        ReadOnlyMemory<Geometry> inputGeometries,
+        ReadOnlySpan<Geometry> geometries,
         in Matrix matrix,
         Executor threads,
         ImageData image)
     {
-        int inputGeometryCount = inputGeometries.Length;
-
-        Debug.Assert(inputGeometryCount > 0);
+        Debug.Assert(geometries.Length > 0);
         Debug.Assert(image.Data != null);
         Debug.Assert(image.Width > 0);
         Debug.Assert(image.Height > 0);
         Debug.Assert(image.BytesPerRow >= (image.Width * 4));
 
-        // TODO
-        // Skip transform if matrix is identity.
-
-        Memory<Geometry> geometries =
-            // TODO: threads.MainMemory.FrameMallocArray<Geometry>(inputGeometryCount);
-            new Geometry[inputGeometryCount];
-
-        ReadOnlySpan<Geometry> srcSpan = inputGeometries.Span;
-        Span<Geometry> dstSpan = geometries.Span;
-
-        for (int i = 0; i < inputGeometryCount; i++)
-        {
-            ref readonly Geometry s = ref srcSpan[i];
-
-            Matrix tm = s.TM;
-
-            tm *= matrix;
-
-            dstSpan[i] = new Geometry(
-                tm.MapBoundingRect(s.PathBounds),
-                s.Tags,
-                s.Points,
-                tm,
-                s.Color,
-                s.Rule);
-        }
-
-        StepState1 state1 = Step1(threads, image, geometries, inputGeometryCount);
+        StepState1 state1 = Step1(threads, image, geometries, matrix);
         StepState2 state2 = Step2(threads, state1);
         Step3(threads, image, geometries, state2);
     }
 
-    private struct StepState1
+    private ref struct StepState1
     {
         public required RasterizableGeometry** rasterizables;
         public required RasterizableGeometry* rasterizableGeometryMemory;
-        public required ReadOnlyMemory<Geometry> geometries;
+        public required ReadOnlySpan<Geometry> geometries;
+        public required Matrix transform;
         public required IntSize imageSize;
         public int visibleRasterizableCount;
     }
@@ -185,16 +157,16 @@ public unsafe partial struct Rasterizer<T>
     private static StepState1 Step1(
         Executor threads,
         in ImageData image,
-        ReadOnlyMemory<Geometry> geometries,
-        int inputGeometryCount)
+        ReadOnlySpan<Geometry> geometries,
+        in Matrix transform)
     {
         // Allocate memory for RasterizableGeometry instance pointers.
         RasterizableGeometry** rasterizables =
-            threads.MainMemory.FrameMallocPointers<RasterizableGeometry>(inputGeometryCount);
+            threads.MainMemory.FrameMallocPointers<RasterizableGeometry>(geometries.Length);
 
         // Allocate memory for RasterizableGeometry instances.
         RasterizableGeometry* rasterizableGeometryMemory =
-            threads.MainMemory.FrameMallocArray<RasterizableGeometry>(inputGeometryCount);
+            threads.MainMemory.FrameMallocArray<RasterizableGeometry>(geometries.Length);
 
         IntSize imageSize = new(
             image.Width,
@@ -206,15 +178,30 @@ public unsafe partial struct Rasterizer<T>
             rasterizables = rasterizables,
             rasterizableGeometryMemory = rasterizableGeometryMemory,
             geometries = geometries,
+            transform = transform,
             imageSize = imageSize,
         };
-        threads.For(0, inputGeometryCount, &state1, static (index, state, memory) =>
+        threads.For(0, geometries.Length, &state1, static (index, state, memory) =>
         {
             StepState1* s = (StepState1*) state;
 
+            ref readonly Geometry srcGeo = ref s->geometries[index];
+            
+            Matrix tm = srcGeo.TM * s->transform;
+            IntRect bounds = tm.MapBoundingRect(srcGeo.PathBounds);
+
+            Geometry rasterGeo = new(
+                bounds,
+                srcGeo.Tags,
+                srcGeo.Points, 
+                tm, 
+                srcGeo.Color, 
+                srcGeo.Rule
+            );
+            
             s->rasterizables[index] = CreateRasterizable(
                 s->rasterizableGeometryMemory + index,
-                s->geometries.Span[index],
+                rasterGeo,
                 index,
                 s->imageSize,
                 memory);
@@ -226,7 +213,7 @@ public unsafe partial struct Rasterizer<T>
 
         int visibleRasterizableCount = 0;
 
-        for (int i = 0; i < inputGeometryCount; i++)
+        for (int i = 0; i < geometries.Length; i++)
         {
             RasterizableGeometry* rasterizable = rasterizables[i];
 
@@ -333,17 +320,18 @@ public unsafe partial struct Rasterizer<T>
         return state2;
     }
 
-    private struct StepState3
+    private ref struct StepState3
     {
         public required RowItemList<RasterizableItem>* rowLists;
         public required ImageData image;
-        public required Memory<Geometry> geometries;
+        public required ReadOnlySpan<Geometry> geometries;
     }
 
     /// <summary>
     /// Rasterize all intervals.
     /// </summary>
-    private static void Step3(Executor threads, in ImageData image, Memory<Geometry> geometries, in StepState2 state2)
+    private static void Step3(
+        Executor threads, in ImageData image, ReadOnlySpan<Geometry> geometries, in StepState2 state2)
     {
         StepState3 state3 = new()
         {
@@ -357,7 +345,7 @@ public unsafe partial struct Rasterizer<T>
 
             RowItemList<RasterizableItem>* item = s->rowLists + rowIndex;
 
-            RasterizeRow(item, s->geometries.Span, memory, s->image);
+            RasterizeRow(item, s->geometries, memory, s->image);
         });
     }
 
@@ -424,7 +412,7 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    unsafe partial struct RasterizableItem
+    partial struct RasterizableItem
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly partial int GetFirstBlockLineCount()
