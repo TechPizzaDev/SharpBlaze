@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
 
@@ -12,20 +14,23 @@ public struct F24Dot8Point
         Y = y;
     }
 
-    public static F24Dot8Point FloatPointToF24Dot8Point(FloatPoint p) 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vector128<int> ToVector128()
     {
-        return new F24Dot8Point(
-            F24Dot8.DoubleToF24Dot8(p.X),
-            F24Dot8.DoubleToF24Dot8(p.Y)
-        );
+        return Vector128.Create(Unsafe.BitCast<F24Dot8Point, ulong>(this)).AsInt32();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vector256<int> ToVector256()
+    {
+        return Vector256.Create(Unsafe.BitCast<F24Dot8Point, ulong>(this)).AsInt32();
+    }
 
-    public static F24Dot8Point FloatPointToF24Dot8Point(double x, double y)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public F24Dot8Point Clamp(F24Dot8Point min, F24Dot8Point max)
     {
         return new F24Dot8Point(
-            F24Dot8.DoubleToF24Dot8(x),
-            F24Dot8.DoubleToF24Dot8(y)
-        );
+            Utils.Clamp(X, min.X, max.X),
+            Utils.Clamp(Y, min.Y, max.Y));
     }
 }

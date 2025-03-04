@@ -4,13 +4,42 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace SharpBlaze;
 
 public static class Utils
 {
     internal const double DBL_EPSILON = 2.2204460492503131e-16;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<double> MinNative(Vector128<double> left, Vector128<double> right)
+    {
+#if NET9_0_OR_GREATER
+        return Vector128.MinNative(left, right);
+#else
+        if (Sse2.IsSupported)
+        {
+            return Sse2.Min(left, right);
+        }
+        return Vector128.Min(left, right);
+#endif
+    }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<double> MaxNative(Vector128<double> left, Vector128<double> right)
+    {
+#if NET9_0_OR_GREATER
+        return Vector128.MaxNative(left, right);
+#else
+        if (Sse2.IsSupported)
+        {
+            return Sse2.Max(left, right);
+        }
+        return Vector128.Max(left, right);
+#endif
+    }
+
 
     /**
      * Returns value clamped to range between minimum and maximum values.

@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace SharpBlaze;
 
@@ -38,7 +39,29 @@ public struct FloatPoint : IEquatable<FloatPoint>
     {
         return Unsafe.BitCast<FloatPoint, Vector128<double>>(this);
     }
-    
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly F24Dot8Point ToF24Dot8()
+    {
+        Vector128<double> scaled = AsVector128() * Vector128.Create(256.0);
+
+        Vector128<int> conv;
+        if (Sse2.IsSupported)
+        {
+            conv = Sse2.ConvertToVector128Int32(scaled);
+        }
+        else
+        {
+            Vector128<float> narrow = Vector128.Narrow(scaled, scaled);
+#if NET9_0_OR_GREATER
+            conv = Vector128.ConvertToInt32Native(narrow);
+#else
+            conv = Vector128.ConvertToInt32(narrow);
+#endif
+        }
+        return new F24Dot8Point(conv.GetElement(0), conv.GetElement(1));
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly FloatPoint Clamp(FloatPoint min, FloatPoint max)
     {
@@ -66,19 +89,19 @@ public struct FloatPoint : IEquatable<FloatPoint>
     {
         return new FloatPoint(a.AsVector128() - b.AsVector128());
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FloatPoint operator +(FloatPoint a, FloatPoint b)
     {
         return new FloatPoint(a.AsVector128() + b.AsVector128());
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FloatPoint operator *(FloatPoint a, FloatPoint b)
     {
         return new FloatPoint(a.AsVector128() * b.AsVector128());
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FloatPoint operator /(FloatPoint a, FloatPoint b)
     {

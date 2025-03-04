@@ -1,19 +1,196 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
+
+[InlineArray(2)]
+public struct F24Dot8PointX2
+{
+    private F24Dot8Point _e0;
+   
+    public void Deconstruct(out F24Dot8Point a, out F24Dot8Point b)
+    {
+        a = this[0];
+        b = this[1];
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<int> FromFloatToV128(FloatPoint p0, FloatPoint p1)
+    {
+        Vector128<double> factor = Vector128.Create(256.0);
+        Vector128<double> s0 = p0.AsVector128() * factor;
+        Vector128<double> s1 = p1.AsVector128() * factor;
+
+        Vector128<float> narrow01 = Vector128.Narrow(s0, s1);
+        
+#if NET9_0_OR_GREATER
+        Vector128<int> conv01 = Vector128.ConvertToInt32Native(narrow01);
+#else
+        Vector128<int> conv01 = Vector128.ConvertToInt32(narrow01);
+#endif
+        return conv01;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8PointX2 ClampFromFloat(
+        FloatPoint p0, FloatPoint p1,
+        F24Dot8Point min, F24Dot8Point max)
+    {
+        Vector128<int> p01 = FromFloatToV128(p0, p1);
+        Vector128<int> vMin = min.ToVector128();
+        Vector128<int> vMax = max.ToVector128();
+        
+        p01 = Utils.Clamp(p01, vMin, vMax);
+        return FromV128(p01);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static F24Dot8PointX2 FromV128(Vector128<int> p01)
+    {
+        Unsafe.SkipInit(out F24Dot8PointX2 result);
+        result[0] = new(p01.GetElement(0), p01.GetElement(1));
+        result[1] = new(p01.GetElement(2), p01.GetElement(3));
+        return result;
+    }
+}
 
 [InlineArray(3)]
 public struct F24Dot8PointX3
 {
     private F24Dot8Point _e0;
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static (Vector128<int> P01, Vector128<int> P2) FromFloatToV128(
+        FloatPoint p0, FloatPoint p1, FloatPoint p2)
+    {
+        Vector128<double> factor = Vector128.Create(256.0);
+        Vector128<double> s0 = p0.AsVector128() * factor;
+        Vector128<double> s1 = p1.AsVector128() * factor;
+        Vector128<double> s2 = p2.AsVector128() * factor;
+
+        Vector128<float> narrow01 = Vector128.Narrow(s0, s1);
+        Vector128<float> narrow22 = Vector128.Narrow(s2, s2);
+        
+#if NET9_0_OR_GREATER
+        Vector128<int> conv01 = Vector128.ConvertToInt32Native(narrow01);
+        Vector128<int> conv22 = Vector128.ConvertToInt32Native(narrow22);
+#else
+        Vector128<int> conv01 = Vector128.ConvertToInt32(narrow01);
+        Vector128<int> conv22 = Vector128.ConvertToInt32(narrow22);
+#endif
+        return (conv01, conv22);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void FromV128(Vector128<int> p01, Vector128<int> p2, out F24Dot8PointX3 result)
+    {
+        Unsafe.SkipInit(out result);
+        result[0] = new(p01.GetElement(0), p01.GetElement(1));
+        result[1] = new(p01.GetElement(2), p01.GetElement(3));
+        result[2] = new(p2.GetElement(0), p2.GetElement(1));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void FromFloat(
+        FloatPoint p0, FloatPoint p1, FloatPoint p2, 
+        out F24Dot8PointX3 result)
+    {
+        (Vector128<int> p01, Vector128<int> p22) = FromFloatToV128(p0, p1, p2);
+        FromV128(p01, p22, out result);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ClampFromFloat(
+        FloatPointX3 p,
+        F24Dot8Point min, 
+        F24Dot8Point max,
+        out F24Dot8PointX3 result)
+    {
+        (Vector128<int> p01, Vector128<int> p22) = FromFloatToV128(p[0], p[1], p[2]);
+        Vector128<int> vMin = min.ToVector128();
+        Vector128<int> vMax = max.ToVector128();
+        
+        p01 = Utils.Clamp(p01, vMin, vMax);
+        p22 = Utils.Clamp(p22, vMin, vMax);
+        FromV128(p01, p22, out result);
+    }
 }
 
 [InlineArray(4)]
 public struct F24Dot8PointX4
 {
     private F24Dot8Point _e0;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static (Vector128<int> P01, Vector128<int> P23) FromFloatToV128(
+        FloatPoint p0, FloatPoint p1, FloatPoint p2, FloatPoint p3)
+    {
+        Vector128<double> factor = Vector128.Create(256.0);
+        Vector128<double> s0 = p0.AsVector128() * factor;
+        Vector128<double> s1 = p1.AsVector128() * factor;
+        Vector128<double> s2 = p2.AsVector128() * factor;
+        Vector128<double> s3 = p3.AsVector128() * factor;
+
+        Vector128<float> narrow01 = Vector128.Narrow(s0, s1);
+        Vector128<float> narrow23 = Vector128.Narrow(s2, s3);
+        
+#if NET9_0_OR_GREATER
+        Vector128<int> conv01 = Vector128.ConvertToInt32Native(narrow01);
+        Vector128<int> conv23 = Vector128.ConvertToInt32Native(narrow23);
+#else
+        Vector128<int> conv01 = Vector128.ConvertToInt32(narrow01);
+        Vector128<int> conv23 = Vector128.ConvertToInt32(narrow23);
+#endif
+        return (conv01, conv23);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void FromV128(Vector128<int> p01, Vector128<int> p23, out F24Dot8PointX4 result)
+    {
+        Unsafe.SkipInit(out result);
+        result[0] = new(p01.GetElement(0), p01.GetElement(1));
+        result[1] = new(p01.GetElement(2), p01.GetElement(3));
+        result[2] = new(p23.GetElement(0), p23.GetElement(1));
+        result[3] = new(p23.GetElement(2), p23.GetElement(3));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void FromFloat(
+        FloatPoint p0, FloatPoint p1, FloatPoint p2, FloatPoint p3,
+        out F24Dot8PointX4 result)
+    {
+        (Vector128<int> p01, Vector128<int> p23) = FromFloatToV128(p0, p1, p2, p3);
+        FromV128(p01, p23, out result);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ClampFromFloat(
+        FloatPointX4 p,
+        F24Dot8Point min, 
+        F24Dot8Point max,
+        out F24Dot8PointX4 result)
+    {
+        (Vector128<int> p01, Vector128<int> p23) = FromFloatToV128(p[0], p[1], p[2], p[3]);
+        Vector128<int> vMin = min.ToVector128();
+        Vector128<int> vMax = max.ToVector128();
+        
+        p01 = Utils.Clamp(p01, vMin, vMax);
+        p23 = Utils.Clamp(p23, vMin, vMax);
+        FromV128(p01, p23, out result);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public F24Dot8PointX4 Clamp(F24Dot8Point min, F24Dot8Point max)
+    {
+        Vector256<int> value = Unsafe.BitCast<F24Dot8PointX4, Vector256<int>>(this);
+        Vector256<int> vMin = min.ToVector256();
+        Vector256<int> vMax = max.ToVector256();
+        
+        Vector256<int> clamped = Utils.Clamp(value, vMin, vMax);
+        return Unsafe.BitCast<Vector256<int>, F24Dot8PointX4>(clamped);
+    }
 }
 
 [InlineArray(5)]
@@ -157,8 +334,10 @@ public static unsafe class LinearizerUtils
 
         F24Dot8 m0x = (s[0].X + s[1].X) >> 1;
         F24Dot8 m0y = (s[0].Y + s[1].Y) >> 1;
+        
         F24Dot8 m1x = (s[1].X + s[2].X) >> 1;
         F24Dot8 m1y = (s[1].Y + s[2].Y) >> 1;
+        
         F24Dot8 mx = (m0x + m1x) >> 1;
         F24Dot8 my = (m0y + m1y) >> 1;
 
@@ -184,21 +363,26 @@ public static unsafe class LinearizerUtils
      * @param s Source curve defined by four points.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void SplitCubic(out F24Dot8PointX7 r, in F24Dot8PointX4 s)
+    public static void SplitCubic(out F24Dot8PointX7 r, F24Dot8PointX4 s)
     {
         //Debug.Assert(r != null);
         //Debug.Assert(s != null);
 
         F24Dot8 m0x = (s[0].X + s[1].X) >> 1;
         F24Dot8 m0y = (s[0].Y + s[1].Y) >> 1;
+        
         F24Dot8 m1x = (s[1].X + s[2].X) >> 1;
         F24Dot8 m1y = (s[1].Y + s[2].Y) >> 1;
+        
         F24Dot8 m2x = (s[2].X + s[3].X) >> 1;
         F24Dot8 m2y = (s[2].Y + s[3].Y) >> 1;
+        
         F24Dot8 m3x = (m0x + m1x) >> 1;
         F24Dot8 m3y = (m0y + m1y) >> 1;
+        
         F24Dot8 m4x = (m1x + m2x) >> 1;
         F24Dot8 m4y = (m1y + m2y) >> 1;
+        
         F24Dot8 mx = (m3x + m4x) >> 1;
         F24Dot8 my = (m3y + m4y) >> 1;
 
@@ -234,26 +418,27 @@ public static unsafe class LinearizerUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicQuadraticAtX(in FloatPointX3 quadratic, double x, out double t)
+    public static bool CutMonotonicQuadraticAtX(FloatPointX3 quadratic, double x, out double t)
     {
         //Debug.Assert(quadratic != null);
 
-        return CutMonotonicQuadraticAt(quadratic[0].X, quadratic[1].X,
-            quadratic[2].X, x, out t);
+        return CutMonotonicQuadraticAt(
+            quadratic[0].X, quadratic[1].X, quadratic[2].X, x, out t);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicQuadraticAtY(in FloatPointX3 quadratic, double y, out double t)
+    public static bool CutMonotonicQuadraticAtY(FloatPointX3 quadratic, double y, out double t)
     {
         //Debug.Assert(quadratic != null);
 
-        return CutMonotonicQuadraticAt(quadratic[0].Y, quadratic[1].Y,
-            quadratic[2].Y, y, out t);
+        return CutMonotonicQuadraticAt(
+            quadratic[0].Y, quadratic[1].Y, quadratic[2].Y, y, out t);
     }
 
-
-    public static bool CutMonotonicCubicAt(out double t, in DoubleX4 pts)
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool CutMonotonicCubicAt(out double t, DoubleX4 pts)
     {
         const double Tolerance = 1e-7;
 
@@ -322,7 +507,7 @@ public static unsafe class LinearizerUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicCubicAtY(in FloatPointX4 pts, double y, out double t)
+    public static bool CutMonotonicCubicAtY(FloatPointX4 pts, double y, out double t)
     {
         DoubleX4 c;
         Unsafe.SkipInit(out c);
@@ -336,7 +521,7 @@ public static unsafe class LinearizerUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicCubicAtX(in FloatPointX4 pts, double x, out double t)
+    public static bool CutMonotonicCubicAtX(FloatPointX4 pts, double x, out double t)
     {
         DoubleX4 c;
         Unsafe.SkipInit(out c);

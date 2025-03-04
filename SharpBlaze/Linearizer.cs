@@ -113,11 +113,11 @@ public unsafe partial struct Linearizer<T, L>
      * ProcessContained because of doing extra work of determining how
      * individual segments contribute to the result.
      */
-    private partial void ProcessUncontained(Geometry* geometry, ThreadMemory memory, in ClipBounds clip,
+    private partial void ProcessUncontained(Geometry* geometry, ThreadMemory memory, ClipBounds clip,
         in Matrix matrix);
 
 
-    private partial void AddUncontainedLine(ThreadMemory memory, in ClipBounds clip,
+    private partial void AddUncontainedLine(ThreadMemory memory, ClipBounds clip,
         FloatPoint p0, FloatPoint p1);
 
 
@@ -135,8 +135,8 @@ public unsafe partial struct Linearizer<T, L>
      *
      * @param p Arbitrary quadratic curve.
      */
-    private partial void AddUncontainedQuadratic(ThreadMemory memory, in ClipBounds clip,
-        in FloatPointX3 p);
+    private partial void AddUncontainedQuadratic(ThreadMemory memory, ClipBounds clip,
+        FloatPointX3 p);
 
 
     /**
@@ -150,7 +150,7 @@ public unsafe partial struct Linearizer<T, L>
      * @param p Monotonic quadratic curve.
      */
     private partial void AddUncontainedMonotonicQuadratic(ThreadMemory memory,
-        in ClipBounds clip, in FloatPointX3 p);
+        ClipBounds clip, FloatPointX3 p);
 
 
     /**
@@ -165,7 +165,7 @@ public unsafe partial struct Linearizer<T, L>
      * @param p Monotonic quadratic curve.
      */
     private partial void AddVerticallyContainedMonotonicQuadratic(ThreadMemory memory,
-        in ClipBounds clip, ref FloatPointX3 p);
+        ClipBounds clip, FloatPointX3 p);
 
 
     /**
@@ -173,7 +173,7 @@ public unsafe partial struct Linearizer<T, L>
      * points are in 24.8 format.
      */
     private partial void AddContainedQuadraticF24Dot8(ThreadMemory memory,
-        in F24Dot8PointX3 q);
+        F24Dot8PointX3 q);
 
 
     /**
@@ -186,8 +186,8 @@ public unsafe partial struct Linearizer<T, L>
      *
      * @param p Arbitrary cubic curve.
      */
-    private partial void AddUncontainedCubic(ThreadMemory memory, in ClipBounds clip,
-        in FloatPointX4 p);
+    private partial void AddUncontainedCubic(ThreadMemory memory, 
+        ClipBounds clip, FloatPointX4 p);
 
 
     /**
@@ -201,7 +201,7 @@ public unsafe partial struct Linearizer<T, L>
      * @param p Monotonic cubic curve.
      */
     private partial void AddUncontainedMonotonicCubic(ThreadMemory memory,
-        in ClipBounds clip, in FloatPointX4 p);
+        ClipBounds clip, FloatPointX4 p);
 
 
     /**
@@ -216,11 +216,11 @@ public unsafe partial struct Linearizer<T, L>
      * @param p Monotonic cubic curve.
      */
     private partial void AddVerticallyContainedMonotonicCubic(ThreadMemory memory,
-        in ClipBounds clip, ref FloatPointX4 p);
+        ClipBounds clip, FloatPointX4 p);
 
 
     private partial void AddPotentiallyUncontainedCubicF24Dot8(ThreadMemory memory,
-        F24Dot8Point max, in F24Dot8PointX4 c);
+        F24Dot8Point max, F24Dot8PointX4 c);
 
 
     /**
@@ -228,7 +228,7 @@ public unsafe partial struct Linearizer<T, L>
      * are in 24.8 format.
      */
     private partial void AddContainedCubicF24Dot8(ThreadMemory memory,
-        in F24Dot8PointX4 c);
+        F24Dot8PointX4 c);
 
 
     /**
@@ -317,7 +317,8 @@ public unsafe partial struct Linearizer<T, L>
     private readonly L* mLA;
 
 
-    public static partial Linearizer<T, L> Create(ThreadMemory memory, in TileBounds bounds, bool contains, Geometry* geometry)
+    public static partial Linearizer<T, L> Create(
+        ThreadMemory memory, in TileBounds bounds, bool contains, Geometry* geometry)
     {
         L* lineArray = memory.TaskMallocArray<L>((int) bounds.RowCount);
 
@@ -412,7 +413,6 @@ public unsafe partial struct Linearizer<T, L>
                     moveTo = pp[0];
 
                     pp++;
-
                     break;
                 }
 
@@ -421,7 +421,6 @@ public unsafe partial struct Linearizer<T, L>
                     AddContainedLineF24Dot8(memory, pp[-1], pp[0]);
 
                     pp++;
-
                     break;
                 }
 
@@ -430,7 +429,6 @@ public unsafe partial struct Linearizer<T, L>
                     AddContainedQuadraticF24Dot8(memory, *(F24Dot8PointX3*) (pp - 1));
 
                     pp += 2;
-
                     break;
                 }
 
@@ -439,7 +437,6 @@ public unsafe partial struct Linearizer<T, L>
                     AddContainedCubicF24Dot8(memory, *(F24Dot8PointX4*) (pp - 1));
 
                     pp += 3;
-
                     break;
                 }
 
@@ -456,7 +453,7 @@ public unsafe partial struct Linearizer<T, L>
 
 
     private partial void ProcessUncontained(Geometry* geometry, ThreadMemory memory,
-        in ClipBounds clip, in Matrix matrix)
+        ClipBounds clip, in Matrix matrix)
     {
         int tagCount = geometry->TagCount;
         PathTag* tags = geometry->Tags;
@@ -479,24 +476,20 @@ public unsafe partial struct Linearizer<T, L>
                     AddUncontainedLine(memory, clip, segment[0], moveTo);
 
                     moveTo = matrix.Map(points[0]);
-
                     points++;
 
                     segment[0] = moveTo;
-
                     break;
                 }
 
                 case PathTag.Line:
                 {
                     FloatPoint p = matrix.Map(points[0]);
-
                     points++;
 
                     AddUncontainedLine(memory, clip, segment[0], p);
 
                     segment[0] = p;
-
                     break;
                 }
 
@@ -504,13 +497,11 @@ public unsafe partial struct Linearizer<T, L>
                 {
                     segment[1] = matrix.Map(points[0]);
                     segment[2] = matrix.Map(points[1]);
-
                     points += 2;
 
                     AddUncontainedQuadratic(memory, clip, segment.Get3(0));
 
                     segment[0] = segment[2];
-
                     break;
                 }
 
@@ -519,13 +510,11 @@ public unsafe partial struct Linearizer<T, L>
                     segment[1] = matrix.Map(points[0]);
                     segment[2] = matrix.Map(points[1]);
                     segment[3] = matrix.Map(points[2]);
-
                     points += 3;
 
                     AddUncontainedCubic(memory, clip, segment);
 
                     segment[0] = segment[3];
-
                     break;
                 }
 
@@ -542,10 +531,11 @@ public unsafe partial struct Linearizer<T, L>
 
 
     private partial void AddUncontainedLine(ThreadMemory memory,
-        in ClipBounds clip, FloatPoint p0, FloatPoint p1)
+        ClipBounds clip, FloatPoint p0, FloatPoint p1)
     {
         Debug.Assert(double.IsFinite(p0.X));
         Debug.Assert(double.IsFinite(p0.Y));
+        
         Debug.Assert(double.IsFinite(p1.X));
         Debug.Assert(double.IsFinite(p1.Y));
 
@@ -582,28 +572,20 @@ public unsafe partial struct Linearizer<T, L>
         if (x0 == x1)
         {
             // Vertical line.
-            F24Dot8 x0c = Clamp(DoubleToF24Dot8(x0), 0, clip.FMax.X);
-            F24Dot8 p0y = Clamp(DoubleToF24Dot8(y0), 0, clip.FMax.Y);
+            F24Dot8Point p0c = p0.ToF24Dot8().Clamp(default, clip.FMax);
             F24Dot8 p1y = Clamp(DoubleToF24Dot8(y1), 0, clip.FMax.Y);
 
-            if (x0c == 0)
+            if (p0c.X == 0)
             {
-                UpdateStartCovers(memory, p0y, p1y);
+                UpdateStartCovers(memory, p0c.Y, p1y);
             }
             else
             {
-                F24Dot8Point a;
-                F24Dot8Point b;
-
-                a.X = x0c;
-                a.Y = p0y;
-
-                b.X = x0c;
-                b.Y = p1y;
+                F24Dot8Point a = p0c;
+                F24Dot8Point b = new(p0c.X, p1y);
 
                 AddContainedLineF24Dot8(memory, a, b);
             }
-
             return;
         }
 
@@ -675,17 +657,12 @@ public unsafe partial struct Linearizer<T, L>
         if (rx0 > 0 && rx1 > 0 && rx0 < clip.Max.X && rx1 < clip.Max.X)
         {
             // Inside.
-            F24Dot8Point a;
-            F24Dot8Point b;
-
-            a.X = Clamp(DoubleToF24Dot8(rx0), 0, clip.FMax.X);
-            a.Y = Clamp(DoubleToF24Dot8(ry0), 0, clip.FMax.Y);
-
-            b.X = Clamp(DoubleToF24Dot8(rx1), 0, clip.FMax.X);
-            b.Y = Clamp(DoubleToF24Dot8(ry1), 0, clip.FMax.Y);
-
+            (F24Dot8Point a, F24Dot8Point b) = F24Dot8PointX2.ClampFromFloat(
+                new FloatPoint(rx0, ry0),
+                new FloatPoint(rx1, ry1),
+                default, clip.FMax);
+            
             AddContainedLineF24Dot8(memory, a, b);
-
             return;
         }
 
@@ -696,7 +673,6 @@ public unsafe partial struct Linearizer<T, L>
             F24Dot8 b = Clamp(DoubleToF24Dot8(ry1), 0, clip.FMax.Y);
 
             UpdateStartCovers(memory, a, b);
-
             return;
         }
 
@@ -727,28 +703,21 @@ public unsafe partial struct Linearizer<T, L>
                 F24Dot8 a = Clamp(DoubleToF24Dot8(ry0), 0, clip.FMax.Y);
 
                 F24Dot8Point b;
-                F24Dot8Point c;
-
                 b.X = 0;
                 b.Y = Clamp(DoubleToF24Dot8(ry0 + (deltay_h * t)), 0, clip.FMax.Y);
 
-                c.X = Clamp(DoubleToF24Dot8(bx1), 0, clip.FMax.X);
-                c.Y = Clamp(DoubleToF24Dot8(by1), 0, clip.FMax.Y);
-
+                F24Dot8Point c = new FloatPoint(bx1, by1).ToF24Dot8().Clamp(default, clip.FMax);
+                
                 UpdateStartCovers(memory, a, b.Y);
 
                 AddContainedLineF24Dot8(memory, b, c);
             }
             else
             {
-                F24Dot8Point a;
-                F24Dot8Point b;
-
-                a.X = Clamp(DoubleToF24Dot8(rx0), 0, clip.FMax.X);
-                a.Y = Clamp(DoubleToF24Dot8(ry0), 0, clip.FMax.Y);
-
-                b.X = Clamp(DoubleToF24Dot8(bx1), 0, clip.FMax.X);
-                b.Y = Clamp(DoubleToF24Dot8(by1), 0, clip.FMax.Y);
+                (F24Dot8Point a, F24Dot8Point b) = F24Dot8PointX2.ClampFromFloat(
+                    new FloatPoint(rx0, ry0),
+                    new FloatPoint(bx1, by1), 
+                    default, clip.FMax);
 
                 AddContainedLineF24Dot8(memory, a, b);
             }
@@ -773,12 +742,9 @@ public unsafe partial struct Linearizer<T, L>
                 // Split at min-x.
                 double t = rx0 / deltax_h;
 
-                F24Dot8Point a;
+                F24Dot8Point a = new FloatPoint(bx0, by0).ToF24Dot8().Clamp(default, clip.FMax);
+                
                 F24Dot8Point b;
-
-                a.X = Clamp(DoubleToF24Dot8(bx0), 0, clip.FMax.X);
-                a.Y = Clamp(DoubleToF24Dot8(by0), 0, clip.FMax.Y);
-
                 b.X = 0;
                 b.Y = Clamp(DoubleToF24Dot8(ry0 + (deltay_h * t)), 0, clip.FMax.Y);
 
@@ -790,14 +756,10 @@ public unsafe partial struct Linearizer<T, L>
             }
             else
             {
-                F24Dot8Point a;
-                F24Dot8Point b;
-
-                a.X = Clamp(DoubleToF24Dot8(bx0), 0, clip.FMax.X);
-                a.Y = Clamp(DoubleToF24Dot8(by0), 0, clip.FMax.Y);
-
-                b.X = Clamp(DoubleToF24Dot8(rx1), 0, clip.FMax.X);
-                b.Y = Clamp(DoubleToF24Dot8(ry1), 0, clip.FMax.Y);
+                (F24Dot8Point a, F24Dot8Point b) = F24Dot8PointX2.ClampFromFloat(
+                    new FloatPoint(bx0, by0),
+                    new FloatPoint(rx1, ry1),
+                    default, clip.FMax);
 
                 AddContainedLineF24Dot8(memory, a, b);
             }
@@ -808,15 +770,17 @@ public unsafe partial struct Linearizer<T, L>
     static F24Dot8 MaximumDelta => 2048 << 8;
 
 
-    private partial void AddContainedLineF24Dot8(ThreadMemory memory,
-        F24Dot8Point p0, F24Dot8Point p1)
+    private partial void AddContainedLineF24Dot8(ThreadMemory memory, F24Dot8Point p0, F24Dot8Point p1)
     {
         Debug.Assert(p0.X >= 0);
         Debug.Assert(p0.X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
+        
         Debug.Assert(p0.Y >= 0);
         Debug.Assert(p0.Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
+        
         Debug.Assert(p1.X >= 0);
         Debug.Assert(p1.X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
+        
         Debug.Assert(p1.Y >= 0);
         Debug.Assert(p1.Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
 
@@ -844,7 +808,6 @@ public unsafe partial struct Linearizer<T, L>
 
                 Vertical_Up(memory, p0.Y, p1.Y, p0.X);
             }
-
             return;
         }
 
@@ -861,7 +824,6 @@ public unsafe partial struct Linearizer<T, L>
 
             AddContainedLineF24Dot8(memory, p0, m);
             AddContainedLineF24Dot8(memory, m, p1);
-
             return;
         }
 
@@ -933,36 +895,26 @@ public unsafe partial struct Linearizer<T, L>
 
 
     private partial void AddUncontainedQuadratic(ThreadMemory memory,
-        in ClipBounds clip, in FloatPointX3 p)
+        ClipBounds clip, FloatPointX3 p)
     {
         //Debug.Assert(p != null);
 
-        Vector128<double> pmin = Vector128.Min(
-            Vector128.Min(p[0].AsVector128(), p[1].AsVector128()),
+        Vector128<double> pmin = MinNative(
+            MinNative(p[0].AsVector128(), p[1].AsVector128()),
             p[2].AsVector128());
 
-        double minx = pmin.GetElement(0);
-
-        if (minx >= clip.Max.X)
+        if (Vector128.GreaterThanOrEqualAny(pmin, clip.Max.AsVector128()))
         {
-            // Curve is to the right of clipping bounds.
+            // X: Curve is to the right of clipping bounds.
+            // Y: Curve is below clipping bounds.
             return;
         }
 
-        double miny = pmin.GetElement(1);
-
-        if (miny >= clip.Max.Y)
-        {
-            // Curve is below clipping bounds.
-            return;
-        }
-
-        Vector128<double> pmax = Vector128.Max(
-            Vector128.Max(p[0].AsVector128(), p[1].AsVector128()),
+        Vector128<double> pmax = MaxNative(
+            MaxNative(p[0].AsVector128(), p[1].AsVector128()),
             p[2].AsVector128());
 
         double maxy = pmax.GetElement(1);
-
         if (maxy <= 0)
         {
             // Curve is above clipping bounds.
@@ -971,7 +923,7 @@ public unsafe partial struct Linearizer<T, L>
 
         // First test if primitive intersects with any of horizontal axes of
         // clipping bounds.
-        if (miny >= 0 && maxy <= clip.Max.Y)
+        if (pmin.GetElement(1) >= 0 && maxy <= clip.Max.Y)
         {
             // Primitive is within clipping bounds vertically.
             double maxx = pmax.GetElement(0);
@@ -984,27 +936,15 @@ public unsafe partial struct Linearizer<T, L>
                 F24Dot8 b = Clamp(DoubleToF24Dot8(p[2].Y), 0, clip.FMax.Y);
 
                 UpdateStartCovers(memory, a, b);
-
                 return;
             }
 
-            if (maxx <= clip.Max.X && minx >= 0)
+            if (maxx <= clip.Max.X && pmin.GetElement(0) >= 0)
             {
                 // Curve is completely inside.
-                F24Dot8PointX3 q;
-                Unsafe.SkipInit(out q);
-
-                q[0].X = Clamp(DoubleToF24Dot8(p[0].X), 0, clip.FMax.X);
-                q[0].Y = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
-
-                q[1].X = Clamp(DoubleToF24Dot8(p[1].X), 0, clip.FMax.X);
-                q[1].Y = Clamp(DoubleToF24Dot8(p[1].Y), 0, clip.FMax.Y);
-
-                q[2].X = Clamp(DoubleToF24Dot8(p[2].X), 0, clip.FMax.X);
-                q[2].Y = Clamp(DoubleToF24Dot8(p[2].Y), 0, clip.FMax.Y);
+                F24Dot8PointX3.ClampFromFloat(p, default, clip.FMax, out F24Dot8PointX3 q);
 
                 AddContainedQuadraticF24Dot8(memory, q);
-
                 return;
             }
         }
@@ -1063,19 +1003,22 @@ public unsafe partial struct Linearizer<T, L>
 
 
     private partial void AddUncontainedMonotonicQuadratic(
-        ThreadMemory memory, in ClipBounds clip, in FloatPointX3 p)
+        ThreadMemory memory, ClipBounds clip, FloatPointX3 p)
     {
         //Debug.Assert(p != null);
         Debug.Assert(double.IsFinite(p[0].X));
         Debug.Assert(double.IsFinite(p[0].Y));
+        
         Debug.Assert(double.IsFinite(p[1].X));
         Debug.Assert(double.IsFinite(p[1].Y));
+        
         Debug.Assert(double.IsFinite(p[2].X));
         Debug.Assert(double.IsFinite(p[2].Y));
 
         // Assuming curve is monotonic.
         Debug.Assert(p[1].X <= Math.Max(p[0].X, p[2].X));
         Debug.Assert(p[1].X >= Math.Min(p[0].X, p[2].X));
+        
         Debug.Assert(p[1].Y <= Math.Max(p[0].Y, p[2].Y));
         Debug.Assert(p[1].Y >= Math.Min(p[0].Y, p[2].Y));
 
@@ -1103,11 +1046,7 @@ public unsafe partial struct Linearizer<T, L>
             return;
         }
 
-        FloatPointX3 pts;
-        Unsafe.SkipInit(out pts);
-        pts[0] = p[0];
-        pts[1] = p[1];
-        pts[2] = p[2];
+        FloatPointX3 pts = p;
 
         if (sy > py)
         {
@@ -1123,7 +1062,6 @@ public unsafe partial struct Linearizer<T, L>
 
                     pts[0] = tmp[2];
                     pts[1] = tmp[3];
-
                     // pts[2] already contains tmp[4].
                 }
             }
@@ -1138,13 +1076,12 @@ public unsafe partial struct Linearizer<T, L>
                     CutQuadraticAt(pts, out FloatPointX5 tmp, t);
 
                     // pts[0] already contains tmp[0].
-
                     pts[1] = tmp[1];
                     pts[2] = tmp[2];
                 }
             }
 
-            AddVerticallyContainedMonotonicQuadratic(memory, clip, ref pts);
+            AddVerticallyContainedMonotonicQuadratic(memory, clip, pts);
         }
         else if (sy < py)
         {
@@ -1159,7 +1096,6 @@ public unsafe partial struct Linearizer<T, L>
                     CutQuadraticAt(pts, out FloatPointX5 tmp, t);
 
                     // pts[0] already contains tmp[0].
-
                     pts[1] = tmp[1];
                     pts[2] = tmp[2];
                 }
@@ -1176,30 +1112,32 @@ public unsafe partial struct Linearizer<T, L>
 
                     pts[0] = tmp[2];
                     pts[1] = tmp[3];
-
                     // pts[2] already contains tmp[4].
                 }
             }
 
-            AddVerticallyContainedMonotonicQuadratic(memory, clip, ref pts);
+            AddVerticallyContainedMonotonicQuadratic(memory, clip, pts);
         }
     }
 
 
     private partial void AddVerticallyContainedMonotonicQuadratic(
-        ThreadMemory memory, in ClipBounds clip, ref FloatPointX3 p)
+        ThreadMemory memory, ClipBounds clip, FloatPointX3 p)
     {
         //Debug.Assert(p != null);
         Debug.Assert(double.IsFinite(p[0].X));
         Debug.Assert(double.IsFinite(p[0].Y));
+        
         Debug.Assert(double.IsFinite(p[1].X));
         Debug.Assert(double.IsFinite(p[1].Y));
+        
         Debug.Assert(double.IsFinite(p[2].X));
         Debug.Assert(double.IsFinite(p[2].Y));
 
         // Assuming curve is monotonic.
         Debug.Assert(p[1].X <= Math.Max(p[0].X, p[2].X));
         Debug.Assert(p[1].X >= Math.Min(p[0].X, p[2].X));
+        
         Debug.Assert(p[1].Y <= Math.Max(p[0].Y, p[2].Y));
         Debug.Assert(p[1].Y >= Math.Min(p[0].Y, p[2].Y));
 
@@ -1223,7 +1161,6 @@ public unsafe partial struct Linearizer<T, L>
                 F24Dot8 b = Clamp(DoubleToF24Dot8(p[2].Y), 0, clip.FMax.Y);
 
                 UpdateStartCovers(memory, a, b);
-
                 return;
             }
 
@@ -1238,7 +1175,6 @@ public unsafe partial struct Linearizer<T, L>
 
                     p[0] = tmp[2];
                     p[1] = tmp[3];
-
                     // p[2] already contains tmp[4].
                 }
             }
@@ -1252,42 +1188,21 @@ public unsafe partial struct Linearizer<T, L>
                     // the part on the left side of bounding box.
                     CutQuadraticAt(p, out FloatPointX5 tmp, t);
 
-                    F24Dot8PointX3 q;
-                    Unsafe.SkipInit(out q);
+                    F24Dot8PointX3.ClampFromFloat(
+                        tmp.Get3(0), default, clip.FMax, out F24Dot8PointX3 q);
 
-                    q[0].X = Clamp(DoubleToF24Dot8(tmp[0].X), 0, clip.FMax.X);
-                    q[0].Y = Clamp(DoubleToF24Dot8(tmp[0].Y), 0, clip.FMax.Y);
-
-                    q[1].X = Clamp(DoubleToF24Dot8(tmp[1].X), 0, clip.FMax.X);
-                    q[1].Y = Clamp(DoubleToF24Dot8(tmp[1].Y), 0, clip.FMax.Y);
-
-                    q[2].X = Clamp(DoubleToF24Dot8(tmp[2].X), 0, clip.FMax.X);
-                    q[2].Y = Clamp(DoubleToF24Dot8(tmp[2].Y), 0, clip.FMax.Y);
-
-                    F24Dot8 c = Clamp(DoubleToF24Dot8(tmp[4].Y), 0,
-                        clip.FMax.Y);
+                    F24Dot8 c = Clamp(DoubleToF24Dot8(tmp[4].Y), 0, clip.FMax.Y);
 
                     AddContainedQuadraticF24Dot8(memory, q);
 
                     UpdateStartCovers(memory, q[2].Y, c);
-
                     return;
                 }
             }
 
             // At this point we have entire curve inside bounding box.
             {
-                F24Dot8PointX3 q;
-                Unsafe.SkipInit(out q);
-
-                q[0].X = Clamp(DoubleToF24Dot8(p[0].X), 0, clip.FMax.X);
-                q[0].Y = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
-
-                q[1].X = Clamp(DoubleToF24Dot8(p[1].X), 0, clip.FMax.X);
-                q[1].Y = Clamp(DoubleToF24Dot8(p[1].Y), 0, clip.FMax.Y);
-
-                q[2].X = Clamp(DoubleToF24Dot8(p[2].X), 0, clip.FMax.X);
-                q[2].Y = Clamp(DoubleToF24Dot8(p[2].Y), 0, clip.FMax.Y);
+                F24Dot8PointX3.ClampFromFloat(p, default, clip.FMax, out F24Dot8PointX3 q);
 
                 AddContainedQuadraticF24Dot8(memory, q);
             }
@@ -1309,7 +1224,6 @@ public unsafe partial struct Linearizer<T, L>
                 F24Dot8 b = Clamp(DoubleToF24Dot8(p[2].Y), 0, clip.FMax.Y);
 
                 UpdateStartCovers(memory, a, b);
-
                 return;
             }
 
@@ -1323,7 +1237,6 @@ public unsafe partial struct Linearizer<T, L>
                     CutQuadraticAt(p, out FloatPointX5 tmp, t);
 
                     // p[0] already contains tmp[0].
-
                     p[1] = tmp[1];
                     p[2] = tmp[2];
                 }
@@ -1338,42 +1251,21 @@ public unsafe partial struct Linearizer<T, L>
                     // need the part on the left side of bounding box.
                     CutQuadraticAt(p, out FloatPointX5 tmp, t);
 
-                    F24Dot8 a = Clamp(DoubleToF24Dot8(tmp[0].Y), 0,
-                        clip.FMax.Y);
+                    F24Dot8 a = Clamp(DoubleToF24Dot8(tmp[0].Y), 0, clip.FMax.Y);
 
-                    F24Dot8PointX3 q;
-                    Unsafe.SkipInit(out q);
-
-                    q[0].X = Clamp(DoubleToF24Dot8(tmp[2].X), 0, clip.FMax.X);
-                    q[0].Y = Clamp(DoubleToF24Dot8(tmp[2].Y), 0, clip.FMax.Y);
-
-                    q[1].X = Clamp(DoubleToF24Dot8(tmp[3].X), 0, clip.FMax.X);
-                    q[1].Y = Clamp(DoubleToF24Dot8(tmp[3].Y), 0, clip.FMax.Y);
-
-                    q[2].X = Clamp(DoubleToF24Dot8(tmp[4].X), 0, clip.FMax.X);
-                    q[2].Y = Clamp(DoubleToF24Dot8(tmp[4].Y), 0, clip.FMax.Y);
+                    F24Dot8PointX3.ClampFromFloat(
+                        tmp.Get3(2), default, clip.FMax, out F24Dot8PointX3 q);
 
                     UpdateStartCovers(memory, a, q[0].Y);
 
                     AddContainedQuadraticF24Dot8(memory, q);
-
                     return;
                 }
             }
 
             // At this point we have entire curve inside bounding box.
             {
-                F24Dot8PointX3 q;
-                Unsafe.SkipInit(out q);
-
-                q[0].X = Clamp(DoubleToF24Dot8(p[0].X), 0, clip.FMax.X);
-                q[0].Y = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
-
-                q[1].X = Clamp(DoubleToF24Dot8(p[1].X), 0, clip.FMax.X);
-                q[1].Y = Clamp(DoubleToF24Dot8(p[1].Y), 0, clip.FMax.Y);
-
-                q[2].X = Clamp(DoubleToF24Dot8(p[2].X), 0, clip.FMax.X);
-                q[2].Y = Clamp(DoubleToF24Dot8(p[2].Y), 0, clip.FMax.Y);
+                F24Dot8PointX3.ClampFromFloat(p, default, clip.FMax, out F24Dot8PointX3 q);
 
                 AddContainedQuadraticF24Dot8(memory, q);
             }
@@ -1394,17 +1286,7 @@ public unsafe partial struct Linearizer<T, L>
                 else
                 {
                     // Vertical line inside clip rect.
-                    F24Dot8PointX3 q;
-                    Unsafe.SkipInit(out q);
-
-                    q[0].X = Clamp(DoubleToF24Dot8(p[0].X), 0, clip.FMax.X);
-                    q[0].Y = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
-
-                    q[1].X = Clamp(DoubleToF24Dot8(p[1].X), 0, clip.FMax.X);
-                    q[1].Y = Clamp(DoubleToF24Dot8(p[1].Y), 0, clip.FMax.Y);
-
-                    q[2].X = Clamp(DoubleToF24Dot8(p[2].X), 0, clip.FMax.X);
-                    q[2].Y = Clamp(DoubleToF24Dot8(p[2].Y), 0, clip.FMax.Y);
+                    F24Dot8PointX3.ClampFromFloat(p, default, clip.FMax, out F24Dot8PointX3 q);
 
                     AddContainedQuadraticF24Dot8(memory, q);
                 }
@@ -1414,18 +1296,19 @@ public unsafe partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void AddContainedQuadraticF24Dot8(ThreadMemory memory,
-        in F24Dot8PointX3 q)
+    private partial void AddContainedQuadraticF24Dot8(ThreadMemory memory, F24Dot8PointX3 q)
     {
         //Debug.Assert(q != null);
         Debug.Assert(q[0].X >= 0);
         Debug.Assert(q[0].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(q[0].Y >= 0);
         Debug.Assert(q[0].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
+        
         Debug.Assert(q[1].X >= 0);
         Debug.Assert(q[1].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(q[1].Y >= 0);
         Debug.Assert(q[1].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
+        
         Debug.Assert(q[2].X >= 0);
         Debug.Assert(q[2].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(q[2].Y >= 0);
@@ -1448,33 +1331,24 @@ public unsafe partial struct Linearizer<T, L>
 
 
     private partial void AddUncontainedCubic(ThreadMemory memory,
-        in ClipBounds clip, in FloatPointX4 p)
+        ClipBounds clip, FloatPointX4 p)
     {
         //Debug.Assert(p != null);
 
-        Vector128<double> pmin = Vector128.Min(
-            Vector128.Min(p[0].AsVector128(), p[1].AsVector128()),
-            Vector128.Min(p[2].AsVector128(), p[3].AsVector128()));
+        Vector128<double> pmin = MinNative(
+            MinNative(p[0].AsVector128(), p[1].AsVector128()),
+            MinNative(p[2].AsVector128(), p[3].AsVector128()));
 
-        double minx = pmin.GetElement(0);
-
-        if (minx >= clip.Max.X)
+        if (Vector128.GreaterThanOrEqualAny(pmin, clip.Max.AsVector128()))
         {
-            // Curve is to the right of clipping bounds.
+            // X: Curve is to the right of clipping bounds.
+            // Y: Curve is below clipping bounds.
             return;
         }
-
-        double miny = pmin.GetElement(1);
-
-        if (miny >= clip.Max.Y)
-        {
-            // Curve is below clipping bounds.
-            return;
-        }
-
-        Vector128<double> pmax = Vector128.Max(
-            Vector128.Max(p[0].AsVector128(), p[1].AsVector128()),
-            Vector128.Max(p[2].AsVector128(), p[3].AsVector128()));
+        
+        Vector128<double> pmax = MaxNative(
+            MaxNative(p[0].AsVector128(), p[1].AsVector128()),
+            MaxNative(p[2].AsVector128(), p[3].AsVector128()));
 
         double maxy = pmax.GetElement(1);
 
@@ -1486,7 +1360,7 @@ public unsafe partial struct Linearizer<T, L>
 
         // First test if primitive intersects with any of horizontal axes of
         // clipping bounds.
-        if (miny >= 0 && maxy <= clip.Max.Y)
+        if (pmin.GetElement(1) >= 0 && maxy <= clip.Max.Y)
         {
             // Primitive is within clipping bounds vertically.
             double maxx = pmax.GetElement(0);
@@ -1500,35 +1374,19 @@ public unsafe partial struct Linearizer<T, L>
                 F24Dot8 b = Clamp(DoubleToF24Dot8(p[3].Y), 0, clip.FMax.Y);
 
                 UpdateStartCovers(memory, a, b);
-
                 return;
             }
 
-            if (maxx <= clip.Max.X && minx >= 0)
+            if (maxx <= clip.Max.X && pmin.GetElement(0) >= 0)
             {
-                F24Dot8PointX4 c;
-                Unsafe.SkipInit(out c);
-
-                c[0].X = Clamp(DoubleToF24Dot8(p[0].X), 0, clip.FMax.X);
-                c[0].Y = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
-
-                c[1].X = Clamp(DoubleToF24Dot8(p[1].X), 0, clip.FMax.X);
-                c[1].Y = Clamp(DoubleToF24Dot8(p[1].Y), 0, clip.FMax.Y);
-
-                c[2].X = Clamp(DoubleToF24Dot8(p[2].X), 0, clip.FMax.X);
-                c[2].Y = Clamp(DoubleToF24Dot8(p[2].Y), 0, clip.FMax.Y);
-
-                c[3].X = Clamp(DoubleToF24Dot8(p[3].X), 0, clip.FMax.X);
-                c[3].Y = Clamp(DoubleToF24Dot8(p[3].Y), 0, clip.FMax.Y);
+                F24Dot8PointX4.ClampFromFloat(p, default, clip.FMax, out F24Dot8PointX4 c);
 
                 AddContainedCubicF24Dot8(memory, c);
-
                 return;
             }
         }
 
-        // Remaining option is that primitive potentially intersects clipping
-        // bounds.
+        // Remaining option is that primitive potentially intersects clipping bounds.
         //
         // Actual clipper expects monotonic cubics, so monotonize input.
 
@@ -1537,17 +1395,16 @@ public unsafe partial struct Linearizer<T, L>
 
         if (monoInX & monoInY)
         {
-            // Already monotonic in both directions. Quite common case, return
-            // early.
+            // Already monotonic in both directions. Quite common case, return early.
             AddUncontainedMonotonicCubic(memory, clip, p);
+            return;
         }
-        else
+        
+        if (monoInY)
         {
-            if (monoInY)
-            {
-                // Here we know it has control points outside of end point range
-                // in X direction.
-                int nX = CutCubicAtXExtrema(p, out FloatPointX10 monoX);
+            // Here we know it has control points outside of end point range
+            // in X direction.
+            int nX = CutCubicAtXExtrema(p, out FloatPointX10 monoX);
 
             for (int j = 0; j < nX; j++)
             {
@@ -1562,13 +1419,13 @@ public unsafe partial struct Linearizer<T, L>
         {
             FloatPointX4 my = monoY.Get4(i * 3);
 
-                    if (CubicControlPointsBetweenEndPointsX(my))
-                    {
-                        AddUncontainedMonotonicCubic(memory, clip, my);
-                    }
-                    else
-                    {
-                        int nX = CutCubicAtXExtrema(my, out FloatPointX10 monoX);
+            if (CubicControlPointsBetweenEndPointsX(my))
+            {
+                AddUncontainedMonotonicCubic(memory, clip, my);
+            }
+            else
+            {
+                int nX = CutCubicAtXExtrema(my, out FloatPointX10 monoX);
 
                 for (int j = 0; j < nX; j++)
                 {
@@ -1580,15 +1437,18 @@ public unsafe partial struct Linearizer<T, L>
 
 
     private partial void AddUncontainedMonotonicCubic(ThreadMemory memory,
-        in ClipBounds clip, in FloatPointX4 p)
+        ClipBounds clip, FloatPointX4 p)
     {
         //Debug.Assert(p != null);
         Debug.Assert(double.IsFinite(p[0].X));
         Debug.Assert(double.IsFinite(p[0].Y));
+        
         Debug.Assert(double.IsFinite(p[1].X));
         Debug.Assert(double.IsFinite(p[1].Y));
+        
         Debug.Assert(double.IsFinite(p[2].X));
         Debug.Assert(double.IsFinite(p[2].Y));
+        
         Debug.Assert(double.IsFinite(p[3].X));
         Debug.Assert(double.IsFinite(p[3].Y));
 
@@ -1620,12 +1480,7 @@ public unsafe partial struct Linearizer<T, L>
             return;
         }
 
-        FloatPointX4 pts;
-        Unsafe.SkipInit(out pts);
-        pts[0] = p[0];
-        pts[1] = p[1];
-        pts[2] = p[2];
-        pts[3] = p[3];
+        FloatPointX4 pts = p;
 
         if (sy > py)
         {
@@ -1642,7 +1497,6 @@ public unsafe partial struct Linearizer<T, L>
                     pts[0] = tmp[3];
                     pts[1] = tmp[4];
                     pts[2] = tmp[5];
-
                     // pts[3] already contains tmp[6].
                 }
             }
@@ -1657,14 +1511,13 @@ public unsafe partial struct Linearizer<T, L>
                     CutCubicAt(pts, out FloatPointX7 tmp, t);
 
                     // pts[0] already contains tmp[0].
-
                     pts[1] = tmp[1];
                     pts[2] = tmp[2];
                     pts[3] = tmp[3];
                 }
             }
 
-            AddVerticallyContainedMonotonicCubic(memory, clip, ref pts);
+            AddVerticallyContainedMonotonicCubic(memory, clip, pts);
         }
         else if (sy < py)
         {
@@ -1679,7 +1532,6 @@ public unsafe partial struct Linearizer<T, L>
                     CutCubicAt(pts, out FloatPointX7 tmp, t);
 
                     // pts[0] already contains tmp[0].
-
                     pts[1] = tmp[1];
                     pts[2] = tmp[2];
                     pts[3] = tmp[3];
@@ -1698,26 +1550,28 @@ public unsafe partial struct Linearizer<T, L>
                     pts[0] = tmp[3];
                     pts[1] = tmp[4];
                     pts[2] = tmp[5];
-
                     // pts[3] already contains tmp[6].
                 }
             }
 
-            AddVerticallyContainedMonotonicCubic(memory, clip, ref pts);
+            AddVerticallyContainedMonotonicCubic(memory, clip, pts);
         }
     }
 
 
     private partial void AddVerticallyContainedMonotonicCubic(
-        ThreadMemory memory, in ClipBounds clip, ref FloatPointX4 p)
+        ThreadMemory memory, ClipBounds clip, FloatPointX4 p)
     {
         //Debug.Assert(p != null);
         Debug.Assert(double.IsFinite(p[0].X));
         Debug.Assert(double.IsFinite(p[0].Y));
+        
         Debug.Assert(double.IsFinite(p[1].X));
         Debug.Assert(double.IsFinite(p[1].Y));
+        
         Debug.Assert(double.IsFinite(p[2].X));
         Debug.Assert(double.IsFinite(p[2].Y));
+        
         Debug.Assert(double.IsFinite(p[3].X));
         Debug.Assert(double.IsFinite(p[3].Y));
 
@@ -1733,91 +1587,7 @@ public unsafe partial struct Linearizer<T, L>
                 return;
             }
 
-            if (sx <= 0)
-            {
-                // Completely on left.
-
-                F24Dot8 a = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
-                F24Dot8 b = Clamp(DoubleToF24Dot8(p[3].Y), 0, clip.FMax.Y);
-
-                UpdateStartCovers(memory, a, b);
-
-                return;
-            }
-
-            if (sx > clip.Max.X)
-            {
-                // Cut-off at right.
-                if (CutMonotonicCubicAtX(p, clip.Max.X, out double t))
-                {
-                    // Cut cubic at t and keep left part of curve (since we are
-                    // handling right-to-left curve and cutting at off right part).
-                    CutCubicAt(p, out FloatPointX7 tmp, t);
-
-                    p[0] = tmp[3];
-                    p[1] = tmp[4];
-                    p[2] = tmp[5];
-
-                    // p[3] already contains tmp[6].
-                }
-            }
-
-            if (px < 0)
-            {
-                // Cut-off at left.
-                if (CutMonotonicCubicAtX(p, 0, out double t))
-                {
-                    // Cut cubic in two equal parts and keep both since we also
-                    // need the part on the left side of bounding box.
-                    CutCubicAt(p, out FloatPointX7 tmp, t);
-
-                    // Since curve is going from right to left, the first one will
-                    // be inside and the second one will be on the left.
-                    F24Dot8PointX4 c;
-                    Unsafe.SkipInit(out c);
-
-                    c[0].X = DoubleToF24Dot8(tmp[0].X);
-                    c[0].Y = DoubleToF24Dot8(tmp[0].Y);
-
-                    c[1].X = DoubleToF24Dot8(tmp[1].X);
-                    c[1].Y = DoubleToF24Dot8(tmp[1].Y);
-
-                    c[2].X = DoubleToF24Dot8(tmp[2].X);
-                    c[2].Y = DoubleToF24Dot8(tmp[2].Y);
-
-                    c[3].X = DoubleToF24Dot8(tmp[3].X);
-                    c[3].Y = DoubleToF24Dot8(tmp[3].Y);
-
-                    AddPotentiallyUncontainedCubicF24Dot8(memory, clip.FMax, c);
-
-                    F24Dot8 b = Clamp(DoubleToF24Dot8(tmp[6].Y), 0,
-                        clip.FMax.Y);
-
-                    UpdateStartCovers(memory, Clamp(c[3].Y, 0, clip.FMax.Y), b);
-
-                    return;
-                }
-            }
-
-            // At this point we have entire curve inside bounding box.
-            {
-                F24Dot8PointX4 c;
-                Unsafe.SkipInit(out c);
-
-                c[0].X = Clamp(DoubleToF24Dot8(p[0].X), 0, clip.FMax.X);
-                c[0].Y = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
-
-                c[1].X = Clamp(DoubleToF24Dot8(p[1].X), 0, clip.FMax.X);
-                c[1].Y = Clamp(DoubleToF24Dot8(p[1].Y), 0, clip.FMax.Y);
-
-                c[2].X = Clamp(DoubleToF24Dot8(p[2].X), 0, clip.FMax.X);
-                c[2].Y = Clamp(DoubleToF24Dot8(p[2].Y), 0, clip.FMax.Y);
-
-                c[3].X = Clamp(DoubleToF24Dot8(p[3].X), 0, clip.FMax.X);
-                c[3].Y = Clamp(DoubleToF24Dot8(p[3].Y), 0, clip.FMax.Y);
-
-                AddContainedCubicF24Dot8(memory, c);
-            }
+            AddVerticallyContainedMonotonicCubic_RightToLeft(memory, clip, p);
         }
         else if (sx < px)
         {
@@ -1828,132 +1598,173 @@ public unsafe partial struct Linearizer<T, L>
                 return;
             }
 
-            if (px <= 0)
+            AddVerticallyContainedMonotonicCubic_LeftToRight(memory, clip, p);
+        }
+        else if (px < clip.Max.X)
+        {
+            AddVerticallyContainedMonotonicCubic_VerticalLine(memory, clip, p);
+        }
+    }
+
+    private void AddVerticallyContainedMonotonicCubic_RightToLeft(
+        ThreadMemory memory, ClipBounds clip, FloatPointX4 p)
+    {
+        double sx = p[0].X;
+        double px = p[3].X;
+
+        if (sx <= 0)
+        {
+            // Completely on left.
+
+            F24Dot8 a = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
+            F24Dot8 b = Clamp(DoubleToF24Dot8(p[3].Y), 0, clip.FMax.Y);
+
+            UpdateStartCovers(memory, a, b);
+            return;
+        }
+
+        if (sx > clip.Max.X)
+        {
+            // Cut-off at right.
+            if (CutMonotonicCubicAtX(p, clip.Max.X, out double t))
             {
-                // Completely on left.
+                // Cut cubic at t and keep left part of curve (since we are
+                // handling right-to-left curve and cutting at off right part).
+                CutCubicAt(p, out FloatPointX7 tmp, t);
 
-                F24Dot8 a = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
-                F24Dot8 b = Clamp(DoubleToF24Dot8(p[3].Y), 0, clip.FMax.Y);
+                p[0] = tmp[3];
+                p[1] = tmp[4];
+                p[2] = tmp[5];
+                // p[3] already contains tmp[6].
+            }
+        }
 
-                UpdateStartCovers(memory, a, b);
+        if (px < 0)
+        {
+            // Cut-off at left.
+            if (CutMonotonicCubicAtX(p, 0, out double t))
+            {
+                // Cut cubic in two equal parts and keep both since we also
+                // need the part on the left side of bounding box.
+                CutCubicAt(p, out FloatPointX7 tmp, t);
 
+                // Since curve is going from right to left, the first one will
+                // be inside and the second one will be on the left.
+                F24Dot8PointX4.FromFloat(
+                    tmp[0], tmp[1], tmp[2], tmp[3],
+                    out F24Dot8PointX4 c);
+
+                AddPotentiallyUncontainedCubicF24Dot8(memory, clip.FMax, c);
+
+                F24Dot8 y0 = Clamp(c[3].Y, 0, clip.FMax.Y);
+                F24Dot8 y1 = Clamp(DoubleToF24Dot8(tmp[6].Y), 0, clip.FMax.Y);
+
+                UpdateStartCovers(memory, y0, y1);
                 return;
             }
+        }
 
-            if (px > clip.Max.X)
+        // At this point we have entire curve inside bounding box.
+        {
+            F24Dot8PointX4.ClampFromFloat(p, default, clip.FMax, out F24Dot8PointX4 c);
+
+            AddContainedCubicF24Dot8(memory, c);
+        }
+    }
+
+    private void AddVerticallyContainedMonotonicCubic_LeftToRight(
+        ThreadMemory memory, ClipBounds clip, FloatPointX4 p)
+    {
+        double sx = p[0].X;
+        double px = p[3].X;
+        
+        if (px <= 0)
+        {
+            // Completely on left.
+
+            F24Dot8 a = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
+            F24Dot8 b = Clamp(DoubleToF24Dot8(p[3].Y), 0, clip.FMax.Y);
+
+            UpdateStartCovers(memory, a, b);
+            return;
+        }
+
+        if (px > clip.Max.X)
+        {
+            // Cut-off at right.
+            if (CutMonotonicCubicAtX(p, clip.Max.X, out double t))
             {
-                // Cut-off at right.
-                if (CutMonotonicCubicAtX(p, clip.Max.X, out double t))
-                {
-                    // Cut cubic at t and keep left part of curve (since we are
-                    // handling left-to-right curve and cutting at off right part).
-                    CutCubicAt(p, out FloatPointX7 tmp, t);
+                // Cut cubic at t and keep left part of curve (since we are
+                // handling left-to-right curve and cutting at off right part).
+                CutCubicAt(p, out FloatPointX7 tmp, t);
 
-                    // p[0] already contains tmp[0].
-
-                    p[1] = tmp[1];
-                    p[2] = tmp[2];
-                    p[3] = tmp[3];
-                }
+                // p[0] already contains tmp[0].
+                p[1] = tmp[1];
+                p[2] = tmp[2];
+                p[3] = tmp[3];
             }
+        }
 
-            if (sx < 0)
+        if (sx < 0)
+        {
+            // Cut-off at left.
+            if (CutMonotonicCubicAtX(p, 0, out double t))
             {
-                // Cut-off at left.
-                if (CutMonotonicCubicAtX(p, 0, out double t))
-                {
-                    // Cut cubic in two equal parts and keep both since we also
-                    // need the part on the left side of bounding box.
-                    CutCubicAt(p, out FloatPointX7 tmp, t);
+                // Cut cubic in two equal parts and keep both since we also
+                // need the part on the left side of bounding box.
+                CutCubicAt(p, out FloatPointX7 tmp, t);
 
-                    // Since curve is going from left to right, the first one will
-                    // be on the left and the second one will be inside.
-                    F24Dot8PointX4 c;
-                    Unsafe.SkipInit(out c);
+                // Since curve is going from left to right, the first one will
+                // be on the left and the second one will be inside.
+                F24Dot8PointX4.FromFloat(
+                    tmp[3], tmp[4], tmp[5], tmp[6],
+                    out F24Dot8PointX4 c);
+                
+                F24Dot8 y0 = Clamp(DoubleToF24Dot8(tmp[0].Y), 0, clip.FMax.Y);
+                F24Dot8 y1 = Clamp(c[0].Y, 0, clip.FMax.Y);
+                
+                UpdateStartCovers(memory, y0, y1);
 
-                    c[0].X = DoubleToF24Dot8(tmp[3].X);
-                    c[0].Y = DoubleToF24Dot8(tmp[3].Y);
-
-                    c[1].X = DoubleToF24Dot8(tmp[4].X);
-                    c[1].Y = DoubleToF24Dot8(tmp[4].Y);
-
-                    c[2].X = DoubleToF24Dot8(tmp[5].X);
-                    c[2].Y = DoubleToF24Dot8(tmp[5].Y);
-
-                    c[3].X = DoubleToF24Dot8(tmp[6].X);
-                    c[3].Y = DoubleToF24Dot8(tmp[6].Y);
-
-                    F24Dot8 a = Clamp(DoubleToF24Dot8(tmp[0].Y), 0,
-                        clip.FMax.Y);
-
-                    UpdateStartCovers(memory, a, Clamp(c[0].Y, 0, clip.FMax.Y));
-
-                    AddPotentiallyUncontainedCubicF24Dot8(memory, clip.FMax, c);
-
-                    return;
-                }
+                AddPotentiallyUncontainedCubicF24Dot8(memory, clip.FMax, c);
+                return;
             }
+        }
 
-            // At this point we have entire curve inside bounding box.
-            {
-                F24Dot8PointX4 c;
-                Unsafe.SkipInit(out c);
+        // At this point we have entire curve inside bounding box.
+        {
+            F24Dot8PointX4.ClampFromFloat(p, default, clip.FMax, out F24Dot8PointX4 c);
 
-                c[0].X = Clamp(DoubleToF24Dot8(p[0].X), 0, clip.FMax.X);
-                c[0].Y = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
+            AddContainedCubicF24Dot8(memory, c);
+        }
+    }
+    
 
-                c[1].X = Clamp(DoubleToF24Dot8(p[1].X), 0, clip.FMax.X);
-                c[1].Y = Clamp(DoubleToF24Dot8(p[1].Y), 0, clip.FMax.Y);
+    private void AddVerticallyContainedMonotonicCubic_VerticalLine(
+        ThreadMemory memory, ClipBounds clip, FloatPointX4 p)
+    {
+        double px = p[3].X;
+        
+        // Vertical line.
+        if (px <= 0)
+        {
+            // Vertical line on the left.
+            F24Dot8 a = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
+            F24Dot8 b = Clamp(DoubleToF24Dot8(p[3].Y), 0, clip.FMax.Y);
 
-                c[2].X = Clamp(DoubleToF24Dot8(p[2].X), 0, clip.FMax.X);
-                c[2].Y = Clamp(DoubleToF24Dot8(p[2].Y), 0, clip.FMax.Y);
-
-                c[3].X = Clamp(DoubleToF24Dot8(p[3].X), 0, clip.FMax.X);
-                c[3].Y = Clamp(DoubleToF24Dot8(p[3].Y), 0, clip.FMax.Y);
-
-                AddContainedCubicF24Dot8(memory, c);
-            }
+            UpdateStartCovers(memory, a, b);
         }
         else
         {
-            // Vertical line.
-            if (px < clip.Max.X)
-            {
-                if (px <= 0)
-                {
-                    // Vertical line on the left.
-                    F24Dot8 a = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
-                    F24Dot8 b = Clamp(DoubleToF24Dot8(p[3].Y), 0, clip.FMax.Y);
+            // Vertical line inside clip rect.
+            F24Dot8PointX4.ClampFromFloat(p, default, clip.FMax, out F24Dot8PointX4 c);
 
-                    UpdateStartCovers(memory, a, b);
-                }
-                else
-                {
-                    // Vertical line inside clip rect.
-                    F24Dot8PointX4 c;
-                    Unsafe.SkipInit(out c);
-
-                    c[0].X = Clamp(DoubleToF24Dot8(p[0].X), 0, clip.FMax.X);
-                    c[0].Y = Clamp(DoubleToF24Dot8(p[0].Y), 0, clip.FMax.Y);
-
-                    c[1].X = Clamp(DoubleToF24Dot8(p[1].X), 0, clip.FMax.X);
-                    c[1].Y = Clamp(DoubleToF24Dot8(p[1].Y), 0, clip.FMax.Y);
-
-                    c[2].X = Clamp(DoubleToF24Dot8(p[2].X), 0, clip.FMax.X);
-                    c[2].Y = Clamp(DoubleToF24Dot8(p[2].Y), 0, clip.FMax.Y);
-
-                    c[3].X = Clamp(DoubleToF24Dot8(p[3].X), 0, clip.FMax.X);
-                    c[3].Y = Clamp(DoubleToF24Dot8(p[3].Y), 0, clip.FMax.Y);
-
-                    AddContainedCubicF24Dot8(memory, c);
-                }
-            }
+            AddContainedCubicF24Dot8(memory, c);
         }
     }
 
 
     private partial void AddPotentiallyUncontainedCubicF24Dot8(
-        ThreadMemory memory, F24Dot8Point max, in F24Dot8PointX4 c)
+        ThreadMemory memory, F24Dot8Point max, F24Dot8PointX4 c)
     {
         // When cubic curve is not completely within destination image (determined
         // by testing if control points are inside of it), curve is clipped and
@@ -1981,53 +1792,12 @@ public unsafe partial struct Linearizer<T, L>
 
         //Debug.Assert(c != null);
 
-        F24Dot8 maxx = max.X;
-        F24Dot8 maxy = max.Y;
+        Vector256<int> vC = Unsafe.BitCast<F24Dot8PointX4, Vector256<int>>(c);
 
-        if (c[0].X < 0 || c[0].X > maxx ||
-            c[0].Y < 0 || c[0].Y > maxy ||
-            c[1].X < 0 || c[1].X > maxx ||
-            c[1].Y < 0 || c[1].Y > maxy ||
-            c[2].X < 0 || c[2].X > maxx ||
-            c[2].Y < 0 || c[2].Y > maxy ||
-            c[3].X < 0 || c[3].X > maxx ||
-            c[3].Y < 0 || c[3].Y > maxy)
+        if (Vector256.LessThanAny(vC, Vector256<int>.Zero) ||
+            Vector256.GreaterThanAny(vC, max.ToVector256()))
         {
-            // Potentially needs splitting unless it is already too small.
-            F24Dot8 dx =
-                F24Dot8Abs(c[0].X - c[1].X) +
-                F24Dot8Abs(c[1].X - c[2].X) +
-                F24Dot8Abs(c[2].X - c[3].X);
-
-            F24Dot8 dy =
-                F24Dot8Abs(c[0].Y - c[1].Y) +
-                F24Dot8Abs(c[1].Y - c[2].Y) +
-                F24Dot8Abs(c[2].Y - c[3].Y);
-
-            if ((dx + dy) < F24Dot8_1)
-            {
-                F24Dot8PointX4 pc;
-                Unsafe.SkipInit(out pc);
-
-                pc[0].X = Clamp(c[0].X, 0, maxx);
-                pc[0].Y = Clamp(c[0].Y, 0, maxy);
-                pc[1].X = Clamp(c[1].X, 0, maxx);
-                pc[1].Y = Clamp(c[1].Y, 0, maxy);
-                pc[2].X = Clamp(c[2].X, 0, maxx);
-                pc[2].Y = Clamp(c[2].Y, 0, maxy);
-                pc[3].X = Clamp(c[3].X, 0, maxx);
-                pc[3].Y = Clamp(c[3].Y, 0, maxy);
-
-                AddContainedCubicF24Dot8(memory, pc);
-            }
-            else
-            {
-                SplitCubic(out F24Dot8PointX7 pc, c);
-
-                AddPotentiallyUncontainedCubicF24Dot8(memory, max, Unsafe.As<F24Dot8PointX7, F24Dot8PointX4>(ref pc));
-
-                AddPotentiallyUncontainedCubicF24Dot8(memory, max, Unsafe.As<F24Dot8Point, F24Dot8PointX4>(ref pc[3]));
-            }
+            AddUncontainedCubicF24Dot8(memory, max, c);
         }
         else
         {
@@ -2035,24 +1805,57 @@ public unsafe partial struct Linearizer<T, L>
         }
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void AddUncontainedCubicF24Dot8(
+        ThreadMemory memory, F24Dot8Point max, F24Dot8PointX4 c)
+    {
+        // Potentially needs splitting unless it is already too small.
+        F24Dot8 dx =
+            F24Dot8Abs(c[0].X - c[1].X) +
+            F24Dot8Abs(c[1].X - c[2].X) +
+            F24Dot8Abs(c[2].X - c[3].X);
+
+        F24Dot8 dy =
+            F24Dot8Abs(c[0].Y - c[1].Y) +
+            F24Dot8Abs(c[1].Y - c[2].Y) +
+            F24Dot8Abs(c[2].Y - c[3].Y);
+
+        if (dx + dy < F24Dot8_1)
+        {
+            F24Dot8PointX4 pc = c.Clamp(default, max);
+            
+            AddContainedCubicF24Dot8(memory, pc);
+        }
+        else
+        {
+            SplitCubic(out F24Dot8PointX7 pc, c);
+
+            AddPotentiallyUncontainedCubicF24Dot8(memory, max, pc.Get4(0));
+
+            AddPotentiallyUncontainedCubicF24Dot8(memory, max, pc.Get4(3));
+        }
+    }
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void AddContainedCubicF24Dot8(ThreadMemory memory,
-        in F24Dot8PointX4 c)
+    private partial void AddContainedCubicF24Dot8(ThreadMemory memory, F24Dot8PointX4 c)
     {
         //Debug.Assert(c != null);
         Debug.Assert(c[0].X >= 0);
         Debug.Assert(c[0].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(c[0].Y >= 0);
         Debug.Assert(c[0].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
+        
         Debug.Assert(c[1].X >= 0);
         Debug.Assert(c[1].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(c[1].Y >= 0);
         Debug.Assert(c[1].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
+        
         Debug.Assert(c[2].X >= 0);
         Debug.Assert(c[2].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(c[2].Y >= 0);
         Debug.Assert(c[2].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
+        
         Debug.Assert(c[3].X >= 0);
         Debug.Assert(c[3].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(c[3].Y >= 0);
@@ -2080,10 +1883,13 @@ public unsafe partial struct Linearizer<T, L>
     {
         Debug.Assert(rowIndex >= 0);
         Debug.Assert(rowIndex < mBounds.RowCount);
+        
         Debug.Assert(x >= 0);
         Debug.Assert(x <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
+        
         Debug.Assert(y0 >= 0);
         Debug.Assert(y0 <= T.TileHF24Dot8);
+        
         Debug.Assert(y1 >= 0);
         Debug.Assert(y1 <= T.TileHF24Dot8);
 
@@ -2133,8 +1939,7 @@ public unsafe partial struct Linearizer<T, L>
 
                 F24Dot8 nx = cx + delta;
 
-                LA(idy).AppendLineDownR_V(memory, cx, 0, nx,
-                    T.TileHF24Dot8);
+                LA(idy).AppendLineDownR_V(memory, cx, 0, nx, T.TileHF24Dot8);
 
                 cx = nx;
             }
@@ -2379,11 +2184,11 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    private partial void UpdateStartCovers(ThreadMemory memory,
-        F24Dot8 y0, F24Dot8 y1)
+    private partial void UpdateStartCovers(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1)
     {
         Debug.Assert(y0 >= 0);
         Debug.Assert(y0 <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
+        
         Debug.Assert(y1 >= 0);
         Debug.Assert(y1 <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
 
@@ -2396,72 +2201,80 @@ public unsafe partial struct Linearizer<T, L>
         if (mStartCoverTable == null)
         {
             // Allocate pointers to row masks.
-            mStartCoverTable = memory.FrameMallocPointersZeroFill<int>(
-                (int) mBounds.RowCount);
+            mStartCoverTable = memory.FrameMallocPointersZeroFill<int>((int) mBounds.RowCount);
         }
 
         if (y0 < y1)
         {
-            // Line is going down.
-            TileIndex rowIndex0 = T.F24Dot8ToTileRowIndex(y0);
-            TileIndex rowIndex1 = T.F24Dot8ToTileRowIndex(y1 - 1);
-            F24Dot8 fy0 = y0 - T.TileRowIndexToF24Dot8(rowIndex0);
-            F24Dot8 fy1 = y1 - T.TileRowIndexToF24Dot8(rowIndex1);
-
-            int* cmFirst = GetStartCoversForRowAtIndex(memory, (int) rowIndex0);
-
-            if (rowIndex0 == rowIndex1)
-            {
-                UpdateCoverTable_Down(cmFirst, fy0, fy1);
-            }
-            else
-            {
-                UpdateCoverTable_Down(cmFirst, fy0, T.TileHF24Dot8);
-
-                for (TileIndex i = rowIndex0 + 1; i < rowIndex1; i++)
-                {
-                    UpdateStartCoversFull_Down(memory, (int) i);
-                }
-
-                int* cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
-
-                UpdateCoverTable_Down(cmLast, 0, fy1);
-            }
+            UpdateStartCovers_Down(memory, y0, y1);
         }
         else
         {
-            // Line is going up.
-            TileIndex rowIndex0 = T.F24Dot8ToTileRowIndex(y0 - 1);
-            TileIndex rowIndex1 = T.F24Dot8ToTileRowIndex(y1);
-            F24Dot8 fy0 = y0 - T.TileRowIndexToF24Dot8(rowIndex0);
-            F24Dot8 fy1 = y1 - T.TileRowIndexToF24Dot8(rowIndex1);
+            UpdateStartCovers_Up(memory, y0, y1);
+        }
+    }
 
-            int* cmFirst = GetStartCoversForRowAtIndex(memory, (int) rowIndex0);
+    private void UpdateStartCovers_Down(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1)
+    {
+        // Line is going down.
+        TileIndex rowIndex0 = T.F24Dot8ToTileRowIndex(y0);
+        TileIndex rowIndex1 = T.F24Dot8ToTileRowIndex(y1 - 1);
+        F24Dot8 fy0 = y0 - T.TileRowIndexToF24Dot8(rowIndex0);
+        F24Dot8 fy1 = y1 - T.TileRowIndexToF24Dot8(rowIndex1);
 
-            if (rowIndex0 == rowIndex1)
+        int* cmFirst = GetStartCoversForRowAtIndex(memory, (int) rowIndex0);
+
+        if (rowIndex0 == rowIndex1)
+        {
+            UpdateCoverTable_Down(cmFirst, fy0, fy1);
+        }
+        else
+        {
+            UpdateCoverTable_Down(cmFirst, fy0, T.TileHF24Dot8);
+
+            for (TileIndex i = rowIndex0 + 1; i < rowIndex1; i++)
             {
-                UpdateCoverTable_Up(cmFirst, fy0, fy1);
+                UpdateStartCoversFull_Down(memory, (int) i);
             }
-            else
+
+            int* cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
+
+            UpdateCoverTable_Down(cmLast, 0, fy1);
+        }
+    }
+
+    private void UpdateStartCovers_Up(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1)
+    {
+        // Line is going up.
+        TileIndex rowIndex0 = T.F24Dot8ToTileRowIndex(y0 - 1);
+        TileIndex rowIndex1 = T.F24Dot8ToTileRowIndex(y1);
+        F24Dot8 fy0 = y0 - T.TileRowIndexToF24Dot8(rowIndex0);
+        F24Dot8 fy1 = y1 - T.TileRowIndexToF24Dot8(rowIndex1);
+
+        int* cmFirst = GetStartCoversForRowAtIndex(memory, (int) rowIndex0);
+
+        if (rowIndex0 == rowIndex1)
+        {
+            UpdateCoverTable_Up(cmFirst, fy0, fy1);
+        }
+        else
+        {
+            UpdateCoverTable_Up(cmFirst, fy0, 0);
+
+            for (TileIndex i = rowIndex0 - 1; i > rowIndex1; i--)
             {
-                UpdateCoverTable_Up(cmFirst, fy0, 0);
-
-                for (TileIndex i = rowIndex0 - 1; i > rowIndex1; i--)
-                {
-                    UpdateStartCoversFull_Up(memory, (int) i);
-                }
-
-                int* cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
-
-                UpdateCoverTable_Up(cmLast, T.TileHF24Dot8, fy1);
+                UpdateStartCoversFull_Up(memory, (int) i);
             }
+
+            int* cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
+
+            UpdateCoverTable_Up(cmLast, T.TileHF24Dot8, fy1);
         }
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void UpdateStartCoversFull_Down(ThreadMemory memory,
-        int index)
+    private partial void UpdateStartCoversFull_Down(ThreadMemory memory, int index)
     {
         Debug.Assert(mStartCoverTable != null);
         Debug.Assert(index >= 0);
@@ -2487,8 +2300,7 @@ public unsafe partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void UpdateStartCoversFull_Up(ThreadMemory memory,
-        int index)
+    private partial void UpdateStartCoversFull_Up(ThreadMemory memory, int index)
     {
         Debug.Assert(mStartCoverTable != null);
         Debug.Assert(index >= 0);
