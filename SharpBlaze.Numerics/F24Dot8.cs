@@ -37,7 +37,7 @@ public readonly struct F24Dot8
     {
         return new(ConvertToInt32(v * 256.0));
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ConvertToInt32(double v)
     {
@@ -66,17 +66,24 @@ public readonly struct F24Dot8
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static (F24Dot8 Q, F24Dot8 R) DivRem(F24Dot8 a, F24Dot8 b)
+    {
+        (int q, int r) = Math.DivRem(a._value, b._value);
+        return (new F24Dot8(q), new F24Dot8(r));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 operator +(F24Dot8 a, F24Dot8 b) => new(a._value + b._value);
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 operator -(F24Dot8 a, F24Dot8 b) => new(a._value - b._value);
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 operator *(F24Dot8 a, F24Dot8 b) => new(a._value * b._value);
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 operator /(F24Dot8 a, F24Dot8 b) => new(a._value / b._value);
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 operator %(F24Dot8 a, F24Dot8 b) => new(a._value % b._value);
 

@@ -838,8 +838,7 @@ public unsafe partial struct Rasterizer<T>
             F24Dot8 mod = (pp % dx) - dx;
 
             F24Dot8 p = F24Dot8_1 * dy;
-            F24Dot8 lift = p / dx;
-            F24Dot8 rem = p % dx;
+            (F24Dot8 lift, F24Dot8 rem) = DivRem(p, dx);
 
             for (; idx != columnIndex1; idx++)
             {
@@ -962,8 +961,7 @@ public unsafe partial struct Rasterizer<T>
             F24Dot8 mod = (pp % dx) - dx;
 
             F24Dot8 p = F24Dot8_1 * dy;
-            F24Dot8 lift = p / dx;
-            F24Dot8 rem = p % dx;
+            (F24Dot8 lift, F24Dot8 rem) = DivRem(p, dx);
 
             Span<CoverArea> coverSpan = coverArea.Slice(0, (int) columnIndex1);
             for (PixelIndex i = idx; i < coverSpan.Length; i++)
@@ -1081,8 +1079,7 @@ public unsafe partial struct Rasterizer<T>
             F24Dot8 mod = (pp % dx) - dx;
 
             F24Dot8 p = F24Dot8_1 * dy;
-            F24Dot8 lift = p / dx;
-            F24Dot8 rem = p % dx;
+            (F24Dot8 lift, F24Dot8 rem) = DivRem(p, dx);
 
             for (; idx != columnIndex1; idx--)
             {
@@ -1204,8 +1201,7 @@ public unsafe partial struct Rasterizer<T>
             F24Dot8 mod = (pp % dx) - dx;
 
             F24Dot8 p = F24Dot8_1 * dy;
-            F24Dot8 lift = p / dx;
-            F24Dot8 rem = p % dx;
+            (F24Dot8 lift, F24Dot8 rem) = DivRem(p, dx);
 
             for (; idx != columnIndex1; idx--)
             {
@@ -1301,9 +1297,7 @@ public unsafe partial struct Rasterizer<T>
             F24Dot8 mod = (p % dy) - dy;
 
             p = F24Dot8_1 * dx;
-
-            F24Dot8 lift = p / dy;
-            F24Dot8 rem = p % dy;
+            (F24Dot8 lift, F24Dot8 rem) = DivRem(p, dy);
 
             for (; idy != rowIndex1; idy++)
             {
@@ -1363,9 +1357,7 @@ public unsafe partial struct Rasterizer<T>
             F24Dot8 mod = (p % dy) - dy;
 
             p = F24Dot8_1 * dx;
-
-            F24Dot8 lift = p / dy;
-            F24Dot8 rem = p % dy;
+            (F24Dot8 lift, F24Dot8 rem) = DivRem(p, dy);
 
             for (; idy != rowIndex1; idy--)
             {
@@ -1425,9 +1417,7 @@ public unsafe partial struct Rasterizer<T>
             F24Dot8 mod = (p % dy) - dy;
 
             p = F24Dot8_1 * dx;
-
-            F24Dot8 lift = p / dy;
-            F24Dot8 rem = p % dy;
+            (F24Dot8 lift, F24Dot8 rem) = DivRem(p, dy);
 
             for (; idy != rowIndex1; idy++)
             {
@@ -1487,9 +1477,7 @@ public unsafe partial struct Rasterizer<T>
             F24Dot8 mod = (p % dy) - dy;
 
             p = F24Dot8_1 * dx;
-
-            F24Dot8 lift = p / dy;
-            F24Dot8 rem = p % dy;
+            (F24Dot8 lift, F24Dot8 rem) = DivRem(p, dy);
 
             for (; idy != rowIndex1; idy--)
             {
