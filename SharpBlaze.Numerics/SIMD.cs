@@ -250,17 +250,14 @@ public static unsafe partial class SIMD
         double m11 = m.M22();
         double m20 = m.M31();
         double m21 = m.M32();
-
+        
         for (; i < count; i++)
         {
             double x = src[i].X;
             double y = src[i].Y;
 
-            dst[i].X = Clamp(RoundTo24Dot8(
-                m00 * x + m10 * y + m20) - origin.X, 0, size.X);
-
-            dst[i].Y = Clamp(RoundTo24Dot8(
-                m01 * x + m11 * y + m21) - origin.Y, 0, size.Y);
+            dst[i].X = Clamp(RoundTo24Dot8(m00 * x + m10 * y + m20) - origin.X, 0, size.X);
+            dst[i].Y = Clamp(RoundTo24Dot8(m01 * x + m11 * y + m21) - origin.Y, 0, size.Y);
         }
     }
 
@@ -279,9 +276,9 @@ public static unsafe partial class SIMD
         }
         else if (AdvSimd.Arm64.IsSupported)
         {
-            return Vector128.Create(
-                AdvSimd.ExtractNarrowingLower(AdvSimd.Arm64.ConvertToInt64RoundToZero(AdvSimd.Arm64.RoundToNearest(a))),
-                AdvSimd.ExtractNarrowingLower(AdvSimd.Arm64.ConvertToInt64RoundToZero(AdvSimd.Arm64.RoundToNearest(b))));
+            Vector128<long> rA = AdvSimd.Arm64.ConvertToInt64RoundToZero(AdvSimd.Arm64.RoundToNearest(a));
+            Vector128<long> rB = AdvSimd.Arm64.ConvertToInt64RoundToZero(AdvSimd.Arm64.RoundToNearest(b));
+            return AdvSimd.ExtractNarrowingUpper(AdvSimd.ExtractNarrowingLower(rA), rB);
         }
         else
         {

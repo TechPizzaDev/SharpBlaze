@@ -3,9 +3,5 @@
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\SharpBlaze.Numerics\SharpBlaze.Numerics.csproj" />
-  </ItemGroup>
-
+  
 </Project>

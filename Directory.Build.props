@@ -1,0 +1,12 @@
+<Project>
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+		<Nullable>enable</Nullable>
+		<Configurations>Debug;DebugFast;Release</Configurations>
+	</PropertyGroup>
+	
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugFast|AnyCPU'">
+		<Optimize>True</Optimize>
+	</PropertyGroup>
+
+</Project>

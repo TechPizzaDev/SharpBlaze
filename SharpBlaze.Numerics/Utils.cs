@@ -192,7 +192,7 @@ public static class Utils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static unsafe int* ZeroCoverX32()
+    public static unsafe int* ZeroCoverX32()
     {
         return ZeroCoverHelper.mZeroCoverX32;
     }

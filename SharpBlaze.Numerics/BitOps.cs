@@ -17,7 +17,7 @@ namespace SharpBlaze;
 
 public struct BitVector
 {
-    internal nuint _value;
+    public nuint _value;
 }
 
 public static class BitOps
