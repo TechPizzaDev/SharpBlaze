@@ -55,7 +55,7 @@ public unsafe partial struct Linearizer<T, L>
     where L : unmanaged, ILineArray<L>
 {
     public static partial Linearizer<T, L> Create(ThreadMemory memory, in TileBounds bounds,
-        bool contains, Geometry* geometry);
+        bool contains, in Geometry geometry);
 
 
     /**
@@ -104,7 +104,7 @@ public unsafe partial struct Linearizer<T, L>
      *
      * @param memory Thread memory for allocations.
      */
-    private partial void ProcessContained(Geometry* geometry, ThreadMemory memory);
+    private partial void ProcessContained(in Geometry geometry, ThreadMemory memory);
 
 
     /**
@@ -113,7 +113,7 @@ public unsafe partial struct Linearizer<T, L>
      * ProcessContained because of doing extra work of determining how
      * individual segments contribute to the result.
      */
-    private partial void ProcessUncontained(Geometry* geometry, ThreadMemory memory, ClipBounds clip,
+    private partial void ProcessUncontained(in Geometry geometry, ThreadMemory memory, ClipBounds clip,
         in Matrix matrix);
 
 
@@ -186,7 +186,7 @@ public unsafe partial struct Linearizer<T, L>
      *
      * @param p Arbitrary cubic curve.
      */
-    private partial void AddUncontainedCubic(ThreadMemory memory, 
+    private partial void AddUncontainedCubic(ThreadMemory memory,
         ClipBounds clip, FloatPointX4 p);
 
 
@@ -315,7 +315,7 @@ public unsafe partial struct Linearizer<T, L>
 
 
     public static partial Linearizer<T, L> Create(
-        ThreadMemory memory, in TileBounds bounds, bool contains, Geometry* geometry)
+        ThreadMemory memory, in TileBounds bounds, bool contains, in Geometry geometry)
     {
         L* lineArray = memory.TaskMallocArray<L>((int) bounds.RowCount);
 
@@ -336,7 +336,7 @@ public unsafe partial struct Linearizer<T, L>
 
             ClipBounds clip = new(ch, cv);
 
-            Matrix matrix = geometry->TM;
+            Matrix matrix = geometry.TM;
             matrix *= Matrix.CreateTranslation(-tx, -ty);
 
             linearizer.ProcessUncontained(geometry, memory, clip, matrix);
@@ -371,34 +371,29 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    private partial void ProcessContained(Geometry* geometry, ThreadMemory memory)
+    private partial void ProcessContained(in Geometry geometry, ThreadMemory memory)
     {
         // In this case path is known to be completely within destination image.
         // Some checks can be skipped.
 
-        int tagCount = geometry->TagCount;
-        int pointCount = geometry->PointCount;
-        PathTag* tags = geometry->Tags;
+        ReadOnlySpan<PathTag> tags = geometry.Tags.Span;
 
         F24Dot8Point* pp =
-            memory.TaskMallocArray<F24Dot8Point>(pointCount);
+            memory.TaskMallocArray<F24Dot8Point>(geometry.Points.Length);
 
         F24Dot8Point origin;
-
         origin.X = T.TileColumnIndexToF24Dot8(mBounds.X);
         origin.Y = T.TileRowIndexToF24Dot8(mBounds.Y);
 
         F24Dot8Point size;
-
         size.X = T.TileColumnIndexToF24Dot8(mBounds.ColumnCount);
         size.Y = T.TileRowIndexToF24Dot8(mBounds.RowCount);
 
-        SIMD.FloatPointsToF24Dot8Points(geometry->TM, pp, geometry->Points,
-            pointCount, origin, size);
+        SIMD.FloatPointsToF24Dot8Points(geometry.TM, new(pp, geometry.Points.Length), geometry.Points.Span, origin, size);
 
         F24Dot8Point moveTo = *pp++;
 
-        for (int i = 1; i < tagCount; i++)
+        for (int i = 1; i < tags.Length; i++)
         {
             switch (tags[i])
             {
@@ -449,21 +444,21 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    private partial void ProcessUncontained(Geometry* geometry, ThreadMemory memory,
+    private partial void ProcessUncontained(in Geometry geometry, ThreadMemory memory,
         ClipBounds clip, in Matrix matrix)
     {
-        int tagCount = geometry->TagCount;
-        PathTag* tags = geometry->Tags;
-        FloatPoint* points = geometry->Points;
+        ReadOnlySpan<PathTag> tags = geometry.Tags.Span;
+        ReadOnlySpan<FloatPoint> points = geometry.Points.Span;
 
         FloatPointX4 segment;
         Unsafe.SkipInit(out segment);
 
-        FloatPoint moveTo = matrix.Map(*points++);
+        FloatPoint moveTo = matrix.Map(points[0]);
+        points = points[1..];
 
         segment[0] = moveTo;
 
-        for (int i = 1; i < tagCount; i++)
+        for (int i = 1; i < tags.Length; i++)
         {
             switch (tags[i])
             {
@@ -473,7 +468,7 @@ public unsafe partial struct Linearizer<T, L>
                     AddUncontainedLine(memory, clip, segment[0], moveTo);
 
                     moveTo = matrix.Map(points[0]);
-                    points++;
+                    points = points[1..];
 
                     segment[0] = moveTo;
                     break;
@@ -482,7 +477,7 @@ public unsafe partial struct Linearizer<T, L>
                 case PathTag.Line:
                 {
                     FloatPoint p = matrix.Map(points[0]);
-                    points++;
+                    points = points[1..];
 
                     AddUncontainedLine(memory, clip, segment[0], p);
 
@@ -494,7 +489,7 @@ public unsafe partial struct Linearizer<T, L>
                 {
                     segment[1] = matrix.Map(points[0]);
                     segment[2] = matrix.Map(points[1]);
-                    points += 2;
+                    points = points[2..];
 
                     AddUncontainedQuadratic(memory, clip, segment.Get3(0));
 
@@ -507,7 +502,7 @@ public unsafe partial struct Linearizer<T, L>
                     segment[1] = matrix.Map(points[0]);
                     segment[2] = matrix.Map(points[1]);
                     segment[3] = matrix.Map(points[2]);
-                    points += 3;
+                    points = points[3..];
 
                     AddUncontainedCubic(memory, clip, segment);
 
@@ -532,7 +527,7 @@ public unsafe partial struct Linearizer<T, L>
     {
         Debug.Assert(double.IsFinite(p0.X));
         Debug.Assert(double.IsFinite(p0.Y));
-        
+
         Debug.Assert(double.IsFinite(p1.X));
         Debug.Assert(double.IsFinite(p1.Y));
 
@@ -658,7 +653,7 @@ public unsafe partial struct Linearizer<T, L>
                 new FloatPoint(rx0, ry0),
                 new FloatPoint(rx1, ry1),
                 default, clip.FMax);
-            
+
             AddContainedLineF24Dot8(memory, a, b);
             return;
         }
@@ -704,7 +699,7 @@ public unsafe partial struct Linearizer<T, L>
                 b.Y = Clamp(DoubleToF24Dot8(ry0 + (deltay_h * t)), 0, clip.FMax.Y);
 
                 F24Dot8Point c = new FloatPoint(bx1, by1).ToF24Dot8(default, clip.FMax);
-                
+
                 UpdateStartCovers(memory, a, b.Y);
 
                 AddContainedLineF24Dot8(memory, b, c);
@@ -713,7 +708,7 @@ public unsafe partial struct Linearizer<T, L>
             {
                 (F24Dot8Point a, F24Dot8Point b) = F24Dot8PointX2.ClampFromFloat(
                     new FloatPoint(rx0, ry0),
-                    new FloatPoint(bx1, by1), 
+                    new FloatPoint(bx1, by1),
                     default, clip.FMax);
 
                 AddContainedLineF24Dot8(memory, a, b);
@@ -740,7 +735,7 @@ public unsafe partial struct Linearizer<T, L>
                 double t = rx0 / deltax_h;
 
                 F24Dot8Point a = new FloatPoint(bx0, by0).ToF24Dot8(default, clip.FMax);
-                
+
                 F24Dot8Point b;
                 b.X = 0;
                 b.Y = Clamp(DoubleToF24Dot8(ry0 + (deltay_h * t)), 0, clip.FMax.Y);
@@ -771,13 +766,13 @@ public unsafe partial struct Linearizer<T, L>
     {
         Debug.Assert(p0.X >= 0);
         Debug.Assert(p0.X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
-        
+
         Debug.Assert(p0.Y >= 0);
         Debug.Assert(p0.Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-        
+
         Debug.Assert(p1.X >= 0);
         Debug.Assert(p1.X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
-        
+
         Debug.Assert(p1.Y >= 0);
         Debug.Assert(p1.Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
 
@@ -1005,17 +1000,17 @@ public unsafe partial struct Linearizer<T, L>
         //Debug.Assert(p != null);
         Debug.Assert(double.IsFinite(p[0].X));
         Debug.Assert(double.IsFinite(p[0].Y));
-        
+
         Debug.Assert(double.IsFinite(p[1].X));
         Debug.Assert(double.IsFinite(p[1].Y));
-        
+
         Debug.Assert(double.IsFinite(p[2].X));
         Debug.Assert(double.IsFinite(p[2].Y));
 
         // Assuming curve is monotonic.
         Debug.Assert(p[1].X <= Math.Max(p[0].X, p[2].X));
         Debug.Assert(p[1].X >= Math.Min(p[0].X, p[2].X));
-        
+
         Debug.Assert(p[1].Y <= Math.Max(p[0].Y, p[2].Y));
         Debug.Assert(p[1].Y >= Math.Min(p[0].Y, p[2].Y));
 
@@ -1124,17 +1119,17 @@ public unsafe partial struct Linearizer<T, L>
         //Debug.Assert(p != null);
         Debug.Assert(double.IsFinite(p[0].X));
         Debug.Assert(double.IsFinite(p[0].Y));
-        
+
         Debug.Assert(double.IsFinite(p[1].X));
         Debug.Assert(double.IsFinite(p[1].Y));
-        
+
         Debug.Assert(double.IsFinite(p[2].X));
         Debug.Assert(double.IsFinite(p[2].Y));
 
         // Assuming curve is monotonic.
         Debug.Assert(p[1].X <= Math.Max(p[0].X, p[2].X));
         Debug.Assert(p[1].X >= Math.Min(p[0].X, p[2].X));
-        
+
         Debug.Assert(p[1].Y <= Math.Max(p[0].Y, p[2].Y));
         Debug.Assert(p[1].Y >= Math.Min(p[0].Y, p[2].Y));
 
@@ -1300,12 +1295,12 @@ public unsafe partial struct Linearizer<T, L>
         Debug.Assert(q[0].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(q[0].Y >= 0);
         Debug.Assert(q[0].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-        
+
         Debug.Assert(q[1].X >= 0);
         Debug.Assert(q[1].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(q[1].Y >= 0);
         Debug.Assert(q[1].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-        
+
         Debug.Assert(q[2].X >= 0);
         Debug.Assert(q[2].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(q[2].Y >= 0);
@@ -1342,7 +1337,7 @@ public unsafe partial struct Linearizer<T, L>
             // Y: Curve is below clipping bounds.
             return;
         }
-        
+
         Vector128<double> pmax = MaxNative(
             MaxNative(p[0].AsVector128(), p[1].AsVector128()),
             MaxNative(p[2].AsVector128(), p[3].AsVector128()));
@@ -1396,7 +1391,7 @@ public unsafe partial struct Linearizer<T, L>
             AddUncontainedMonotonicCubic(memory, clip, p);
             return;
         }
-        
+
         if (monoInY)
         {
             // Here we know it has control points outside of end point range
@@ -1409,7 +1404,7 @@ public unsafe partial struct Linearizer<T, L>
             }
             return;
         }
-        
+
         int nY = CutCubicAtYExtrema(p, out FloatPointX10 monoY);
 
         for (int i = 0; i < nY; i++)
@@ -1439,13 +1434,13 @@ public unsafe partial struct Linearizer<T, L>
         //Debug.Assert(p != null);
         Debug.Assert(double.IsFinite(p[0].X));
         Debug.Assert(double.IsFinite(p[0].Y));
-        
+
         Debug.Assert(double.IsFinite(p[1].X));
         Debug.Assert(double.IsFinite(p[1].Y));
-        
+
         Debug.Assert(double.IsFinite(p[2].X));
         Debug.Assert(double.IsFinite(p[2].Y));
-        
+
         Debug.Assert(double.IsFinite(p[3].X));
         Debug.Assert(double.IsFinite(p[3].Y));
 
@@ -1470,7 +1465,7 @@ public unsafe partial struct Linearizer<T, L>
             return;
         }
 
-        if (sy >= clip.Max.Y && 
+        if (sy >= clip.Max.Y &&
             py >= clip.Max.Y)
         {
             // Completely on bottom.
@@ -1562,13 +1557,13 @@ public unsafe partial struct Linearizer<T, L>
         //Debug.Assert(p != null);
         Debug.Assert(double.IsFinite(p[0].X));
         Debug.Assert(double.IsFinite(p[0].Y));
-        
+
         Debug.Assert(double.IsFinite(p[1].X));
         Debug.Assert(double.IsFinite(p[1].Y));
-        
+
         Debug.Assert(double.IsFinite(p[2].X));
         Debug.Assert(double.IsFinite(p[2].Y));
-        
+
         Debug.Assert(double.IsFinite(p[3].X));
         Debug.Assert(double.IsFinite(p[3].Y));
 
@@ -1674,7 +1669,7 @@ public unsafe partial struct Linearizer<T, L>
     {
         double sx = p[0].X;
         double px = p[3].X;
-        
+
         if (px <= 0)
         {
             // Completely on left.
@@ -1716,10 +1711,10 @@ public unsafe partial struct Linearizer<T, L>
                 F24Dot8PointX4.FromFloat(
                     tmp[3], tmp[4], tmp[5], tmp[6],
                     out F24Dot8PointX4 c);
-                
+
                 F24Dot8 y0 = Clamp(DoubleToF24Dot8(tmp[0].Y), 0, clip.FMax.Y);
                 F24Dot8 y1 = Clamp(c[0].Y, 0, clip.FMax.Y);
-                
+
                 UpdateStartCovers(memory, y0, y1);
 
                 AddPotentiallyUncontainedCubicF24Dot8(memory, clip.FMax, c);
@@ -1734,13 +1729,13 @@ public unsafe partial struct Linearizer<T, L>
             AddContainedCubicF24Dot8(memory, c);
         }
     }
-    
+
 
     private void AddVerticallyContainedMonotonicCubic_VerticalLine(
         ThreadMemory memory, ClipBounds clip, FloatPointX4 p)
     {
         double px = p[3].X;
-        
+
         // Vertical line.
         if (px <= 0)
         {
@@ -1820,7 +1815,7 @@ public unsafe partial struct Linearizer<T, L>
         if (dx + dy < F24Dot8_1)
         {
             F24Dot8PointX4 pc = c.Clamp(default, max);
-            
+
             AddContainedCubicF24Dot8(memory, pc);
         }
         else
@@ -1842,17 +1837,17 @@ public unsafe partial struct Linearizer<T, L>
         Debug.Assert(c[0].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(c[0].Y >= 0);
         Debug.Assert(c[0].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-        
+
         Debug.Assert(c[1].X >= 0);
         Debug.Assert(c[1].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(c[1].Y >= 0);
         Debug.Assert(c[1].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-        
+
         Debug.Assert(c[2].X >= 0);
         Debug.Assert(c[2].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(c[2].Y >= 0);
         Debug.Assert(c[2].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-        
+
         Debug.Assert(c[3].X >= 0);
         Debug.Assert(c[3].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(c[3].Y >= 0);
@@ -1880,13 +1875,13 @@ public unsafe partial struct Linearizer<T, L>
     {
         Debug.Assert(rowIndex >= 0);
         Debug.Assert(rowIndex < mBounds.RowCount);
-        
+
         Debug.Assert(x >= 0);
         Debug.Assert(x <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
-        
+
         Debug.Assert(y0 >= 0);
         Debug.Assert(y0 <= T.TileHF24Dot8);
-        
+
         Debug.Assert(y1 >= 0);
         Debug.Assert(y1 <= T.TileHF24Dot8);
 
@@ -2185,7 +2180,7 @@ public unsafe partial struct Linearizer<T, L>
     {
         Debug.Assert(y0 >= 0);
         Debug.Assert(y0 <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-        
+
         Debug.Assert(y1 >= 0);
         Debug.Assert(y1 <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
 

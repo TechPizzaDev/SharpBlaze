@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 
 namespace SharpBlaze;
 
@@ -9,39 +8,16 @@ namespace SharpBlaze;
  */
 public unsafe partial class VectorImage
 {
-    private int mGeometryCount = 0;
     private IntRect mBounds;
-    private Geometry* mGeometries = null;
-
-
-    public int GetGeometryCount()
-    {
-        return mGeometryCount;
-    }
+    private ReadOnlyMemory<Geometry> mGeometries = null;
 
     public IntRect GetBounds()
     {
         return mBounds;
     }
-
-
-    public Geometry* GetGeometryAt(int index)
-    {
-        Debug.Assert(index >= 0);
-        Debug.Assert(index < mGeometryCount);
-
-        return mGeometries + index;
-    }
-
     
-    public Geometry* GetGeometries()
+    public ReadOnlyMemory<Geometry> GetGeometries()
     {
         return mGeometries;
-    }
-
-
-    public ReadOnlySpan<Geometry> GetGeometrySpan()
-    {
-        return new ReadOnlySpan<Geometry>(mGeometries, mGeometryCount);
     }
 }

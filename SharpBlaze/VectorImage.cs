@@ -103,6 +103,15 @@ internal unsafe partial struct BinaryReader
 
         Bytes += length;
     }
+
+    public void ReadBinary(Span<byte> d)
+    {
+        Debug.Assert(GetRemainingByteCount() >= (uint) d.Length);
+
+        new Span<byte>(Bytes, d.Length).CopyTo(d);
+
+        Bytes += d.Length;
+    }
 }
 
 public unsafe partial class VectorImage
@@ -116,16 +125,10 @@ public unsafe partial class VectorImage
         mBounds = new(0, 0, 0, 0);
     }
 
-    public VectorImage(Geometry* geometries, int geometryCount, IntRect bounds)
+    public VectorImage(ReadOnlyMemory<Geometry> geometries, IntRect bounds)
     {
         mGeometries = geometries;
-        mGeometryCount = geometryCount;
         mBounds = bounds;
-    }
-
-    ~VectorImage()
-    {
-        Free();
     }
 
 
@@ -133,8 +136,6 @@ public unsafe partial class VectorImage
     {
         Debug.Assert(binary != null);
         Debug.Assert(length > 0);
-
-        Free();
 
         if (length < 4 + 4 * 6)
         {
@@ -182,9 +183,10 @@ public unsafe partial class VectorImage
             return OperationStatus.NeedMoreData;
         }
 
-        mGeometries = (Geometry*) NativeMemory.Alloc((nuint) (sizeof(Geometry) * count));
+        Geometry[] geometries = new Geometry[count];
 
-        for (uint i = 0; i < count; i++)
+        int i = 0;
+        for (; i < count; i++)
         {
             // 4 bytes, color as premultiplied RGBA8.
             uint color = br.ReadUInt32();
@@ -204,7 +206,7 @@ public unsafe partial class VectorImage
             // 4 bytes, point count.
             uint pointCount = br.ReadUInt32();
 
-            ulong memoryNeeded = tagCount + (pointCount * 16);
+            ulong memoryNeeded = tagCount + (pointCount * (uint) Unsafe.SizeOf<FloatPoint>());
 
             if (br.GetRemainingByteCount() < memoryNeeded)
             {
@@ -213,20 +215,22 @@ public unsafe partial class VectorImage
                 break;
             }
 
-            PathTag* tags = (PathTag*) NativeMemory.Alloc(tagCount);
-            FloatPoint* points = (FloatPoint*) NativeMemory.Alloc(pointCount * 16);
+            PathTag[] tags = new PathTag[tagCount];
+            FloatPoint[] points = new FloatPoint[pointCount];
 
-            br.ReadBinary((byte*) tags, tagCount);
-            br.ReadBinary((byte*) points, pointCount * 16);
+            br.ReadBinary(MemoryMarshal.AsBytes(tags.AsSpan()));
+            br.ReadBinary(MemoryMarshal.AsBytes(points.AsSpan()));
 
-            Geometry* geometry = mGeometries + mGeometryCount;
-
-            *geometry = new Geometry(IntRect.FromMinMax(pminx, pminy, pmaxx, pmaxy),
-                tags, points, Matrix.Identity, (int) tagCount, (int) pointCount, color,
+            geometries[i] = new Geometry(
+                IntRect.FromMinMax(pminx, pminy, pmaxx, pmaxy),
+                tags, points,
+                Matrix.Identity,
+                color,
                 fillRule);
-
-            mGeometryCount++;
         }
+
+        Array.Resize(ref geometries, i);
+        mGeometries = geometries;
 
         return OperationStatus.Done;
     }
@@ -237,55 +241,38 @@ public unsafe partial class VectorImage
 
         writer.Write(Signature);
         writer.Write(Version);
-
-        writer.Write(mGeometryCount);
+        
+        ReadOnlySpan<Geometry> geometries = mGeometries.Span;
+        writer.Write(geometries.Length);
 
         writer.Write(mBounds.MinX);
         writer.Write(mBounds.MinY);
         writer.Write(mBounds.MaxX);
         writer.Write(mBounds.MaxY);
 
-        for (int i = 0; i < mGeometryCount; i++)
+        for (int i = 0; i < geometries.Length; i++)
         {
-            Geometry* geo = &mGeometries[i];
+            ref readonly Geometry geo = ref geometries[i];
 
-            writer.Write(geo->Color);
+            writer.Write(geo.Color);
 
-            writer.Write(geo->PathBounds.MinX);
-            writer.Write(geo->PathBounds.MinY);
-            writer.Write(geo->PathBounds.MaxX);
-            writer.Write(geo->PathBounds.MaxY);
+            writer.Write(geo.PathBounds.MinX);
+            writer.Write(geo.PathBounds.MinY);
+            writer.Write(geo.PathBounds.MaxX);
+            writer.Write(geo.PathBounds.MaxY);
 
-            writer.Write((uint) geo->Rule);
+            writer.Write((uint) geo.Rule);
 
-            writer.Write(geo->TagCount);
-            writer.Write(geo->PointCount);
+            writer.Write(geo.Tags.Length);
+            writer.Write(geo.Points.Length);
 
-            writer.Write(new Span<byte>(geo->Tags, geo->TagCount));
+            writer.Write(MemoryMarshal.AsBytes(geo.Tags.Span));
 
-            for (int j = 0; j < geo->PointCount; j++)
+            foreach (FloatPoint point in geo.Points.Span)
             {
-                FloatPoint point = geo->Points[j];
                 writer.Write(point.X);
                 writer.Write(point.Y);
             }
         }
-    }
-
-
-    private void Free()
-    {
-        int count = mGeometryCount;
-
-        for (int i = 0; i < count; i++)
-        {
-            NativeMemory.Free(mGeometries[i].Tags);
-            NativeMemory.Free(mGeometries[i].Points);
-        }
-
-        NativeMemory.Free(mGeometries);
-
-        mGeometries = null;
-        mGeometryCount = 0;
     }
 }

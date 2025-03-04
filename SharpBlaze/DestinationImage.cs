@@ -69,14 +69,15 @@ public unsafe partial class DestinationImage<T>
 
     public void DrawImage(VectorImage image, in Matrix matrix, Executor executor)
     {
-        if (image.GetGeometryCount() < 1)
+        ReadOnlyMemory<Geometry> geometries = image.GetGeometries();
+        if (geometries.IsEmpty)
         {
             return;
         }
 
         ImageData d = new(mImageData, mImageSize.Width, mImageSize.Height, mBytesPerRow);
 
-        Rasterizer<T>.Rasterize(image.GetGeometrySpan(), matrix, executor, d);
+        Rasterizer<T>.Rasterize(geometries, matrix, executor, d);
 
         GC.KeepAlive(image);
 

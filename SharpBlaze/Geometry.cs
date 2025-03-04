@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 
 namespace SharpBlaze;
@@ -6,7 +7,7 @@ namespace SharpBlaze;
 /**
  * One renderable item.
  */
-public readonly unsafe partial struct Geometry
+public readonly struct Geometry
 {
 
     /**
@@ -29,32 +30,30 @@ public readonly unsafe partial struct Geometry
      *
      * @param rule Fill rule to use.
      */
-    public Geometry(IntRect pathBounds, PathTag* tags,
-         FloatPoint* points, in Matrix tm, int tagCount,
-         int pointCount, uint color, FillRule rule)
+    public Geometry(
+        IntRect pathBounds, 
+        ReadOnlyMemory<PathTag> tags,
+        ReadOnlyMemory<FloatPoint> points, 
+        in Matrix tm, 
+        uint color, 
+        FillRule rule)
     {
+        Debug.Assert(!tags.IsEmpty);
+        Debug.Assert(!points.IsEmpty);
+
         PathBounds = pathBounds;
         Tags = tags;
         Points = points;
         TM = tm;
-        TagCount = tagCount;
-        PointCount = pointCount;
         Color = color;
         Rule = rule;
-
-        Debug.Assert(tags != null);
-        Debug.Assert(points != null);
-        Debug.Assert(tagCount > 0);
-        Debug.Assert(pointCount > 0);
     }
 
 
     public readonly IntRect PathBounds;
-    public readonly PathTag* Tags = null;
-    public readonly FloatPoint* Points = null;
+    public readonly ReadOnlyMemory<PathTag> Tags = null;
+    public readonly ReadOnlyMemory<FloatPoint> Points = null;
     public readonly Matrix TM;
-    public readonly int TagCount = 0;
-    public readonly int PointCount = 0;
     public readonly uint Color = 0;
     public readonly FillRule Rule = FillRule.NonZero;
 };

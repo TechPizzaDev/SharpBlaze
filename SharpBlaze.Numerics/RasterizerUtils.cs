@@ -3,8 +3,6 @@ using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
 
-using static Utils;
-
 public static class RasterizerUtils
 {
 

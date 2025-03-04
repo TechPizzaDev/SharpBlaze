@@ -56,8 +56,7 @@ public class VectorImageBuilder
     public unsafe VectorImage ToVectorImage(uint color)
     {
         int geometryCapacity = _closeOffsets.Count + 1;
-        Geometry* geometries = (Geometry*) NativeMemory.Alloc((uint) geometryCapacity, (uint) sizeof(Geometry));
-        Span<Geometry> geometrySpan = new(geometries, geometryCapacity);
+        Geometry[] geometries = new Geometry[geometryCapacity];
         int geometryCount = 0;
 
         int prevTagOffset = 0;
@@ -70,7 +69,7 @@ public class VectorImageBuilder
 
             Range tagRange = new(prevTagOffset, tagOffset);
             Range pointRange = new(prevPointOffset, pointOffset);
-            if (TryCreateGeo(fillRule, color, tagRange, pointRange, ref fullBounds, out geometrySpan[geometryCount]))
+            if (TryCreateGeo(fillRule, color, tagRange, pointRange, ref fullBounds, out geometries[geometryCount]))
             {
                 geometryCount++;
             }
@@ -79,17 +78,19 @@ public class VectorImageBuilder
             prevPointOffset = pointOffset;
         }
 
-        return new VectorImage(geometries, geometryCount, fullBounds);
+        Array.Resize(ref geometries, geometryCount);
+
+        return new VectorImage(geometries, fullBounds);
     }
 
     private unsafe bool TryCreateGeo(
         FillRule fillRule, uint color,
         Range tagRange, Range pointRange, ref IntRect fullBounds, out Geometry geometry)
     {
-        Span<PathTag> tagSpan = CollectionsMarshal.AsSpan(_tags)[tagRange];
-        Span<FloatPoint> pointSpan = CollectionsMarshal.AsSpan(_points)[pointRange];
+        PathTag[] tags = CollectionsMarshal.AsSpan(_tags)[tagRange].ToArray();
+        ReadOnlySpan<FloatPoint> pointSpan = CollectionsMarshal.AsSpan(_points)[pointRange];
 
-        if (tagSpan.Length == 0)
+        if (tags.Length == 0)
         {
             Debug.Assert(pointSpan.Length == 0);
 
@@ -97,15 +98,15 @@ public class VectorImageBuilder
             return false;
         }
 
-        PathTag* tags = (PathTag*) NativeMemory.Alloc((uint) tagSpan.Length, sizeof(PathTag));
-        tagSpan.CopyTo(new Span<PathTag>(tags, tagSpan.Length));
-
-        FloatPoint* points = (FloatPoint*) NativeMemory.Alloc((uint) pointSpan.Length, (uint) sizeof(FloatPoint));
-        IntRect pBounds = GetBoundsAndCopy(pointSpan, new Span<FloatPoint>(points, pointSpan.Length)).ToExpandedIntRect();
+        FloatPoint[] points = new FloatPoint[pointSpan.Length];
+        IntRect pBounds = GetBoundsAndCopy(pointSpan, points).ToExpandedIntRect();
 
         geometry = new Geometry(
             pBounds,
-            tags, points, Matrix.Identity, tagSpan.Length, pointSpan.Length, color,
+            tags,
+            points, 
+            Matrix.Identity,
+            color,
             fillRule);
 
         fullBounds = IntRect.Union(fullBounds, pBounds);
