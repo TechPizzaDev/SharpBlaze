@@ -280,10 +280,7 @@ public unsafe partial struct Linearizer<T, L>
 
     private partial int* GetStartCoversForRowAtIndex(ThreadMemory memory, int index);
 
-    private partial void UpdateStartCovers(ThreadMemory memory, F24Dot8 y0,
-        F24Dot8 y1);
-    private partial void UpdateStartCoversFull_Down(ThreadMemory memory, int index);
-    private partial void UpdateStartCoversFull_Up(ThreadMemory memory, int index);
+    private partial void UpdateStartCovers(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1);
 
 
     /**
@@ -2274,7 +2271,7 @@ public unsafe partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void UpdateStartCoversFull_Down(ThreadMemory memory, int index)
+    private void UpdateStartCoversFull_Down(ThreadMemory memory, int index)
     {
         Debug.Assert(mStartCoverTable != null);
         Debug.Assert(index >= 0);
@@ -2300,7 +2297,7 @@ public unsafe partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial void UpdateStartCoversFull_Up(ThreadMemory memory, int index)
+    private void UpdateStartCoversFull_Up(ThreadMemory memory, int index)
     {
         Debug.Assert(mStartCoverTable != null);
         Debug.Assert(index >= 0);
