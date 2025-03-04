@@ -47,8 +47,8 @@ public static partial class CurveUtils
                 return AcceptRoot(out roots[0], rv0);
             }
 
-            double r0 = rv0 <= rv1 ? rv0 : rv1;
-            double r1 = rv0 <= rv1 ? rv1 : rv0;
+            double r0 = Math.Min(rv0, rv1);
+            double r1 = Math.Max(rv0, rv1);
 
             int n = AcceptRoot(out roots[0], r0);
 

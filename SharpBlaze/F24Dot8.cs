@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace SharpBlaze;
 
@@ -33,7 +35,17 @@ public readonly struct F24Dot8
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 DoubleToF24Dot8(double v)
     {
-        return (F24Dot8) (int) Math.Round(v * 256.0);
+        double s = v * 256.0;
+        if (Sse2.IsSupported)
+        {
+            return Sse2.ConvertToInt32(Vector128.CreateScalarUnsafe(s));
+        }
+
+        double r = Math.Round(s);
+#if NET9_0_OR_GREATER
+        return double.ConvertToIntegerNative<int>(r);
+#endif
+        return (int) r;
     }
 
 
@@ -46,20 +58,20 @@ public readonly struct F24Dot8
         int mask = v >> 31;
         return (v + mask) ^ mask;
     }
-    
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator int(F24Dot8 value) => value._value;
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator uint(F24Dot8 value) => (uint) value._value;
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator F24Dot8(int value) => new(value);
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator F24Dot8(uint value) => new((int) value);
-    
+
     public override string ToString()
     {
         return $"{_value / 256.0:F}";
