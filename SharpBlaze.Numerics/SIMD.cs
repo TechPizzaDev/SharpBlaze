@@ -142,7 +142,6 @@ public static unsafe partial class SIMD
         double sx = matrix.M11() * 256.0;
         double sy = matrix.M22() * 256.0;
 
-        int i = 0;
         if (Vector128.IsHardwareAccelerated)
         {
             Vector128<int> vOrigin = origin.ToVector128();
@@ -151,8 +150,8 @@ public static unsafe partial class SIMD
 
             while (src.Length >= 2 && dst.Length >= 4)
             {
-                Vector128<double> src0 = src[i + 0].AsVector128();
-                Vector128<double> src1 = src[i + 1].AsVector128();
+                Vector128<double> src0 = src[0].AsVector128();
+                Vector128<double> src1 = src[1].AsVector128();
 
                 Vector128<int> val = F24Dot8PointX2.ConvertToInt32(src0 * s, src1 * s);
 
@@ -166,8 +165,8 @@ public static unsafe partial class SIMD
         
         while (src.Length >= 1 && dst.Length >= 2)
         {
-            dst[0] = Clamp(ConvertToInt32(src[i].X * sx) - origin.X, 0, size.X);
-            dst[1] = Clamp(ConvertToInt32(src[i].Y * sy) - origin.Y, 0, size.Y);
+            dst[0] = Clamp(ConvertToInt32(src[0].X * sx) - origin.X, 0, size.X);
+            dst[1] = Clamp(ConvertToInt32(src[0].Y * sy) - origin.Y, 0, size.Y);
             
             src = src.Slice(1);
             dst = dst.Slice(2);
@@ -182,8 +181,7 @@ public static unsafe partial class SIMD
         F24Dot8Point size)
     {
         // Scale and translation matrix.
-        Matrix m = matrix;
-        m *= Matrix.CreateScale(256.0);
+        Matrix m = matrix * Matrix.CreateScale(256.0);
 
         if (Vector128.IsHardwareAccelerated)
         {
@@ -231,8 +229,7 @@ public static unsafe partial class SIMD
         F24Dot8Point origin,
         F24Dot8Point size)
     {
-        Matrix m = matrix;
-        m *= Matrix.CreateScale(256.0);
+        Matrix m = matrix * Matrix.CreateScale(256.0);
 
         if (Vector128.IsHardwareAccelerated)
         {
@@ -273,6 +270,9 @@ public static unsafe partial class SIMD
 
             dst[0] = Clamp(ConvertToInt32(m00 * x + m10 * y + m20) - origin.X, 0, size.X);
             dst[1] = Clamp(ConvertToInt32(m01 * x + m11 * y + m21) - origin.Y, 0, size.Y);
+            
+            src = src.Slice(1);
+            dst = dst.Slice(2);
         }
     }
 }
