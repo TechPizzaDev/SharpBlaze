@@ -55,70 +55,49 @@ public unsafe partial struct Rasterizer<T>
         return (F24Dot8) (x) << 8;
     }
 
-
-    readonly struct LineIterationFunction
+    struct LineIterationFunction
     {
-        public readonly delegate* managed<in RasterizableItem, Span2D<BitVector>, Span2D<CoverArea>, void> value;
-
-        public LineIterationFunction(
-            delegate* managed<in RasterizableItem, Span2D<BitVector>, Span2D<CoverArea>, void> value)
-        {
-            this.value = value;
-        }
+        public required delegate* managed<
+            int, 
+            in RasterizableGeometry,
+            Span2D<BitVector>,
+            Span2D<CoverArea>,
+            void> value;
     }
 
-    unsafe partial struct RasterizableGeometry
+    readonly partial struct RasterizableGeometry
     {
         public RasterizableGeometry(
             int geometry,
             LineIterationFunction iterationFunction,
-            TileBounds bounds)
+            TileBounds bounds,
+            void** lines,
+            int* firstBlockLineCounts,
+            int** startCoverTable)
         {
             Geometry = geometry;
             IterationFunction = iterationFunction;
             Bounds = bounds;
+            Lines = lines;
+            FirstBlockLineCounts = firstBlockLineCounts;
+            StartCoverTable = startCoverTable;
         }
 
-        public readonly partial void* GetLinesForRow(int rowIndex);
-        public readonly partial int GetFirstBlockLineCountForRow(int rowIndex);
-        public readonly partial int* GetCoversForRow(int rowIndex);
-        public readonly partial int* GetActualCoversForRow(int rowIndex);
+        public partial void* GetLinesForRow(int rowIndex);
+        public partial int GetFirstBlockLineCountForRow(int rowIndex);
+        public partial int* GetCoversForRow(int rowIndex);
+        public partial int* GetActualCoversForRow(int rowIndex);
 
-        public readonly int Geometry = -1;
-        public readonly LineIterationFunction IterationFunction = default;
+        public readonly int Geometry;
+        public readonly LineIterationFunction IterationFunction;
         public readonly TileBounds Bounds;
-        public void** Lines = null;
-        public int* FirstBlockLineCounts = null;
-        public int** StartCoverTable = null;
+        public readonly void** Lines;
+        public readonly int* FirstBlockLineCounts;
+        public readonly int** StartCoverTable;
     }
 
 
-    partial struct RasterizableItem
-    {
-        public RasterizableItem(RasterizableGeometry* rasterizable, int localRowIndex)
-        {
-            Rasterizable = rasterizable;
-            LocalRowIndex = localRowIndex;
-        }
-
-        public readonly partial int GetFirstBlockLineCount();
-        public readonly partial void* GetLineArray();
-        public readonly partial int* GetActualCovers();
-
-        // Do not initialize these since they are allocated in bunches.
-        public readonly RasterizableGeometry* Rasterizable;
-        public int LocalRowIndex;
-    };
-
-
-    /**
-     * Rasterize all items in one row.
-     */
-    private static partial void RasterizeRow(
-        RowItemList<RasterizableItem>* rowList,
-        ReadOnlySpan<Geometry> geometries,
-        ThreadMemory memory,
-        ImageData image);
+    readonly record struct RasterizableItem(int Rasterizable, int LocalRowIndex);
 
     [Obsolete]
     public Rasterizer() { }
@@ -142,12 +121,11 @@ public unsafe partial struct Rasterizer<T>
 
     private ref struct StepState1
     {
-        public required RasterizableGeometry** rasterizables;
-        public required RasterizableGeometry* rasterizableGeometryMemory;
+        public required Span<int> rasterIndices;
+        public required Span<RasterizableGeometry> rasters;
         public required ReadOnlySpan<Geometry> geometries;
         public required Matrix transform;
         public required IntSize imageSize;
-        public int visibleRasterizableCount;
     }
 
     /// <summary>
@@ -160,13 +138,14 @@ public unsafe partial struct Rasterizer<T>
         ReadOnlySpan<Geometry> geometries,
         in Matrix transform)
     {
-        // Allocate memory for RasterizableGeometry instance pointers.
-        RasterizableGeometry** rasterizables =
-            threads.MainMemory.FrameMallocPointers<RasterizableGeometry>(geometries.Length);
-
+        Span<int> rasterIndices = new(
+            threads.MainMemory.FrameMallocArray<int>(geometries.Length),
+            geometries.Length);
+        
         // Allocate memory for RasterizableGeometry instances.
-        RasterizableGeometry* rasterizableGeometryMemory =
-            threads.MainMemory.FrameMallocArray<RasterizableGeometry>(geometries.Length);
+        Span<RasterizableGeometry> rasters = new(
+            threads.MainMemory.FrameMallocArray<RasterizableGeometry>(geometries.Length),
+            geometries.Length);
 
         IntSize imageSize = new(
             image.Width,
@@ -175,8 +154,8 @@ public unsafe partial struct Rasterizer<T>
 
         StepState1 state1 = new()
         {
-            rasterizables = rasterizables,
-            rasterizableGeometryMemory = rasterizableGeometryMemory,
+            rasterIndices = rasterIndices,
+            rasters = rasters,
             geometries = geometries,
             transform = transform,
             imageSize = imageSize,
@@ -198,40 +177,41 @@ public unsafe partial struct Rasterizer<T>
                 srcGeo.Color, 
                 srcGeo.Rule
             );
-            
-            s->rasterizables[index] = CreateRasterizable(
-                s->rasterizableGeometryMemory + index,
+
+            bool hasRaster = CreateRasterizable(
+                out s->rasters[index],
                 rasterGeo,
                 index,
                 s->imageSize,
                 memory);
+
+            s->rasterIndices[index] = hasRaster ? index : -1;
         });
 
         // Linearizer may decide that some paths do not contribute to the final
         // image. In these situations CreateRasterizable will return null.
         // In the following step, non-null pointers are packed into front of array.
 
-        int visibleRasterizableCount = 0;
+        int rasterCount = 0;
 
-        for (int i = 0; i < geometries.Length; i++)
+        for (int i = 0; i < rasterIndices.Length; i++)
         {
-            RasterizableGeometry* rasterizable = rasterizables[i];
-
-            if (rasterizable != null)
+            int rasterIndex = rasterIndices[i];
+            if (rasterIndex != -1)
             {
-                rasterizables[visibleRasterizableCount++] = rasterizable;
+                rasterIndices[rasterCount++] = rasterIndex;
             }
         }
 
-        state1.visibleRasterizableCount = visibleRasterizableCount;
+        state1.rasterIndices = rasterIndices.Slice(0, rasterCount);
 
         return state1;
     }
 
-    private struct StepState2
+    private ref struct StepState2
     {
-        public required RasterizableGeometry** visibleRasterizables;
-        public required int visibleRasterizableCount;
+        public required ReadOnlySpan<int> rasterIndices;
+        public required ReadOnlySpan<RasterizableGeometry> rasters;
 
         public required TileIndex rowCount;
         public required RowItemList<RasterizableItem>* rowLists;
@@ -257,9 +237,8 @@ public unsafe partial struct Rasterizer<T>
 
         StepState2 state2 = new()
         {
-            visibleRasterizables = state1.rasterizables,
-            visibleRasterizableCount = state1.visibleRasterizableCount,
-
+            rasterIndices = state1.rasterIndices,
+            rasters = state1.rasters,
             rowCount = rowCount,
             rowLists = rowLists,
             iterationHeight = iterationHeight,
@@ -277,10 +256,10 @@ public unsafe partial struct Rasterizer<T>
                 *(s->rowLists + i) = new RowItemList<RasterizableItem>();
             }
 
-            for (int i = 0; i < s->visibleRasterizableCount; i++)
+            foreach (int rasterIndex in s->rasterIndices)
             {
-                RasterizableGeometry* rasterizable = s->visibleRasterizables[i];
-                TileBounds b = rasterizable->Bounds;
+                ref readonly RasterizableGeometry rasterizable = ref s->rasters[rasterIndex];
+                TileBounds b = rasterizable.Bounds;
 
                 TileIndex min = Clamp(b.Y, threadY, threadMaxY);
                 TileIndex max = Clamp(b.Y + b.RowCount, threadY, threadMaxY);
@@ -300,8 +279,8 @@ public unsafe partial struct Rasterizer<T>
                     // inserted. Either it has segments or it has non-zero cover
                     // array.
                     bool emptyRow =
-                        rasterizable->GetLinesForRow((int) localIndex) == null &&
-                        rasterizable->GetCoversForRow((int) localIndex) == null;
+                        rasterizable.GetLinesForRow((int) localIndex) == null &&
+                        rasterizable.GetCoversForRow((int) localIndex) == null;
 
                     if (emptyRow)
                     {
@@ -312,7 +291,7 @@ public unsafe partial struct Rasterizer<T>
 
                     RowItemList<RasterizableItem>* list = s->rowLists + y;
 
-                    list->Append(memory, new RasterizableItem(rasterizable, (int) localIndex));
+                    list->Append(memory, new RasterizableItem(rasterIndex, (int) localIndex));
                 }
             }
         });
@@ -324,6 +303,7 @@ public unsafe partial struct Rasterizer<T>
     {
         public required RowItemList<RasterizableItem>* rowLists;
         public required ImageData image;
+        public required ReadOnlySpan<RasterizableGeometry> rasters;
         public required ReadOnlySpan<Geometry> geometries;
     }
 
@@ -331,12 +311,16 @@ public unsafe partial struct Rasterizer<T>
     /// Rasterize all intervals.
     /// </summary>
     private static void Step3(
-        Executor threads, in ImageData image, ReadOnlySpan<Geometry> geometries, in StepState2 state2)
+        Executor threads, 
+        in ImageData image,
+        ReadOnlySpan<Geometry> geometries, 
+        in StepState2 state2)
     {
         StepState3 state3 = new()
         {
             rowLists = state2.rowLists,
             image = image,
+            rasters = state2.rasters,
             geometries = geometries,
         };
         threads.For(0, (int) state2.rowCount, &state3, static (rowIndex, state, memory) =>
@@ -345,7 +329,7 @@ public unsafe partial struct Rasterizer<T>
 
             RowItemList<RasterizableItem>* item = s->rowLists + rowIndex;
 
-            RasterizeRow(item, s->geometries, memory, s->image);
+            RasterizeRow(item, s->rasters, s->geometries, memory, s->image);
         });
     }
 
@@ -353,7 +337,7 @@ public unsafe partial struct Rasterizer<T>
     {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly partial void* GetLinesForRow(int rowIndex)
+        public partial void* GetLinesForRow(int rowIndex)
         {
             Debug.Assert(rowIndex >= 0);
             Debug.Assert(rowIndex < Bounds.RowCount);
@@ -363,7 +347,7 @@ public unsafe partial struct Rasterizer<T>
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly partial int GetFirstBlockLineCountForRow(int rowIndex)
+        public partial int GetFirstBlockLineCountForRow(int rowIndex)
         {
             Debug.Assert(rowIndex >= 0);
             Debug.Assert(rowIndex < Bounds.RowCount);
@@ -373,7 +357,7 @@ public unsafe partial struct Rasterizer<T>
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly partial int* GetCoversForRow(int rowIndex)
+        public partial int* GetCoversForRow(int rowIndex)
         {
             Debug.Assert(rowIndex >= 0);
             Debug.Assert(rowIndex < Bounds.RowCount);
@@ -389,7 +373,7 @@ public unsafe partial struct Rasterizer<T>
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly partial int* GetActualCoversForRow(int rowIndex)
+        public partial int* GetActualCoversForRow(int rowIndex)
         {
             Debug.Assert(rowIndex >= 0);
             Debug.Assert(rowIndex < Bounds.RowCount);
@@ -411,36 +395,15 @@ public unsafe partial struct Rasterizer<T>
         }
     }
 
-
-    partial struct RasterizableItem
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly partial int GetFirstBlockLineCount()
-        {
-            return Rasterizable->GetFirstBlockLineCountForRow(LocalRowIndex);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly partial void* GetLineArray()
-        {
-            return Rasterizable->GetLinesForRow(LocalRowIndex);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly partial int* GetActualCovers()
-        {
-            return Rasterizable->GetActualCoversForRow(LocalRowIndex);
-        }
-    }
-
     private static void IterateLinesX32Y16(
-        in RasterizableItem item, Span2D<BitVector> bitVectorTable, Span2D<CoverArea> coverAreaTable)
+        int localRowIndex, 
+        in RasterizableGeometry raster,
+        Span2D<BitVector> bitVectorTable,
+        Span2D<CoverArea> coverAreaTable)
     {
-        int count = item.GetFirstBlockLineCount();
+        int count = raster.GetFirstBlockLineCountForRow(localRowIndex);
 
-        LineArrayX32Y16Block* v = (LineArrayX32Y16Block*) item.GetLineArray();
+        LineArrayX32Y16Block* v = (LineArrayX32Y16Block*) raster.GetLinesForRow(localRowIndex);
 
         while (v != null)
         {
@@ -467,11 +430,14 @@ public unsafe partial struct Rasterizer<T>
 
 
     private static void IterateLinesX16Y16(
-        in RasterizableItem item, Span2D<BitVector> bitVectorTable, Span2D<CoverArea> coverAreaTable)
+        int localRowIndex, 
+        in RasterizableGeometry raster,
+        Span2D<BitVector> bitVectorTable,
+        Span2D<CoverArea> coverAreaTable)
     {
-        int count = item.GetFirstBlockLineCount();
+        int count = raster.GetFirstBlockLineCountForRow(localRowIndex);
 
-        LineArrayX16Y16Block* v = (LineArrayX16Y16Block*) item.GetLineArray();
+        LineArrayX16Y16Block* v = (LineArrayX16Y16Block*) raster.GetLinesForRow(localRowIndex);
 
         while (v != null)
         {
@@ -497,20 +463,20 @@ public unsafe partial struct Rasterizer<T>
         }
     }
 
-    private static RasterizableGeometry* CreateRasterizable(
-        RasterizableGeometry* placement,
+    private static bool CreateRasterizable(
+        out RasterizableGeometry placement,
         in Geometry geometry,
         int geometryIndex,
         IntSize imageSize,
         ThreadMemory memory)
     {
-        Debug.Assert(placement != null);
         Debug.Assert(imageSize.Width > 0);
         Debug.Assert(imageSize.Height > 0);
 
+        Unsafe.SkipInit(out placement);
         if (geometry.Tags.IsEmpty)
         {
-            return null;
+            return false;
         }
 
         // Path bounds in geometry are transformed by transformation matrix, but
@@ -540,7 +506,7 @@ public unsafe partial struct Rasterizer<T>
 
         if (geometryBounds.MinX == geometryBounds.MaxX)
         {
-            return null;
+            return false;
         }
 
         int minx = Math.Max(0, geometryBounds.MinX);
@@ -551,7 +517,7 @@ public unsafe partial struct Rasterizer<T>
         if (minx >= maxx || miny >= maxy)
         {
             // Geometry bounds do not intersect with destination image.
-            return null;
+            return false;
         }
 
         TileBounds bounds = CalculateTileBounds<T>(minx, miny, maxx, maxy);
@@ -560,19 +526,22 @@ public unsafe partial struct Rasterizer<T>
 
         if (narrow)
         {
-            return Linearize<LineArrayX16Y16>(
-                placement, geometry, geometryIndex, bounds,
-                imageSize, new(&IterateLinesX16Y16), memory);
+            LineIterationFunction fn = new() { value = &IterateLinesX16Y16 };
+            Linearize<LineArrayX16Y16>(
+                out placement, geometry, geometryIndex, bounds, imageSize, fn, memory);
         }
-
-        return Linearize<LineArrayX32Y16>(
-            placement, geometry, geometryIndex, bounds,
-            imageSize, new(&IterateLinesX32Y16), memory);
+        else
+        {
+            LineIterationFunction fn = new() { value = &IterateLinesX32Y16 };
+            Linearize<LineArrayX32Y16>(
+                out placement, geometry, geometryIndex, bounds, imageSize, fn, memory);
+        }
+        return true;
     }
 
 
-    private static RasterizableGeometry* Linearize<L>(
-        RasterizableGeometry* placement,
+    private static void Linearize<L>(
+        out RasterizableGeometry placement,
         in Geometry geometry,
         int geometryIndex,
         TileBounds bounds,
@@ -581,9 +550,6 @@ public unsafe partial struct Rasterizer<T>
         ThreadMemory memory)
         where L : unmanaged, ILineArrayBlock<L>
     {
-        RasterizableGeometry* linearized = placement;
-        *linearized = new RasterizableGeometry(geometryIndex, iterationFunction, bounds);
-
         // Determine if path is completely within destination image bounds. If
         // geometry bounds fit within destination image, a shortcut can be made
         // when generating lines.
@@ -595,8 +561,6 @@ public unsafe partial struct Rasterizer<T>
 
         Linearizer<T, L> linearizer =
             Linearizer<T, L>.Create(memory, bounds, contains, geometry);
-
-        //Debug.Assert(linearizer != null);
 
         // Finalize.
         void** lineBlocks = (void**) memory.FrameMallocArray<nint>((int) bounds.RowCount);
@@ -620,11 +584,7 @@ public unsafe partial struct Rasterizer<T>
             firstLineBlockCounts[i] = la.GetFrontBlockLineCount();
         }
 
-        linearized->Lines = lineBlocks;
-        linearized->FirstBlockLineCounts = firstLineBlockCounts;
-
         int** startCoverTable = linearizer.GetStartCoverTable();
-
         if (startCoverTable != null)
         {
             for (int i = 0; i < bounds.RowCount; i++)
@@ -638,11 +598,15 @@ public unsafe partial struct Rasterizer<T>
                     startCoverTable[i] = null;
                 }
             }
-
-            linearized->StartCoverTable = startCoverTable;
         }
-
-        return linearized;
+        
+        placement = new RasterizableGeometry(
+            geometryIndex, 
+            iterationFunction,
+            bounds,
+            lineBlocks,
+            firstLineBlockCounts,
+            startCoverTable);
     }
 
 
@@ -1763,15 +1727,16 @@ public unsafe partial struct Rasterizer<T>
     /// Rasterize one item within a single row.
     /// </summary>
     private static void RasterizeOneItem(
-        in RasterizableItem item,
-        ReadOnlySpan<Geometry> geometries,
+        int localRowIndex,
+        in RasterizableGeometry raster,
+        in Geometry geometry,
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable,
         int columnCount,
         ImageData image)
     {
         // A maximum number of horizontal tiles.
-        int horizontalCount = (int) item.Rasterizable->Bounds.ColumnCount;
+        int horizontalCount = (int) raster.Bounds.ColumnCount;
 
         Debug.Assert(horizontalCount <= columnCount);
 
@@ -1783,18 +1748,20 @@ public unsafe partial struct Rasterizer<T>
             bitVectorTable[i].Slice(0, bitVectorsPerRow).Clear();
         }
 
-        item.Rasterizable->IterationFunction.value(item, bitVectorTable, coverAreaTable);
+        raster.IterationFunction.value(
+            localRowIndex, in raster, bitVectorTable, coverAreaTable);
 
         // Pointer to backdrop.
-        ReadOnlySpan<int> coversStart = new(item.GetActualCovers(), 32);
+        ReadOnlySpan<int> coversStart = new(
+            raster.GetActualCoversForRow(localRowIndex), 32);
 
-        int x = (int) item.Rasterizable->Bounds.X * T.TileW;
+        int x = (int) raster.Bounds.X * T.TileW;
 
         // X must be aligned on tile boundary.
         Debug.Assert((x & (T.TileW - 1)) == 0);
 
         // Y position, measured in tiles.
-        int miny = (int) (item.Rasterizable->Bounds.Y + item.LocalRowIndex);
+        int miny = (int) (raster.Bounds.Y + localRowIndex);
 
         // Y position, measure in pixels.
         int py = miny * T.TileH;
@@ -1814,7 +1781,6 @@ public unsafe partial struct Rasterizer<T>
         int height = Math.Min(maxpy, image.Height) - py;
 
         // Fill color.
-        ref readonly Geometry geometry = ref geometries[item.Rasterizable->Geometry];
         uint color = geometry.Color;
         FillRule rule = geometry.Rule;
 
@@ -1878,11 +1844,12 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    /**
-     * Rasterize all items in one row.
-     */
-    private static partial void RasterizeRow(
+    /// <summary>
+    /// Rasterize all items in one row.
+    /// </summary>
+    private static void RasterizeRow(
         RowItemList<RasterizableItem>* rowList,
+        ReadOnlySpan<RasterizableGeometry> rasterizables,
         ReadOnlySpan<Geometry> geometries,
         ThreadMemory memory,
         ImageData image)
@@ -1919,9 +1886,14 @@ public unsafe partial struct Rasterizer<T>
 
             while (itm < e)
             {
+                RasterizableItem item = *itm++;
+                ref readonly RasterizableGeometry raster = ref rasterizables[item.Rasterizable];
+                ref readonly Geometry geometry = ref geometries[raster.Geometry];
+                
                 RasterizeOneItem(
-                    in *itm++,
-                    geometries,
+                    item.LocalRowIndex,
+                    in raster,
+                    in geometry,
                     bitVectors,
                     coverArea,
                     (int) columnCount,
