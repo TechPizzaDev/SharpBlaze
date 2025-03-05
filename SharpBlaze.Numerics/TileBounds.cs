@@ -8,10 +8,10 @@ namespace SharpBlaze;
 public struct TileBounds
 {
     public TileBounds(
-        TileIndex x,
-        TileIndex y,
-        TileIndex horizontalCount,
-        TileIndex verticalCount)
+        uint x,
+        uint y,
+        uint horizontalCount,
+        uint verticalCount)
     {
         X = x;
         Y = y;
@@ -23,11 +23,11 @@ public struct TileBounds
     }
 
     // Minimum horizontal and vertical tile indices.
-    public TileIndex X;
-    public TileIndex Y;
+    public uint X;
+    public uint Y;
 
     // Horizontal and vertical tile counts. Total number of tiles covered
     // by a geometry can be calculated by multiplying these two values.
-    public TileIndex ColumnCount;
-    public TileIndex RowCount;
+    public uint ColumnCount;
+    public uint RowCount;
 };

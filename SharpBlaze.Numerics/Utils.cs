@@ -75,16 +75,6 @@ public static class Utils
 
 
     /**
-     * Returns value clamped to range between minimum and maximum values.
-     */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TileIndex Clamp(TileIndex val, TileIndex min, TileIndex max)
-    {
-        return Clamp(val._value, min._value, max._value);
-    }
-
-
-    /**
      * Linearly interpolate between A and B.
      * If t is 0, returns A.
      * If t is 1, returns B.
