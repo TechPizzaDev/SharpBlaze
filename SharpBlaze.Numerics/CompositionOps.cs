@@ -6,19 +6,16 @@ using System.Runtime.Intrinsics.X86;
 
 namespace SharpBlaze;
 
-public static unsafe partial class CompositionOps
+public static partial class CompositionOps
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint ApplyAlpha(uint x, byte a)
     {
-        if (sizeof(nint) == 8)
+        if (Unsafe.SizeOf<nint>() == 8)
         {
             return ApplyAlpha64(x, a);
         }
-        else
-        {
-            return ApplyAlpha32(x, a);
-        }
+        return ApplyAlpha32(x, a);
     }
 
 

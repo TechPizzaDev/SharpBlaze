@@ -29,39 +29,13 @@ public static class BitOps
      * @param maxBitCount Maximum number of bits for which storage is needed. Must
      * be at least 1.
      */
-    public static unsafe int BitVectorsForMaxBitCount(int maxBitCount)
+    public static int BitVectorsForMaxBitCount(int maxBitCount)
     {
         Debug.Assert(maxBitCount != 0);
 
-        int x = sizeof(BitVector) * 8;
+        int x = Unsafe.SizeOf<BitVector>() * 8;
 
         return (maxBitCount + x - 1) / x;
-    }
-
-
-    /**
-     * Calculates how many bits are set to 1 in bitmap.
-     *
-     * @param vec An array of BitVector values containing bits.
-     *
-     * @param count A number of values in vec. Note that this is not maximum
-     * amount of bits to scan, but the amount of BitVector numbers vec contains.
-     */
-    public static unsafe int CountBitsInVector(BitVector* vec, int count)
-    {
-        int num = 0;
-
-        for (int i = 0; i < count; i++)
-        {
-            nuint value = vec[i]._value;
-
-            if (value != 0)
-            {
-                num += BitOperations.PopCount(value);
-            }
-        }
-
-        return num;
     }
 
 
@@ -75,9 +49,9 @@ public static class BitOps
      * @param index Bit index to test and set. Must be at least 0.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe bool ConditionalSetBit(Span<BitVector> vec, uint index)
+    public static bool ConditionalSetBit(Span<BitVector> vec, uint index)
     {
-        (uint vecIndex, uint localIndex) = Math.DivRem(index, (uint) sizeof(nuint) * 8U);
+        (uint vecIndex, uint localIndex) = Math.DivRem(index, (uint) Unsafe.SizeOf<nuint>() * 8U);
 
         nuint current = vec[(int) vecIndex]._value;
         nuint bit = ((nuint) 1) << (int) localIndex;
@@ -89,34 +63,5 @@ public static class BitOps
         }
 
         return false;
-    }
-
-
-    /**
-     * Returns index to the first bit vector value which contains at least one bit
-     * set to 1. If the entire array contains only zero bit vectors, an index to
-     * the last bit vector will be returned.
-     *
-     * @param vec Bit vector array. Must not be nullptr.
-     *
-     * @param maxBitVectorCount A number of items in bit vector array. This
-     * function always returns value less than this.
-     */
-    public static unsafe int FindFirstNonZeroBitVector(BitVector* vec, int maxBitVectorCount)
-    {
-        Debug.Assert(vec != null);
-        Debug.Assert(maxBitVectorCount > 0);
-
-        int i = 0;
-
-        for (; i < maxBitVectorCount; i++)
-        {
-            if (vec[i]._value != 0)
-            {
-                return i;
-            }
-        }
-
-        return i;
     }
 }

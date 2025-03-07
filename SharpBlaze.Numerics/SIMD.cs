@@ -7,7 +7,7 @@ namespace SharpBlaze;
 using static Utils;
 using static F24Dot8;
 
-public static unsafe partial class SIMD
+public static class SIMD
 {
     public static void FloatPointsToF24Dot8Points(
         in Matrix matrix,
