@@ -353,9 +353,6 @@ public static unsafe class LinearizerUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SplitQuadratic(out F24Dot8PointX5 r, in F24Dot8PointX3 s)
     {
-        //Debug.Assert(r != null);
-        //Debug.Assert(s != null);
-
         F24Dot8 m0x = (s[0].X + s[1].X) >> 1;
         F24Dot8 m0y = (s[0].Y + s[1].Y) >> 1;
         
@@ -389,9 +386,6 @@ public static unsafe class LinearizerUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SplitCubic(out F24Dot8PointX7 r, F24Dot8PointX4 s)
     {
-        //Debug.Assert(r != null);
-        //Debug.Assert(s != null);
-
         F24Dot8 m0x = (s[0].X + s[1].X) >> 1;
         F24Dot8 m0y = (s[0].Y + s[1].Y) >> 1;
         
@@ -444,8 +438,6 @@ public static unsafe class LinearizerUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool CutMonotonicQuadraticAtX(FloatPointX3 quadratic, double x, out double t)
     {
-        //Debug.Assert(quadratic != null);
-
         return CutMonotonicQuadraticAt(
             quadratic[0].X, quadratic[1].X, quadratic[2].X, x, out t);
     }
@@ -454,8 +446,6 @@ public static unsafe class LinearizerUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool CutMonotonicQuadraticAtY(FloatPointX3 quadratic, double y, out double t)
     {
-        //Debug.Assert(quadratic != null);
-
         return CutMonotonicQuadraticAt(
             quadratic[0].Y, quadratic[1].Y, quadratic[2].Y, y, out t);
     }
@@ -565,8 +555,6 @@ public static unsafe class LinearizerUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsQuadraticFlatEnough(in F24Dot8PointX3 q)
     {
-        //Debug.Assert(q != null);
-
         if (q[0].X == q[2].X && q[0].Y == q[2].Y)
         {
             return true;
@@ -577,8 +565,8 @@ public static unsafe class LinearizerUtils
         F24Dot8 my = (q[0].Y + q[2].Y) >> 1;
 
         // Calculate cheap distance between middle point and control point.
-        F24Dot8 dx = F24Dot8.F24Dot8Abs(mx - q[1].X);
-        F24Dot8 dy = F24Dot8.F24Dot8Abs(my - q[1].Y);
+        F24Dot8 dx = F24Dot8.Abs(mx - q[1].X);
+        F24Dot8 dy = F24Dot8.Abs(my - q[1].Y);
 
         // Add both distances together and compare with allowed error.
         F24Dot8 dc = dx + dy;
@@ -596,10 +584,10 @@ public static unsafe class LinearizerUtils
         F24Dot8 Tolerance = F24Dot8.F24Dot8_1 >> 1;
 
         return
-            F24Dot8.F24Dot8Abs(2 * c[0].X - 3 * c[1].X + c[3].X) <= Tolerance &&
-            F24Dot8.F24Dot8Abs(2 * c[0].Y - 3 * c[1].Y + c[3].Y) <= Tolerance &&
-            F24Dot8.F24Dot8Abs(c[0].X - 3 * c[2].X + 2 * c[3].X) <= Tolerance &&
-            F24Dot8.F24Dot8Abs(c[0].Y - 3 * c[2].Y + 2 * c[3].Y) <= Tolerance;
+            F24Dot8.Abs(2 * c[0].X - 3 * c[1].X + c[3].X) <= Tolerance &&
+            F24Dot8.Abs(2 * c[0].Y - 3 * c[1].Y + c[3].Y) <= Tolerance &&
+            F24Dot8.Abs(c[0].X - 3 * c[2].X + 2 * c[3].X) <= Tolerance &&
+            F24Dot8.Abs(c[0].Y - 3 * c[2].Y + 2 * c[3].Y) <= Tolerance;
     }
 
 }

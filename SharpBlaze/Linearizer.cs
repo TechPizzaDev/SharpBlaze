@@ -270,12 +270,10 @@ public unsafe partial struct Linearizer<T, L>
         F24Dot8Point p0, F24Dot8Point p1);
 
 
-    private partial void Vertical_Down(ThreadMemory memory, F24Dot8 y0,
-        F24Dot8 y1, F24Dot8 x);
+    private partial void Vertical_Down(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1, F24Dot8 x);
 
 
-    private partial void Vertical_Up(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1,
-        F24Dot8 x);
+    private partial void Vertical_Up(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1, F24Dot8 x);
 
 
     private partial int* GetStartCoversForRowAtIndex(ThreadMemory memory, int index);
@@ -804,8 +802,8 @@ public unsafe partial struct Linearizer<T, L>
         }
 
         // First thing is to limit line size.
-        F24Dot8 dx = F24Dot8Abs(p1.X - p0.X);
-        F24Dot8 dy = F24Dot8Abs(p1.Y - p0.Y);
+        F24Dot8 dx = Abs(p1.X - p0.X);
+        F24Dot8 dy = Abs(p1.Y - p0.Y);
 
         if (dx > MaximumDelta || dy > MaximumDelta)
         {
@@ -1803,14 +1801,14 @@ public unsafe partial struct Linearizer<T, L>
     {
         // Potentially needs splitting unless it is already too small.
         F24Dot8 dx =
-            F24Dot8Abs(c[0].X - c[1].X) +
-            F24Dot8Abs(c[1].X - c[2].X) +
-            F24Dot8Abs(c[2].X - c[3].X);
+            Abs(c[0].X - c[1].X) +
+            Abs(c[1].X - c[2].X) +
+            Abs(c[2].X - c[3].X);
 
         F24Dot8 dy =
-            F24Dot8Abs(c[0].Y - c[1].Y) +
-            F24Dot8Abs(c[1].Y - c[2].Y) +
-            F24Dot8Abs(c[2].Y - c[3].Y);
+            Abs(c[0].Y - c[1].Y) +
+            Abs(c[1].Y - c[2].Y) +
+            Abs(c[2].Y - c[3].Y);
 
         if (dx + dy < F24Dot8_1)
         {

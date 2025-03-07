@@ -10,7 +10,7 @@ namespace SharpBlaze;
  * 24.8 fixed point number.
  */
 [DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
-public readonly struct F24Dot8
+public readonly struct F24Dot8 : IEquatable<F24Dot8>
 {
     internal readonly int _value;
 
@@ -59,10 +59,10 @@ public readonly struct F24Dot8
      * Returns absolute value for a given 24.8 fixed point number.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F24Dot8 F24Dot8Abs(F24Dot8 v)
+    public static F24Dot8 Abs(F24Dot8 v)
     {
-        int mask = v >> 31;
-        return (v + mask) ^ mask;
+        int mask = v._value >> 31;
+        return new F24Dot8((v._value + mask) ^ mask);
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -86,7 +86,18 @@ public readonly struct F24Dot8
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 operator %(F24Dot8 a, F24Dot8 b) => new(a._value % b._value);
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8 operator <<(F24Dot8 a, int b) => new(a._value << b);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8 operator >>(F24Dot8 a, int b) => new(a._value >> b);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator ==(F24Dot8 a, F24Dot8 b) => a._value == b._value;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator !=(F24Dot8 a, F24Dot8 b) => a._value != b._value;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator int(F24Dot8 value) => value._value;
@@ -100,12 +111,21 @@ public readonly struct F24Dot8
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator F24Dot8(uint value) => new((int) value);
 
+    public bool Equals(F24Dot8 other) => _value == other._value;
+
+    public override bool Equals(object? obj)
+    {
+        return obj is F24Dot8 other && Equals(other);
+    }
+
+    public override int GetHashCode() => _value;
+    
     public override string ToString()
     {
         return $"{_value / 256.0:F}";
     }
 
-    private readonly string GetDebuggerDisplay()
+    private string GetDebuggerDisplay()
     {
         return $"{_value} ({ToString()})";
     }
