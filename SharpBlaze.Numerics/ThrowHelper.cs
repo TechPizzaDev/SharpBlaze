@@ -10,4 +10,10 @@ internal static class ThrowHelper
     {
         throw new IndexOutOfRangeException();
     }
+    
+    [DoesNotReturn]
+    public static void ThrowArgumentOutOfRange()
+    {
+        throw new ArgumentOutOfRangeException();
+    }
 }

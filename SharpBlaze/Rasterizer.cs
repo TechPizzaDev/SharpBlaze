@@ -1567,15 +1567,15 @@ public unsafe partial struct Rasterizer<T>
 
 
     private static void RenderOneLine<B, F>(
-        Span<uint> image,
-        ReadOnlySpan<BitVector> bitVectorTable,
-        ReadOnlySpan<CoverArea> coverAreaTable,
+        Span<byte> row,
+        ReadOnlySpan<BitVector> bitVectors,
+        ReadOnlySpan<CoverArea> coverAreas,
         int startCover,
         B blender)
         where B : ISpanBlender
         where F : IFillRuleFn
     {
-        Span<uint> d = image;
+        Span<uint> d = MemoryMarshal.Cast<byte, uint>(row);
 
         // Cover accumulation.
         int cover = startCover;
@@ -1585,15 +1585,15 @@ public unsafe partial struct Rasterizer<T>
         int spanEnd = 0;
         uint spanAlpha = 0;
 
-        for (int i = 0; i < bitVectorTable.Length; i++)
+        for (int i = 0; i < bitVectors.Length; i++)
         {
-            nuint bitset = bitVectorTable[i]._value;
+            nuint bitset = bitVectors[i]._value;
 
             while (bitset != 0)
             {
                 nuint t = bitset & (nuint) (-(nint) bitset);
                 int r = BitOperations.TrailingZeroCount(bitset);
-                int index = (i * sizeof(BitVector) * 8) + r;
+                int index = (i * Unsafe.SizeOf<BitVector>() * 8) + r;
 
                 bitset ^= t;
 
@@ -1602,7 +1602,7 @@ public unsafe partial struct Rasterizer<T>
                 int nextEdgeX = edgeX + 1;
 
                 // Signed area for pixel at bit index.
-                int area = coverAreaTable[index].Area + (cover << 9);
+                int area = coverAreas[index].Area + (cover << 9);
 
                 // Area converted to alpha according to fill rule.
                 uint alpha = (uint) F.ApplyFillRule(area);
@@ -1697,7 +1697,7 @@ public unsafe partial struct Rasterizer<T>
                     }
                 }
 
-                cover += coverAreaTable[index].Delta;
+                cover += coverAreas[index].Delta;
             }
         }
 
@@ -1731,27 +1731,19 @@ public unsafe partial struct Rasterizer<T>
     {
         // A maximum number of horizontal tiles.
         int horizontalCount = (int) raster.Bounds.ColumnCount;
-
         Debug.Assert(horizontalCount <= columnCount);
 
-        int bitVectorsPerRow = BitVectorsForMaxBitCount(horizontalCount * T.TileW);
-
-        // Erase bit vector table.
-        for (int i = 0; i < T.TileH; i++)
-        {
-            bitVectorTable[i].Slice(0, bitVectorsPerRow).Clear();
-        }
-
-        raster.IterationFunction.value(
-            localRowIndex, in raster, bitVectorTable, coverAreaTable);
+        int rowWidth = horizontalCount * T.TileW;
+        int bitVectorsPerRow = BitVectorsForMaxBitCount(rowWidth);
 
         // Pointer to backdrop.
         ReadOnlySpan<int> coversStart = raster.GetActualCoversForRow(localRowIndex);
 
         int x = (int) raster.Bounds.X * T.TileW;
 
-        // X must be aligned on tile boundary.
-        Debug.Assert((x & (T.TileW - 1)) == 0);
+        Debug.Assert((x & (T.TileW - 1)) == 0, "X must be aligned on tile boundary.");
+
+        Debug.Assert(rowWidth <= image.Width - x, "Row overruns image width.");
 
         // Y position, measured in tiles.
         int miny = (int) (raster.Bounds.Y + localRowIndex);
@@ -1762,16 +1754,32 @@ public unsafe partial struct Rasterizer<T>
         // Maximum y position, measured in pixels.
         int maxpy = py + T.TileH;
 
-        // Start row.
-        int bytesPerRow = image.BytesPerRow;
-        int bytesPerSpan = (image.Width - x) * sizeof(uint);
-
-        Span<byte> imageData = new(image.Data, image.Height * bytesPerRow);
-        Span<byte> rowData = imageData.Slice(py * bytesPerRow + x * sizeof(uint));
-
         // Calculate maximum height. This can only get less than 8 when rendering
         // the last row of the image and image height is not multiple of row height.
         int height = Math.Min(maxpy, image.Height) - py;
+
+        int rowStride = image.BytesPerRow;
+        int rowByteWidth = Math.Min(rowWidth, image.Width - x) * sizeof(uint);
+        
+        Span<byte> imageData = new(image.Data, image.Height * rowStride);
+        Span2D<byte> rowView = new(
+            imageData.Slice(py * rowStride + x * sizeof(uint)),
+            rowByteWidth,
+            height,
+            rowStride);
+        
+        // Limit views to proper dimensions.
+        Span2D<BitVector> bitVectorView = bitVectorTable.Cut(bitVectorsPerRow, height);
+        Span2D<CoverArea> coverAreaView = coverAreaTable.Cut(rowWidth, height);
+        
+        // Erase bit vector table.
+        for (int i = 0; i < bitVectorView.Height; i++)
+        {
+            bitVectorView[i].Clear();
+        }
+
+        raster.IterationFunction.value(
+            localRowIndex, in raster, bitVectorView, coverAreaView);
 
         // Fill color.
         uint color = geometry.Color;
@@ -1779,59 +1787,54 @@ public unsafe partial struct Rasterizer<T>
 
         if (color >= 0xff000000)
         {
+            SpanBlenderOpaque blender = new(color);
+                
             if (rule == FillRule.NonZero)
             {
                 RenderLines<SpanBlenderOpaque, AreaToAlphaNonZeroFn>(
-                    rowData, height, bytesPerRow, bytesPerSpan, bitVectorTable, bitVectorsPerRow, coverAreaTable,
-                    coversStart, new(color));
+                    rowView, bitVectorView, coverAreaView, coversStart, blender);
             }
             else
             {
                 RenderLines<SpanBlenderOpaque, AreaToAlphaEvenOddFn>(
-                    rowData, height, bytesPerRow, bytesPerSpan, bitVectorTable, bitVectorsPerRow, coverAreaTable,
-                    coversStart, new(color));
+                    rowView, bitVectorView, coverAreaView, coversStart, blender);
             }
         }
         else
         {
+            SpanBlender blender = new(color);
+            
             if (rule == FillRule.NonZero)
             {
                 RenderLines<SpanBlender, AreaToAlphaNonZeroFn>(
-                    rowData, height, bytesPerRow, bytesPerSpan, bitVectorTable, bitVectorsPerRow, coverAreaTable,
-                    coversStart, new(color));
+                    rowView, bitVectorView, coverAreaView, coversStart, blender);
             }
             else
             {
                 RenderLines<SpanBlender, AreaToAlphaEvenOddFn>(
-                    rowData, height, bytesPerRow, bytesPerSpan, bitVectorTable, bitVectorsPerRow, coverAreaTable,
-                    coversStart, new(color));
+                    rowView, bitVectorView, coverAreaView, coversStart, blender);
             }
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void RenderLines<B, F>(
-        Span<byte> rowData,
-        int height,
-        int bytesPerRow,
-        int bytesPerSpan,
+        Span2D<byte> rowData,
         ReadOnlySpan2D<BitVector> bitVectorTable,
-        int bitVectorsPerRow,
         ReadOnlySpan2D<CoverArea> coverAreaTable,
         ReadOnlySpan<int> coversStart,
         B blender)
         where B : ISpanBlender
         where F : IFillRuleFn
     {
-        for (int y = 0; y < height; y++)
+        for (int y = 0; y < rowData.Height; y++)
         {
-            int rowStart = y * bytesPerRow;
-            Span<byte> row = rowData.Slice(rowStart, bytesPerSpan);
-
+            Span<byte> row = rowData[y];
             int startCover = y < coversStart.Length ? coversStart[y] : 0;
             
             RenderOneLine<B, F>(
-                MemoryMarshal.Cast<byte, uint>(row),
-                bitVectorTable[y].Slice(0, bitVectorsPerRow),
+                row,
+                bitVectorTable[y],
                 coverAreaTable[y],
                 startCover,
                 blender);
