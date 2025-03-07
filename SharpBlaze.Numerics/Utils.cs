@@ -179,23 +179,4 @@ public static class Utils
         // 180 / pi.
         return x * 57.295779513082320876798154814105;
     }
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe int* ZeroCoverX32()
-    {
-        return ZeroCoverHelper.mZeroCoverX32;
-    }
-
-    private static unsafe class ZeroCoverHelper
-    {
-        public static readonly int* mZeroCoverX32;
-
-        static ZeroCoverHelper()
-        {
-            nuint byteCount = sizeof(int) * 32;
-            mZeroCoverX32 = (int*) NativeMemory.AlignedAlloc(byteCount, 64);
-            NativeMemory.Clear(mZeroCoverX32, byteCount);
-        }
-    }
 }

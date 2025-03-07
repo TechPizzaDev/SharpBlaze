@@ -276,8 +276,6 @@ public unsafe partial struct Linearizer<T, L>
     private partial void Vertical_Up(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1, F24Dot8 x);
 
 
-    private partial int* GetStartCoversForRowAtIndex(ThreadMemory memory, int index);
-
     private partial void UpdateStartCovers(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1);
 
 
@@ -2152,8 +2150,7 @@ public unsafe partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private partial int* GetStartCoversForRowAtIndex(ThreadMemory memory,
-        int index)
+    private Span<int> GetStartCoversForRowAtIndex(ThreadMemory memory, int index)
     {
         Debug.Assert(mStartCoverTable != null);
         Debug.Assert(index >= 0);
@@ -2161,16 +2158,13 @@ public unsafe partial struct Linearizer<T, L>
 
         int* p = mStartCoverTable[index];
 
-        if (p != null)
+        if (p == null)
         {
-            return p;
+            p = memory.FrameMallocArrayZeroFill<int>(T.TileH);
+            mStartCoverTable[index] = p;
         }
 
-        p = memory.FrameMallocArrayZeroFill<int>(T.TileH);
-
-        mStartCoverTable[index] = p;
-
-        return p;
+        return new Span<int>(p, T.TileH);
     }
 
 
@@ -2212,7 +2206,7 @@ public unsafe partial struct Linearizer<T, L>
         F24Dot8 fy0 = y0 - T.TileRowIndexToF24Dot8(rowIndex0);
         F24Dot8 fy1 = y1 - T.TileRowIndexToF24Dot8(rowIndex1);
 
-        int* cmFirst = GetStartCoversForRowAtIndex(memory, (int) rowIndex0);
+        Span<int> cmFirst = GetStartCoversForRowAtIndex(memory, (int) rowIndex0);
 
         if (rowIndex0 == rowIndex1)
         {
@@ -2227,7 +2221,7 @@ public unsafe partial struct Linearizer<T, L>
                 UpdateStartCoversFull_Down(memory, (int) i);
             }
 
-            int* cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
+            Span<int> cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
 
             UpdateCoverTable_Down(cmLast, 0, fy1);
         }
@@ -2241,7 +2235,7 @@ public unsafe partial struct Linearizer<T, L>
         F24Dot8 fy0 = y0 - T.TileRowIndexToF24Dot8(rowIndex0);
         F24Dot8 fy1 = y1 - T.TileRowIndexToF24Dot8(rowIndex1);
 
-        int* cmFirst = GetStartCoversForRowAtIndex(memory, (int) rowIndex0);
+        Span<int> cmFirst = GetStartCoversForRowAtIndex(memory, (int) rowIndex0);
 
         if (rowIndex0 == rowIndex1)
         {
@@ -2256,7 +2250,7 @@ public unsafe partial struct Linearizer<T, L>
                 UpdateStartCoversFull_Up(memory, (int) i);
             }
 
-            int* cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
+            Span<int> cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
 
             UpdateCoverTable_Up(cmLast, T.TileHF24Dot8, fy1);
         }

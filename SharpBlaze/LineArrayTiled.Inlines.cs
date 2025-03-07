@@ -540,7 +540,7 @@ public unsafe partial struct LineArrayTiled<T>
             LineArrayTiledBlock* b = memory.FrameNewTiledBlock(null);
             int* covers = memory.FrameMallocArrayZeroFill<int>(T.TileH);
 
-            LinearizerUtils.UpdateCoverTable(covers, y0, y1);
+            LinearizerUtils.UpdateCoverTable(new Span<int>(covers, T.TileH), y0, y1);
 
             b->P0P1[0] = F8Dot8.PackF24Dot8ToF8Dot8x4(x0, y0, x1, y1);
 
@@ -567,11 +567,13 @@ public unsafe partial struct LineArrayTiled<T>
             // for block.
             int countInCurrentBlock = ((count - 1) & Mask) + 1;
 
+            Span<int> covers = new(mCovers[columnIndex], T.TileH);
+            
             if (countInCurrentBlock < LineArrayTiledBlock.LinesPerBlock)
             {
                 current->P0P1[countInCurrentBlock] = F8Dot8.PackF24Dot8ToF8Dot8x4(x0, y0, x1, y1);
 
-                LinearizerUtils.UpdateCoverTable(mCovers[columnIndex], y0, y1);
+                LinearizerUtils.UpdateCoverTable(covers, y0, y1);
             }
             else
             {
@@ -579,7 +581,7 @@ public unsafe partial struct LineArrayTiled<T>
 
                 b->P0P1[0] = F8Dot8.PackF24Dot8ToF8Dot8x4(x0, y0, x1, y1);
 
-                LinearizerUtils.UpdateCoverTable(mCovers[columnIndex], y0, y1);
+                LinearizerUtils.UpdateCoverTable(covers, y0, y1);
 
                 mBlocks[columnIndex] = b;
             }

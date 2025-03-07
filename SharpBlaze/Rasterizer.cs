@@ -83,11 +83,6 @@ public unsafe partial struct Rasterizer<T>
             StartCoverTable = startCoverTable;
         }
 
-        public partial void* GetLinesForRow(int rowIndex);
-        public partial int GetFirstBlockLineCountForRow(int rowIndex);
-        public partial int* GetCoversForRow(int rowIndex);
-        public partial int* GetActualCoversForRow(int rowIndex);
-
         public readonly int Geometry;
         public readonly LineIterationFunction IterationFunction;
         public readonly TileBounds Bounds;
@@ -337,7 +332,7 @@ public unsafe partial struct Rasterizer<T>
     {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public partial void* GetLinesForRow(int rowIndex)
+        public void* GetLinesForRow(int rowIndex)
         {
             Debug.Assert(rowIndex >= 0);
             Debug.Assert(rowIndex < Bounds.RowCount);
@@ -347,7 +342,7 @@ public unsafe partial struct Rasterizer<T>
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public partial int GetFirstBlockLineCountForRow(int rowIndex)
+        public int GetFirstBlockLineCountForRow(int rowIndex)
         {
             Debug.Assert(rowIndex >= 0);
             Debug.Assert(rowIndex < Bounds.RowCount);
@@ -357,7 +352,7 @@ public unsafe partial struct Rasterizer<T>
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public partial int* GetCoversForRow(int rowIndex)
+        public Span<int> GetCoversForRow(int rowIndex)
         {
             Debug.Assert(rowIndex >= 0);
             Debug.Assert(rowIndex < Bounds.RowCount);
@@ -365,15 +360,15 @@ public unsafe partial struct Rasterizer<T>
             if (StartCoverTable == null)
             {
                 // No table at all.
-                return null;
+                return default;
             }
 
-            return StartCoverTable[rowIndex];
+            return new Span<int>(StartCoverTable[rowIndex], T.TileH);
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public partial int* GetActualCoversForRow(int rowIndex)
+        public Span<int> GetActualCoversForRow(int rowIndex)
         {
             Debug.Assert(rowIndex >= 0);
             Debug.Assert(rowIndex < Bounds.RowCount);
@@ -381,17 +376,16 @@ public unsafe partial struct Rasterizer<T>
             if (StartCoverTable == null)
             {
                 // No table at all.
-                return T.ZeroCovers;
+                return default;
             }
 
             int* covers = StartCoverTable[rowIndex];
-
             if (covers == null)
             {
-                return T.ZeroCovers;
+                return default;
             }
 
-            return covers;
+            return new Span<int>(covers, T.TileH);
         }
     }
 
@@ -1752,8 +1746,7 @@ public unsafe partial struct Rasterizer<T>
             localRowIndex, in raster, bitVectorTable, coverAreaTable);
 
         // Pointer to backdrop.
-        ReadOnlySpan<int> coversStart = new(
-            raster.GetActualCoversForRow(localRowIndex), 32);
+        ReadOnlySpan<int> coversStart = raster.GetActualCoversForRow(localRowIndex);
 
         int x = (int) raster.Bounds.X * T.TileW;
 
@@ -1834,11 +1827,13 @@ public unsafe partial struct Rasterizer<T>
             int rowStart = y * bytesPerRow;
             Span<byte> row = rowData.Slice(rowStart, bytesPerSpan);
 
+            int startCover = y < coversStart.Length ? coversStart[y] : 0;
+            
             RenderOneLine<B, F>(
                 MemoryMarshal.Cast<byte, uint>(row),
                 bitVectorTable[y].Slice(0, bitVectorsPerRow),
                 coverAreaTable[y],
-                coversStart[y],
+                startCover,
                 blender);
         }
     }

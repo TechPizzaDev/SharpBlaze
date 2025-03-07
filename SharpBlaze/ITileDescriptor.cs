@@ -14,8 +14,6 @@ public unsafe interface ITileDescriptor
      */
     static abstract int TileH { get; }
 
-    static virtual int* ZeroCovers => Utils.ZeroCoverX32();
-
     /**
      * Tile width in 24.8 fixed point format.
      */

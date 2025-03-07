@@ -251,13 +251,11 @@ public struct F24Dot8PointX7
     }
 }
 
-public static unsafe class LinearizerUtils
+public static class LinearizerUtils
 {
 
-    public static void UpdateCoverTable_Down(int* covers,
-        F24Dot8 y0, F24Dot8 y1)
+    public static void UpdateCoverTable_Down(Span<int> covers, F24Dot8 y0, F24Dot8 y1)
     {
-        Debug.Assert(covers != null);
         Debug.Assert(y0 < y1);
 
         // Integer parts for top and bottom.
@@ -290,10 +288,8 @@ public static unsafe class LinearizerUtils
     }
 
 
-    public static void UpdateCoverTable_Up(int* covers, F24Dot8 y0,
-        F24Dot8 y1)
+    public static void UpdateCoverTable_Up(Span<int> covers, F24Dot8 y0, F24Dot8 y1)
     {
-        Debug.Assert(covers != null);
         Debug.Assert(y0 > y1);
 
         // Integer parts for top and bottom.
@@ -327,8 +323,7 @@ public static unsafe class LinearizerUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void UpdateCoverTable(int* covers, F24Dot8 y0,
-        F24Dot8 y1)
+    public static void UpdateCoverTable(Span<int> covers, F24Dot8 y0, F24Dot8 y1)
     {
         if (y0 < y1)
         {
