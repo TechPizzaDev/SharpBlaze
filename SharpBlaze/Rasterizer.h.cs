@@ -3,7 +3,7 @@ namespace SharpBlaze;
 
 
 public unsafe partial struct Rasterizer<T>
-    where T : unmanaged, ITileDescriptor
+    where T : unmanaged, ITileDescriptor<T>
 {
     /**
      * Rasterize image.

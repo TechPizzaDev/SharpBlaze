@@ -51,7 +51,7 @@ using static F24Dot8;
  *   • You must not delete Linearizer returned by Create function.
  */
 public ref partial struct Linearizer<T, L>
-    where T : unmanaged, ITileDescriptor
+    where T : unmanaged, ITileDescriptor<T>
     where L : unmanaged, ILineArray<L>
 {
     /**

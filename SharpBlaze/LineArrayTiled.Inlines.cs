@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 namespace SharpBlaze;
 
 public unsafe partial struct LineArrayTiled<T>
-    where T : ITileDescriptor
+    where T : ITileDescriptor<T>
 {
     public static void Construct(Span<LineArrayTiled<T>> placement,
         TileIndex columnCount,
@@ -280,8 +280,7 @@ public unsafe partial struct LineArrayTiled<T>
 
 
     private void AppendLineUpR(ThreadMemory memory,
-        F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x,
-        F24Dot8 p1y)
+        F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
     {
         Debug.Assert(p0x <= p1x);
         Debug.Assert(p0y >= 0);
@@ -357,10 +356,8 @@ public unsafe partial struct LineArrayTiled<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void AppendLineDownL(ThreadMemory memory,
-        F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x,
-        F24Dot8 p1y)
+        F24Dot8 p0x, F24Dot8 p0y, F24Dot8 p1x, F24Dot8 p1y)
     {
         Debug.Assert(p0x >= p1x);
         Debug.Assert(p0y >= 0);

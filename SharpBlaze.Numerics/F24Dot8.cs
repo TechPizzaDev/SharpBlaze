@@ -14,18 +14,18 @@ public readonly struct F24Dot8 : IEquatable<F24Dot8>
 {
     internal readonly int _value;
 
-    private F24Dot8(int value) => _value = value;
+    public F24Dot8(int value) => _value = value;
 
     /**
      * Value equivalent to one in 24.8 fixed point format.
      */
-    public static F24Dot8 F24Dot8_1 => 1 << 8;
+    public static F24Dot8 F24Dot8_1 => new(1 << 8);
 
 
     /**
      * Value equivalent to two in 24.8 fixed point format.
      */
-    public static F24Dot8 F24Dot8_2 => 2 << 8;
+    public static F24Dot8 F24Dot8_2 => new(2 << 8);
 
 
     /**

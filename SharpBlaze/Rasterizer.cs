@@ -32,7 +32,7 @@ file struct AreaToAlphaEvenOddFn : IFillRuleFn
 }
 
 public unsafe partial struct Rasterizer<T>
-    where T : unmanaged, ITileDescriptor
+    where T : unmanaged, ITileDescriptor<T>
 {
 
     public static partial void Rasterize(

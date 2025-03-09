@@ -30,7 +30,7 @@ public unsafe struct LineArrayTiledBlock
 
 
 public unsafe partial struct LineArrayTiled<T> : ILineArray<LineArrayTiled<T>>
-    where T : ITileDescriptor
+    where T : ITileDescriptor<T>
 {
     private static int AdjustmentMask
     {

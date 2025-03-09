@@ -9,7 +9,7 @@ namespace SharpBlaze;
  * A helper class for managing an image to draw on.
  */
 public unsafe class DestinationImage<T>
-    where T : unmanaged, ITileDescriptor
+    where T : unmanaged, ITileDescriptor<T>
 {
     public DestinationImage()
     {

@@ -11,7 +11,8 @@ public static class Linearizer
      *
      * @param width Image width in pixels. Must be at least 1.
      */
-    public static TileIndex CalculateColumnCount<T>(int width) where T : ITileDescriptor
+    public static TileIndex CalculateColumnCount<T>(int width) 
+        where T : ITileDescriptor<T>
     {
         Debug.Assert(width > 0);
 
@@ -24,7 +25,8 @@ public static class Linearizer
      *
      * @param height Image height in pixels. Must be at least 1.
      */
-    public static TileIndex CalculateRowCount<T>(int height) where T : ITileDescriptor
+    public static TileIndex CalculateRowCount<T>(int height)
+        where T : ITileDescriptor<T>
     {
         Debug.Assert(height > 0);
 
@@ -33,7 +35,8 @@ public static class Linearizer
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TileBounds CalculateTileBounds<T>(int minx, int miny, int maxx, int maxy) where T : ITileDescriptor
+    public static TileBounds CalculateTileBounds<T>(int minx, int miny, int maxx, int maxy)
+        where T : ITileDescriptor<T>
     {
         Debug.Assert(minx >= 0);
         Debug.Assert(miny >= 0);
