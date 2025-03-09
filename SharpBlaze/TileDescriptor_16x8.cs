@@ -109,29 +109,25 @@ public struct TileDescriptor_16x8 : ITileDescriptor
     }
 
 
-    public static unsafe bool CoverArrayContainsOnlyZeroes(int* t)
+    public static bool CoverArrayContainsOnlyZeroes(ReadOnlySpan<int> t)
     {
-        Debug.Assert(t != null);
-
         // Combine all 8 values.
-        var v = Vector256.Load(t);
+        Vector256<int> v = Vector256.Create(t);
         
         // Zero means there are no non-zero values there.
         return Vector256.EqualsAll(v, Vector256<int>.Zero);
     }
 
 
-    public static unsafe void FillStartCovers(int* p, int value)
+    public static void FillStartCovers(Span<int> p, int value)
     {
-        Debug.Assert(p != null);
-
-        Vector256.Create(value).Store(p);
+        Vector256.Create<int>(value).CopyTo(p);
     }
 
 
-    public static unsafe void AccumulateStartCovers(int* p, int value)
+    public static void AccumulateStartCovers(Span<int> p, int value)
     {
-        (Vector256.Create(value) + Vector256.Load(p)).Store(p);
+        (Vector256.Create(value) + Vector256.Create<int>(p)).CopyTo(p);
     }
 
 

@@ -50,14 +50,10 @@ using static F24Dot8;
  *   • All start covers are allocated in frame memory.
  *   • You must not delete Linearizer returned by Create function.
  */
-public unsafe partial struct Linearizer<T, L>
+public ref partial struct Linearizer<T, L>
     where T : unmanaged, ITileDescriptor
     where L : unmanaged, ILineArray<L>
 {
-    public static partial Linearizer<T, L> Create(ThreadMemory memory, in TileBounds bounds,
-        bool contains, in Geometry geometry);
-
-
     /**
      * Returns tile bounds occupied by content this linearizer processed.
      */
@@ -72,7 +68,7 @@ public unsafe partial struct Linearizer<T, L>
      * geometry to the left of destination image, will contain null in the
      * returned table.
      */
-    public readonly partial int** GetStartCoverTable();
+    public unsafe readonly partial int** GetStartCoverTable();
 
 
     /**
@@ -86,7 +82,7 @@ public unsafe partial struct Linearizer<T, L>
     /**
      * Constructs Linearizer with bounds.
      */
-    private Linearizer(TileBounds bounds, L* lineArray)
+    private Linearizer(TileBounds bounds, Span<L> lineArray)
     {
         mBounds = bounds;
         mLA = lineArray;
@@ -104,7 +100,7 @@ public unsafe partial struct Linearizer<T, L>
      *
      * @param memory Thread memory for allocations.
      */
-    private partial void ProcessContained(in Geometry geometry, ThreadMemory memory);
+    private unsafe partial void ProcessContained(in Geometry geometry, ThreadMemory memory);
 
 
     /**
@@ -268,16 +264,7 @@ public unsafe partial struct Linearizer<T, L>
     private partial void LineUpL(ThreadMemory memory, TileIndex rowIndex0,
         TileIndex rowIndex1, F24Dot8 dx, F24Dot8 dy,
         F24Dot8Point p0, F24Dot8Point p1);
-
-
-    private partial void Vertical_Down(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1, F24Dot8 x);
-
-
-    private partial void Vertical_Up(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1, F24Dot8 x);
-
-
-    private partial void UpdateStartCovers(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1);
-
+    
 
     /**
      * Value indicating the maximum cover value for a single pixel. Since
@@ -305,19 +292,21 @@ public unsafe partial struct Linearizer<T, L>
     // Keeps pointers to start cover arrays for each row of tiles. Allocated
     // in task memory and zero-filled when the first start cover array is
     // requested. Each entry is then allocated on demand in frame memory.
-    private int** mStartCoverTable = null;
+    private unsafe int** mStartCoverTable;
 
-    private readonly L* mLA;
+    private readonly Span<L> mLA;
 
 
-    public static partial Linearizer<T, L> Create(
+    public static unsafe Linearizer<T, L> Create(
         ThreadMemory memory, in TileBounds bounds, bool contains, in Geometry geometry)
     {
-        L* lineArray = memory.TaskMallocArray<L>((int) bounds.RowCount);
+        Span<L> lineArray = new(
+            memory.TaskMallocArray<L>((int) bounds.RowCount),
+            (int) bounds.RowCount);
 
-        var linearizer = new Linearizer<T, L>(bounds, lineArray);
+        Linearizer<T, L> linearizer = new(bounds, lineArray);
 
-        L.Construct(new Span<L>(linearizer.mLA, (int) bounds.RowCount), bounds.ColumnCount, memory);
+        L.Construct(linearizer.mLA, bounds.ColumnCount, memory);
 
         if (contains)
         {
@@ -350,7 +339,7 @@ public unsafe partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly partial int** GetStartCoverTable()
+    public unsafe readonly partial int** GetStartCoverTable()
     {
         return mStartCoverTable;
     }
@@ -360,14 +349,11 @@ public unsafe partial struct Linearizer<T, L>
     [UnscopedRef]
     public partial ref L GetLineArrayAtIndex(TileIndex index)
     {
-        Debug.Assert(index >= 0);
-        Debug.Assert(index < mBounds.RowCount);
-
-        return ref *(mLA + index);
+        return ref mLA[(int) index];
     }
 
 
-    private partial void ProcessContained(in Geometry geometry, ThreadMemory memory)
+    private unsafe partial void ProcessContained(in Geometry geometry, ThreadMemory memory)
     {
         // In this case path is known to be completely within destination image.
         // Some checks can be skipped.
@@ -2093,8 +2079,7 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    private partial void Vertical_Down(ThreadMemory memory,
-        F24Dot8 y0, F24Dot8 y1, F24Dot8 x)
+    private void Vertical_Down(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1, F24Dot8 x)
     {
         Debug.Assert(y0 < y1);
 
@@ -2121,8 +2106,7 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    private partial void Vertical_Up(ThreadMemory memory,
-        F24Dot8 y0, F24Dot8 y1, F24Dot8 x)
+    private void Vertical_Up(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1, F24Dot8 x)
     {
         Debug.Assert(y0 > y1);
 
@@ -2150,7 +2134,7 @@ public unsafe partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Span<int> GetStartCoversForRowAtIndex(ThreadMemory memory, int index)
+    private unsafe Span<int> GetStartCoversForRowAtIndex(ThreadMemory memory, int index)
     {
         Debug.Assert(mStartCoverTable != null);
         Debug.Assert(index >= 0);
@@ -2168,7 +2152,7 @@ public unsafe partial struct Linearizer<T, L>
     }
 
 
-    private partial void UpdateStartCovers(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1)
+    private unsafe void UpdateStartCovers(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1)
     {
         Debug.Assert(y0 >= 0);
         Debug.Assert(y0 <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
@@ -2258,7 +2242,7 @@ public unsafe partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void UpdateStartCoversFull_Down(ThreadMemory memory, int index)
+    private unsafe void UpdateStartCoversFull_Down(ThreadMemory memory, int index)
     {
         Debug.Assert(mStartCoverTable != null);
         Debug.Assert(index >= 0);
@@ -2269,14 +2253,14 @@ public unsafe partial struct Linearizer<T, L>
         if (p != null)
         {
             // Accumulate.
-            T.AccumulateStartCovers(p, FullPixelCoverNegative);
+            T.AccumulateStartCovers(new Span<int>(p, T.TileH), FullPixelCoverNegative);
         }
         else
         {
             // Store first.
             p = memory.FrameMallocArray<int>(T.TileH);
 
-            T.FillStartCovers(p, FullPixelCoverNegative);
+            T.FillStartCovers(new Span<int>(p, T.TileH), FullPixelCoverNegative);
 
             mStartCoverTable[index] = p;
         }
@@ -2284,7 +2268,7 @@ public unsafe partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void UpdateStartCoversFull_Up(ThreadMemory memory, int index)
+    private unsafe void UpdateStartCoversFull_Up(ThreadMemory memory, int index)
     {
         Debug.Assert(mStartCoverTable != null);
         Debug.Assert(index >= 0);
@@ -2295,14 +2279,14 @@ public unsafe partial struct Linearizer<T, L>
         if (p != null)
         {
             // Accumulate.
-            T.AccumulateStartCovers(p, FullPixelCoverPositive);
+            T.AccumulateStartCovers(new Span<int>(p, T.TileH), FullPixelCoverPositive);
         }
         else
         {
             // Store first.
             p = memory.FrameMallocArray<int>(T.TileH);
 
-            T.FillStartCovers(p, FullPixelCoverPositive);
+            T.FillStartCovers(new Span<int>(p, T.TileH), FullPixelCoverPositive);
 
             mStartCoverTable[index] = p;
         }
@@ -2313,9 +2297,6 @@ public unsafe partial struct Linearizer<T, L>
     [UnscopedRef]
     private readonly partial ref L LA(TileIndex verticalIndex)
     {
-        Debug.Assert(verticalIndex >= 0);
-        Debug.Assert(verticalIndex < mBounds.RowCount);
-
-        return ref *(mLA + verticalIndex);
+        return ref mLA[(int) verticalIndex];
     }
 }

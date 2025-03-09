@@ -368,7 +368,7 @@ public unsafe partial struct Rasterizer<T>
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<int> GetActualCoversForRow(int rowIndex)
+        public ReadOnlySpan<int> GetActualCoversForRow(int rowIndex)
         {
             Debug.Assert(rowIndex >= 0);
             Debug.Assert(rowIndex < Bounds.RowCount);
@@ -385,7 +385,7 @@ public unsafe partial struct Rasterizer<T>
                 return default;
             }
 
-            return new Span<int>(covers, T.TileH);
+            return new(covers, T.TileH);
         }
     }
 
@@ -585,7 +585,7 @@ public unsafe partial struct Rasterizer<T>
             {
                 int* t = startCoverTable[i];
 
-                if (t != null && T.CoverArrayContainsOnlyZeroes(t))
+                if (t != null && T.CoverArrayContainsOnlyZeroes(new (t, T.TileH)))
                 {
                     // Don't need cover array after all,
                     // all segments cancelled each other.

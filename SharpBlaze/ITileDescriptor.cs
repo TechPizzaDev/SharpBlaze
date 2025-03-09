@@ -67,9 +67,9 @@ public unsafe interface ITileDescriptor
      */
     static abstract F24Dot8 TileRowIndexToF24Dot8(TileIndex y);
 
-    static abstract bool CoverArrayContainsOnlyZeroes(int* t);
+    static abstract bool CoverArrayContainsOnlyZeroes(ReadOnlySpan<int> t);
 
-    static abstract void FillStartCovers(int* p, int value);
+    static abstract void FillStartCovers(Span<int> p, int value);
 
-    static abstract void AccumulateStartCovers(int* p, int value);
+    static abstract void AccumulateStartCovers(Span<int> p, int value);
 }
