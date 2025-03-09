@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
@@ -16,80 +17,6 @@ public struct DoubleX2
 public struct DoubleX4
 {
     private double _e0;
-}
-
-[InlineArray(3)]
-public struct FloatPointX3
-{
-    private FloatPoint _e0;
-}
-
-[InlineArray(4)]
-public struct FloatPointX4
-{
-    private FloatPoint _e0;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public FloatPointX3 Get3(int start)
-    {
-        Unsafe.SkipInit(out FloatPointX3 result);
-        for (int i = 0; i < 3; i++)
-        {
-            result[i] = this[start + i];
-        }
-        return result;
-    }
-}
-
-[InlineArray(5)]
-public struct FloatPointX5
-{
-    private FloatPoint _e0;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public FloatPointX3 Get3(int start)
-    {
-        Unsafe.SkipInit(out FloatPointX3 result);
-        for (int i = 0; i < 3; i++)
-        {
-            result[i] = this[start + i];
-        }
-        return result;
-    }
-}
-
-[InlineArray(7)]
-public struct FloatPointX7
-{
-    private FloatPoint _e0;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public FloatPointX4 Get4(int start)
-    {
-        Unsafe.SkipInit(out FloatPointX4 result);
-        for (int i = 0; i < 4; i++)
-        {
-            result[i] = this[start + i];
-        }
-        return result;
-    }
-}
-
-[InlineArray(10)]
-public struct FloatPointX10
-{
-    private FloatPoint _e0;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public FloatPointX4 Get4(int start)
-    {
-        Unsafe.SkipInit(out FloatPointX4 result);
-        for (int i = 0; i < 4; i++)
-        {
-            result[i] = this[start + i];
-        }
-        return result;
-    }
 }
 
 public static partial class CurveUtils
@@ -118,7 +45,7 @@ public static partial class CurveUtils
      * @param dst Pointer to memory for destination curves. Must be large enough
      * to keep 5 FloatPoint values.
      */
-    public static partial int CutQuadraticAtXExtrema(FloatPointX3 src, out FloatPointX5 dst);
+    public static partial int CutQuadraticAtXExtrema(ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst);
 
 
     /**
@@ -138,7 +65,7 @@ public static partial class CurveUtils
      * @param dst Pointer to memory for destination curves. Must be large enough
      * to keep 10 FloatPoint values.
      */
-    public static partial int CutCubicAtXExtrema(FloatPointX4 src, out FloatPointX10 dst);
+    public static partial int CutCubicAtXExtrema(ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst);
 
 
     /**
@@ -157,7 +84,7 @@ public static partial class CurveUtils
      * @param dst Pointer to memory for destination curves. Must be large enough
      * to keep 5 FloatPoint values.
      */
-    public static partial int CutQuadraticAtYExtrema(FloatPointX3 src, out FloatPointX5 dst);
+    public static partial int CutQuadraticAtYExtrema(ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst);
 
 
     /**
@@ -177,7 +104,7 @@ public static partial class CurveUtils
      * @param dst Pointer to memory for destination curves. Must be large enough
      * to keep 10 FloatPoint values.
      */
-    public static partial int CutCubicAtYExtrema(FloatPointX4 src, out FloatPointX10 dst);
+    public static partial int CutCubicAtYExtrema(ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst);
 
 
     /**
@@ -205,7 +132,7 @@ public static partial class CurveUtils
      * Use this function for fast monotonicity checks.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CubicControlPointsBetweenEndPointsX(FloatPointX4 pts)
+    public static bool CubicControlPointsBetweenEndPointsX(ReadOnlySpan<FloatPoint> pts)
     {
         return
             IsValueBetweenAAndB(pts[0].X, pts[1].X, pts[3].X) &&
@@ -214,7 +141,7 @@ public static partial class CurveUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool QuadraticControlPointBetweenEndPointsX(FloatPointX3 pts)
+    public static bool QuadraticControlPointBetweenEndPointsX(ReadOnlySpan<FloatPoint> pts)
     {
         return IsValueBetweenAAndB(pts[0].X, pts[1].X, pts[2].X);
     }
@@ -228,7 +155,7 @@ public static partial class CurveUtils
      * Use this function for fast monotonicity checks.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CubicControlPointsBetweenEndPointsY(FloatPointX4 pts)
+    public static bool CubicControlPointsBetweenEndPointsY(ReadOnlySpan<FloatPoint> pts)
     {
         return
             IsValueBetweenAAndB(pts[0].Y, pts[1].Y, pts[3].Y) &&
@@ -237,19 +164,19 @@ public static partial class CurveUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool QuadraticControlPointBetweenEndPointsY(FloatPointX3 pts)
+    public static bool QuadraticControlPointBetweenEndPointsY(ReadOnlySpan<FloatPoint> pts)
     {
         return IsValueBetweenAAndB(pts[0].Y, pts[1].Y, pts[2].Y);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void InterpolateQuadraticCoordinates(FloatPointX3 src, out FloatPointX5 dst, Vector128<double> t)
+    public static void InterpolateQuadraticCoordinates(
+        ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst, Vector128<double> t)
     {
         Vector128<double> ab = InterpolateLinear(src[0].AsVector128(), src[1].AsVector128(), t);
         Vector128<double> bc = InterpolateLinear(src[1].AsVector128(), src[2].AsVector128(), t);
 
-        Unsafe.SkipInit(out dst);
         dst[0] = src[0];
         dst[1] = new FloatPoint(ab);
         dst[2] = new FloatPoint(InterpolateLinear(ab, bc, t));
@@ -259,42 +186,46 @@ public static partial class CurveUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void CutQuadraticAt(FloatPointX3 src, out FloatPointX5 dst, double t)
+    public static void CutQuadraticAt(ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst, double t)
     {
         Debug.Assert(t >= 0.0);
         Debug.Assert(t <= 1.0);
 
-        InterpolateQuadraticCoordinates(src, out dst, Vector128.Create(t));
+        InterpolateQuadraticCoordinates(src, dst, Vector128.Create(t));
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void InterpolateCubicCoordinates(FloatPointX4 src, out FloatPointX7 dst, Vector128<double> t)
+    private static void InterpolateCubicCoordinates(
+        ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst, Vector128<double> t)
     {
-        Vector128<double> ab = InterpolateLinear(src[0].AsVector128(), src[1].AsVector128(), t);
-        Vector128<double> bc = InterpolateLinear(src[1].AsVector128(), src[2].AsVector128(), t);
-        Vector128<double> cd = InterpolateLinear(src[2].AsVector128(), src[3].AsVector128(), t);
+        FloatPoint s0 = src[0];
+        Vector128<double> s1 = src[1].AsVector128();
+        Vector128<double> s2 = src[2].AsVector128();
+        FloatPoint s3 = src[3];
+        
+        Vector128<double> ab = InterpolateLinear(s0.AsVector128(), s1, t);
+        Vector128<double> bc = InterpolateLinear(s1, s2, t);
+        Vector128<double> cd = InterpolateLinear(s2, s3.AsVector128(), t);
         Vector128<double> abc = InterpolateLinear(ab, bc, t);
         Vector128<double> bcd = InterpolateLinear(bc, cd, t);
         Vector128<double> abcd = InterpolateLinear(abc, bcd, t);
 
-        Unsafe.SkipInit(out dst);
-        dst[0] = src[0];
+        dst[0] = s0;
         dst[1] = new FloatPoint(ab);
         dst[2] = new FloatPoint(abc);
         dst[3] = new FloatPoint(abcd);
         dst[4] = new FloatPoint(bcd);
         dst[5] = new FloatPoint(cd);
-        dst[6] = src[3];
+        dst[6] = s3;
     }
 
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void CutCubicAt(FloatPointX4 src, out FloatPointX7 dst, double t)
+    public static void CutCubicAt(ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst, double t)
     {
         Debug.Assert(t >= 0.0);
         Debug.Assert(t <= 1.0);
 
-        InterpolateCubicCoordinates(src, out dst, Vector128.Create(t));
+        InterpolateCubicCoordinates(src, dst, Vector128.Create(t));
     }
 }

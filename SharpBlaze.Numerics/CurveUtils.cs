@@ -25,7 +25,6 @@ public static partial class CurveUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial int FindQuadraticRoots(double a, double b, double c, out DoubleX2 roots)
     {
-        //Debug.Assert(roots != null);
         Unsafe.SkipInit(out roots);
 
         double delta = b * b - 4.0 * a * c;
@@ -82,9 +81,9 @@ public static partial class CurveUtils
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static int FindQuadraticRootsWithin(double a, double b, double c, out DoubleX2 roots)
     {
-        //Debug.Assert(roots != null);
         Unsafe.SkipInit(out roots);
 
         double delta = b * b - 4.0 * a * c;
@@ -152,6 +151,7 @@ public static partial class CurveUtils
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static int FindCubicExtrema(double a, double b, double c, double d, out DoubleX2 t)
     {
         double A = d - a + 3.0 * (b - c);
@@ -162,13 +162,9 @@ public static partial class CurveUtils
     }
 
 
-    public static partial int CutCubicAtYExtrema(FloatPointX4 src, out FloatPointX10 dst)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static partial int CutCubicAtYExtrema(ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst)
     {
-        Unsafe.SkipInit(out dst);
-
-        //Debug.Assert(src != null);
-        //Debug.Assert(dst != null);
-
         int n = FindCubicExtrema(src[0].Y, src[1].Y, src[2].Y, src[3].Y, out DoubleX2 t);
 
         if (n == 1)
@@ -178,8 +174,8 @@ public static partial class CurveUtils
             Debug.Assert(t[0] > 0.0);
             Debug.Assert(t[0] < 1.0);
 
-            CutCubicAt(src, out Unsafe.As<FloatPointX10, FloatPointX7>(ref dst), t[0]);
-
+            CutCubicAt(src, dst, t[0]);
+            
             // Make sure curve tangents at extrema are horizontal.
             double y = dst[3].Y;
 
@@ -200,11 +196,7 @@ public static partial class CurveUtils
             Debug.Assert(t[1] > 0.0);
             Debug.Assert(t[1] < 1.0);
 
-            CutCubicAt(src, out FloatPointX7 tmp, t[0]);
-
-            dst[0] = tmp[0];
-            dst[1] = tmp[1];
-            dst[2] = tmp[2];
+            CutCubicAt(src, dst, t[0]);
 
             double d = 1.0 - t[0];
 
@@ -213,10 +205,7 @@ public static partial class CurveUtils
             // Clamp to make sure we don't go out of range due to limited precision.
             double tt = Clamp((t[1] - t[0]) / d, 0.0, 1.0);
 
-            CutCubicAt(
-                tmp.Get4(3), 
-                out Unsafe.As<FloatPoint, FloatPointX7>(ref dst[3]),
-                tt);
+            CutCubicAt(dst.Slice(3, 4), dst.Slice(3, 7), tt);
 
             // Make sure curve tangents at extremas are horizontal.
             double y0 = dst[3].Y;
@@ -241,13 +230,9 @@ public static partial class CurveUtils
     }
 
 
-    public static partial int CutCubicAtXExtrema(FloatPointX4 src, out FloatPointX10 dst)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static partial int CutCubicAtXExtrema(ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst)
     {
-        Unsafe.SkipInit(out dst);
-
-        //Debug.Assert(src != null);
-        //Debug.Assert(dst != null);
-
         int n = FindCubicExtrema(src[0].X, src[1].X, src[2].X, src[3].X, out DoubleX2 t);
 
         if (n == 1)
@@ -257,7 +242,7 @@ public static partial class CurveUtils
             Debug.Assert(t[0] > 0.0);
             Debug.Assert(t[0] < 1.0);
 
-            CutCubicAt(src, out Unsafe.As<FloatPointX10, FloatPointX7>(ref dst), t[0]);
+            CutCubicAt(src, dst, t[0]);
 
             // Make sure curve tangents at extrema are horizontal.
             double x = dst[3].X;
@@ -279,11 +264,7 @@ public static partial class CurveUtils
             Debug.Assert(t[1] > 0.0);
             Debug.Assert(t[1] < 1.0);
 
-            CutCubicAt(src, out FloatPointX7 tmp, t[0]);
-
-            dst[0] = tmp[0];
-            dst[1] = tmp[1];
-            dst[2] = tmp[2];
+            CutCubicAt(src, dst, t[0]);
 
             double d = 1.0 - t[0];
 
@@ -292,10 +273,7 @@ public static partial class CurveUtils
             // Clamp to make sure we don't go out of range due to limited precision.
             double tt = Clamp((t[1] - t[0]) / d, 0.0, 1.0);
 
-            CutCubicAt(
-                tmp.Get4(3), 
-                out Unsafe.As<FloatPoint, FloatPointX7>(ref dst[3]), 
-                tt);
+            CutCubicAt(dst.Slice(3, 4), dst.Slice(3, 7), tt);
 
             // Make sure curve tangents at extremas are horizontal.
             double x0 = dst[3].X;
@@ -334,10 +312,9 @@ public static partial class CurveUtils
     }
 
 
-    public static partial int CutQuadraticAtYExtrema(FloatPointX3 src, out FloatPointX5 dst)
+    public static partial int CutQuadraticAtYExtrema(
+        ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst)
     {
-        Unsafe.SkipInit(out dst);
-
         double a = src[0].Y;
         double b = src[1].Y;
         double c = src[2].Y;
@@ -353,7 +330,7 @@ public static partial class CurveUtils
 
         if (FindQuadraticExtrema(a, b, c, out double t))
         {
-            CutQuadraticAt(src, out dst, t);
+            CutQuadraticAt(src, dst, t);
 
             double y = dst[2].Y;
 
@@ -382,10 +359,9 @@ public static partial class CurveUtils
     }
 
 
-    public static partial int CutQuadraticAtXExtrema(FloatPointX3 src, out FloatPointX5 dst)
+    public static partial int CutQuadraticAtXExtrema(
+        ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst)
     {
-        Unsafe.SkipInit(out dst);
-
         double a = src[0].X;
         double b = src[1].X;
         double c = src[2].X;
@@ -401,7 +377,7 @@ public static partial class CurveUtils
 
         if (FindQuadraticExtrema(a, b, c, out double t))
         {
-            CutQuadraticAt(src, out dst, t);
+            CutQuadraticAt(src, dst, t);
 
             double x = dst[2].X;
 

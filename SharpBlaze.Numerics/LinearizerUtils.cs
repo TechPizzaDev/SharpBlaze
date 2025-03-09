@@ -113,7 +113,7 @@ public struct F24Dot8PointX3
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ClampFromFloat(
-        FloatPointX3 p,
+        ReadOnlySpan<FloatPoint> p,
         F24Dot8Point min, 
         F24Dot8Point max,
         out F24Dot8PointX3 result)
@@ -185,7 +185,7 @@ public struct F24Dot8PointX4
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ClampFromFloat(
-        FloatPointX4 p,
+        ReadOnlySpan<FloatPoint> p,
         F24Dot8Point min, 
         F24Dot8Point max,
         out F24Dot8PointX4 result)
@@ -205,7 +205,7 @@ public struct F24Dot8PointX4
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public F24Dot8PointX4 Clamp(F24Dot8Point min, F24Dot8Point max)
+    public readonly F24Dot8PointX4 Clamp(F24Dot8Point min, F24Dot8Point max)
     {
         Vector256<int> value = Unsafe.BitCast<F24Dot8PointX4, Vector256<int>>(this);
 
@@ -379,7 +379,7 @@ public static class LinearizerUtils
      * @param s Source curve defined by four points.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void SplitCubic(out F24Dot8PointX7 r, F24Dot8PointX4 s)
+    public static void SplitCubic(out F24Dot8PointX7 r, in F24Dot8PointX4 s)
     {
         F24Dot8 m0x = (s[0].X + s[1].X) >> 1;
         F24Dot8 m0y = (s[0].Y + s[1].Y) >> 1;
@@ -431,7 +431,7 @@ public static class LinearizerUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicQuadraticAtX(FloatPointX3 quadratic, double x, out double t)
+    public static bool CutMonotonicQuadraticAtX(ReadOnlySpan<FloatPoint> quadratic, double x, out double t)
     {
         return CutMonotonicQuadraticAt(
             quadratic[0].X, quadratic[1].X, quadratic[2].X, x, out t);
@@ -439,7 +439,7 @@ public static class LinearizerUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicQuadraticAtY(FloatPointX3 quadratic, double y, out double t)
+    public static bool CutMonotonicQuadraticAtY(ReadOnlySpan<FloatPoint> quadratic, double y, out double t)
     {
         return CutMonotonicQuadraticAt(
             quadratic[0].Y, quadratic[1].Y, quadratic[2].Y, y, out t);
@@ -453,12 +453,15 @@ public static class LinearizerUtils
 
         Unsafe.SkipInit(out t);
 
+        double p0 = pts[0];
+        double p3 = pts[3];
+
         double negative = 0;
         double positive = 0;
 
-        if (pts[0] < 0)
+        if (p0 < 0)
         {
-            if (pts[3] < 0)
+            if (p3 < 0)
             {
                 return false;
             }
@@ -466,9 +469,9 @@ public static class LinearizerUtils
             negative = 0;
             positive = 1.0;
         }
-        else if (pts[0] > 0)
+        else if (p0 > 0)
         {
-            if (pts[3] > 0)
+            if (p3 > 0)
             {
                 return false;
             }
@@ -482,12 +485,15 @@ public static class LinearizerUtils
             return true;
         }
 
+        double p1 = pts[1];
+        double p2 = pts[2];
+
         do
         {
             double m = (positive + negative) / 2.0;
-            double y01 = Utils.InterpolateLinear(pts[0], pts[1], m);
-            double y12 = Utils.InterpolateLinear(pts[1], pts[2], m);
-            double y23 = Utils.InterpolateLinear(pts[2], pts[3], m);
+            double y01 = Utils.InterpolateLinear(p0, p1, m);
+            double y12 = Utils.InterpolateLinear(p1, p2, m);
+            double y23 = Utils.InterpolateLinear(p2, p3, m);
             double y012 = Utils.InterpolateLinear(y01, y12, m);
             double y123 = Utils.InterpolateLinear(y12, y23, m);
             double y0123 = Utils.InterpolateLinear(y012, y123, m);
@@ -516,10 +522,9 @@ public static class LinearizerUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicCubicAtY(FloatPointX4 pts, double y, out double t)
+    public static bool CutMonotonicCubicAtY(ReadOnlySpan<FloatPoint> pts, double y, out double t)
     {
-        DoubleX4 c;
-        Unsafe.SkipInit(out c);
+        Unsafe.SkipInit(out DoubleX4 c);
         c[0] = pts[0].Y - y;
         c[1] = pts[1].Y - y;
         c[2] = pts[2].Y - y;
@@ -530,10 +535,9 @@ public static class LinearizerUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CutMonotonicCubicAtX(FloatPointX4 pts, double x, out double t)
+    public static bool CutMonotonicCubicAtX(ReadOnlySpan<FloatPoint> pts, double x, out double t)
     {
-        DoubleX4 c;
-        Unsafe.SkipInit(out c);
+        Unsafe.SkipInit(out DoubleX4 c);
         c[0] = pts[0].X - x;
         c[1] = pts[1].X - x;
         c[2] = pts[2].X - x;
@@ -550,7 +554,8 @@ public static class LinearizerUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsQuadraticFlatEnough(in F24Dot8PointX3 q)
     {
-        if (q[0].X == q[2].X && q[0].Y == q[2].Y)
+        if (q[0].X == q[2].X && 
+            q[0].Y == q[2].Y)
         {
             return true;
         }
@@ -572,15 +577,17 @@ public static class LinearizerUtils
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsCubicFlatEnough(in F24Dot8PointX4 c)
+    public static bool IsCubicFlatEnough(F24Dot8PointX4 c)
     {
-        int tolerance = F24Dot8.F24Dot8_1 >> 1;
-
+        F24Dot8 tolerance = F24Dot8.F24Dot8_1 >> 1;
+        F24Dot8 c2 = new(2);
+        F24Dot8 c3 = new(3);
+        
         return
-            F24Dot8.Abs(2 * c[0].X - 3 * c[1].X + c[3].X) <= tolerance &&
-            F24Dot8.Abs(2 * c[0].Y - 3 * c[1].Y + c[3].Y) <= tolerance &&
-            F24Dot8.Abs(c[0].X - 3 * c[2].X + 2 * c[3].X) <= tolerance &&
-            F24Dot8.Abs(c[0].Y - 3 * c[2].Y + 2 * c[3].Y) <= tolerance;
+            F24Dot8.Abs(c2 * c[0].X - c3 * c[1].X + c[3].X) <= tolerance &&
+            F24Dot8.Abs(c2 * c[0].Y - c3 * c[1].Y + c[3].Y) <= tolerance &&
+            F24Dot8.Abs(c[0].X - c3 * c[2].X + c2 * c[3].X) <= tolerance &&
+            F24Dot8.Abs(c[0].Y - c3 * c[2].Y + c2 * c[3].Y) <= tolerance;
     }
 
 }
