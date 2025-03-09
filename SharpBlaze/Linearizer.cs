@@ -505,11 +505,8 @@ public ref partial struct Linearizer<T, L>
     private partial void AddUncontainedLine(ThreadMemory memory,
         ClipBounds clip, FloatPoint p0, FloatPoint p1)
     {
-        Debug.Assert(double.IsFinite(p0.X));
-        Debug.Assert(double.IsFinite(p0.Y));
-
-        Debug.Assert(double.IsFinite(p1.X));
-        Debug.Assert(double.IsFinite(p1.Y));
+        Debug.Assert(p0.IsFinite());
+        Debug.Assert(p1.IsFinite());
 
         double y0 = p0.Y;
         double y1 = p1.Y;
@@ -972,18 +969,12 @@ public ref partial struct Linearizer<T, L>
     }
 
 
-    private partial void AddUncontainedMonotonicQuadratic(
-        ThreadMemory memory, ClipBounds clip, FloatPointX3 p)
+    private partial void AddUncontainedMonotonicQuadratic(ThreadMemory memory, ClipBounds clip, FloatPointX3 p)
     {
-        Debug.Assert(double.IsFinite(p[0].X));
-        Debug.Assert(double.IsFinite(p[0].Y));
-
-        Debug.Assert(double.IsFinite(p[1].X));
-        Debug.Assert(double.IsFinite(p[1].Y));
-
-        Debug.Assert(double.IsFinite(p[2].X));
-        Debug.Assert(double.IsFinite(p[2].Y));
-
+        Debug.Assert(p[0].IsFinite());
+        Debug.Assert(p[1].IsFinite());
+        Debug.Assert(p[2].IsFinite());
+        
         // Assuming curve is monotonic.
         Debug.Assert(p[1].X <= Math.Max(p[0].X, p[2].X));
         Debug.Assert(p[1].X >= Math.Min(p[0].X, p[2].X));
@@ -1093,14 +1084,9 @@ public ref partial struct Linearizer<T, L>
     private partial void AddVerticallyContainedMonotonicQuadratic(
         ThreadMemory memory, ClipBounds clip, FloatPointX3 p)
     {
-        Debug.Assert(double.IsFinite(p[0].X));
-        Debug.Assert(double.IsFinite(p[0].Y));
-
-        Debug.Assert(double.IsFinite(p[1].X));
-        Debug.Assert(double.IsFinite(p[1].Y));
-
-        Debug.Assert(double.IsFinite(p[2].X));
-        Debug.Assert(double.IsFinite(p[2].Y));
+        Debug.Assert(p[0].IsFinite());
+        Debug.Assert(p[1].IsFinite());
+        Debug.Assert(p[2].IsFinite());
 
         // Assuming curve is monotonic.
         Debug.Assert(p[1].X <= Math.Max(p[0].X, p[2].X));
@@ -1266,7 +1252,6 @@ public ref partial struct Linearizer<T, L>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AddContainedQuadraticF24Dot8(ThreadMemory memory, F24Dot8PointX3 q)
     {
-        //Debug.Assert(q != null);
         Debug.Assert(q[0].X >= 0);
         Debug.Assert(q[0].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(q[0].Y >= 0);
@@ -1405,17 +1390,10 @@ public ref partial struct Linearizer<T, L>
     private partial void AddUncontainedMonotonicCubic(ThreadMemory memory,
         ClipBounds clip, FloatPointX4 p)
     {
-        Debug.Assert(double.IsFinite(p[0].X));
-        Debug.Assert(double.IsFinite(p[0].Y));
-
-        Debug.Assert(double.IsFinite(p[1].X));
-        Debug.Assert(double.IsFinite(p[1].Y));
-
-        Debug.Assert(double.IsFinite(p[2].X));
-        Debug.Assert(double.IsFinite(p[2].Y));
-
-        Debug.Assert(double.IsFinite(p[3].X));
-        Debug.Assert(double.IsFinite(p[3].Y));
+        Debug.Assert(p[0].IsFinite());
+        Debug.Assert(p[1].IsFinite());
+        Debug.Assert(p[2].IsFinite());
+        Debug.Assert(p[3].IsFinite());
 
         // Assuming curve is monotonic.
 
@@ -1527,18 +1505,11 @@ public ref partial struct Linearizer<T, L>
     private partial void AddVerticallyContainedMonotonicCubic(
         ThreadMemory memory, ClipBounds clip, FloatPointX4 p)
     {
-        Debug.Assert(double.IsFinite(p[0].X));
-        Debug.Assert(double.IsFinite(p[0].Y));
-
-        Debug.Assert(double.IsFinite(p[1].X));
-        Debug.Assert(double.IsFinite(p[1].Y));
-
-        Debug.Assert(double.IsFinite(p[2].X));
-        Debug.Assert(double.IsFinite(p[2].Y));
-
-        Debug.Assert(double.IsFinite(p[3].X));
-        Debug.Assert(double.IsFinite(p[3].Y));
-
+        Debug.Assert(p[0].IsFinite());
+        Debug.Assert(p[1].IsFinite());
+        Debug.Assert(p[2].IsFinite());
+        Debug.Assert(p[3].IsFinite());
+        
         double sx = p[0].X;
         double px = p[3].X;
 
@@ -1753,8 +1724,6 @@ public ref partial struct Linearizer<T, L>
         // splits curve in half and repeats recursively until curve gets too small
         // to subdivide. This solves the problem because after each subdivision,
         // curve control point bounding box gets tighter.
-
-        //Debug.Assert(c != null);
 
         Vector256<int> vC = Unsafe.BitCast<F24Dot8PointX4, Vector256<int>>(c);
 

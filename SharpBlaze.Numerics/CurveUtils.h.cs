@@ -28,7 +28,7 @@ public struct FloatPointX3
 public struct FloatPointX4
 {
     private FloatPoint _e0;
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FloatPointX3 Get3(int start)
     {
@@ -45,7 +45,7 @@ public struct FloatPointX4
 public struct FloatPointX5
 {
     private FloatPoint _e0;
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FloatPointX3 Get3(int start)
     {
@@ -62,7 +62,7 @@ public struct FloatPointX5
 public struct FloatPointX7
 {
     private FloatPoint _e0;
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FloatPointX4 Get4(int start)
     {
@@ -79,7 +79,7 @@ public struct FloatPointX7
 public struct FloatPointX10
 {
     private FloatPoint _e0;
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FloatPointX4 Get4(int start)
     {
@@ -97,7 +97,8 @@ public static partial class CurveUtils
     /*
      * Roots must not be nullptr. Returns 0, 1 or 2.
      */
-    public static partial int FindQuadraticRoots(double a, double b, double c,
+    public static partial int FindQuadraticRoots(
+        double a, double b, double c,
         out DoubleX2 roots);
 
 
@@ -179,7 +180,6 @@ public static partial class CurveUtils
     public static partial int CutCubicAtYExtrema(FloatPointX4 src, out FloatPointX10 dst);
 
 
-
     /**
      * Returns true if a given value is between a and b.
      */
@@ -248,7 +248,7 @@ public static partial class CurveUtils
     {
         Vector128<double> ab = InterpolateLinear(src[0].AsVector128(), src[1].AsVector128(), t);
         Vector128<double> bc = InterpolateLinear(src[1].AsVector128(), src[2].AsVector128(), t);
-        
+
         Unsafe.SkipInit(out dst);
         dst[0] = src[0];
         dst[1] = new FloatPoint(ab);
@@ -297,5 +297,4 @@ public static partial class CurveUtils
 
         InterpolateCubicCoordinates(src, out dst, Vector128.Create(t));
     }
-
 }

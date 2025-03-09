@@ -11,6 +11,8 @@ namespace SharpBlaze;
 [DebuggerDisplay($"{{{nameof(ToString)}(),nq}}")]
 public struct FloatPoint : IEquatable<FloatPoint>
 {
+    private const ulong PositiveInfinityBits = 0x7FF0_0000_0000_0000;
+
     public double X;
     public double Y;
 
@@ -63,7 +65,7 @@ public struct FloatPoint : IEquatable<FloatPoint>
 
         // Operating on vectors is cheaper than clamping extracted scalars later.
         conv = Utils.Clamp(conv, min.ToVector128(), max.ToVector128());
-        
+
         return new F24Dot8Point(conv.GetElement(0), conv.GetElement(1));
     }
 
@@ -72,6 +74,14 @@ public struct FloatPoint : IEquatable<FloatPoint>
     {
         Vector128<double> left = Utils.MaxNative(AsVector128(), min.AsVector128());
         return new FloatPoint(Utils.MinNative(left, max.AsVector128()));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool IsFinite()
+    {
+        Vector128<ulong> bits = AsVector128().AsUInt64();
+        Vector128<ulong> top = ~bits & Vector128.Create(PositiveInfinityBits);
+        return !Vector128.EqualsAll(top, Vector128<ulong>.Zero);
     }
 
     public readonly bool Equals(FloatPoint other)
