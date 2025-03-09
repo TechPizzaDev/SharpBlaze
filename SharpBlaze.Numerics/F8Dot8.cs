@@ -24,7 +24,7 @@ public readonly partial struct F8Dot8
         return $"{_value / 256.0:F}";
     }
 
-    private readonly string GetDebuggerDisplay()
+    private string GetDebuggerDisplay()
     {
         return $"{_value} ({ToString()})";
     }
@@ -44,7 +44,7 @@ public readonly struct F8Dot8x2
 
     public static implicit operator F8Dot8x2(uint value) => new(value);
 
-    private readonly string GetDebuggerDisplay()
+    private string GetDebuggerDisplay()
     {
         string separator = NumberFormatInfo.GetInstance(null).NumberGroupSeparator;
 
@@ -68,7 +68,7 @@ public readonly struct F8Dot8x4
 
     public static implicit operator F8Dot8x4(ulong value) => new(value);
     
-    private readonly string GetDebuggerDisplay()
+    private string GetDebuggerDisplay()
     {
         string separator = NumberFormatInfo.GetInstance(null).NumberGroupSeparator;
 
@@ -107,13 +107,13 @@ public readonly partial struct F8Dot8
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 UnpackLoFromF8Dot8x2(F8Dot8x2 a)
     {
-        return ((uint) a & 0xffff);
+        return (F24Dot8) ((uint) a & 0xffff);
     }
 
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 UnpackHiFromF8Dot8x2(F8Dot8x2 a)
     {
-        return ((uint) a >> 16);
+        return (F24Dot8) ((uint) a >> 16);
     }
 }

@@ -98,18 +98,36 @@ public readonly struct F24Dot8 : IEquatable<F24Dot8>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(F24Dot8 a, F24Dot8 b) => a._value != b._value;
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator <(F24Dot8 a, F24Dot8 b) => a._value < b._value;
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator <=(F24Dot8 a, F24Dot8 b) => a._value <= b._value;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator <=(F24Dot8 a, int b) => a._value <= b;
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator >(F24Dot8 a, F24Dot8 b) => a._value > b._value;
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator >=(F24Dot8 a, F24Dot8 b) => a._value >= b._value;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator >=(F24Dot8 a, int b) => a._value >= b;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator int(F24Dot8 value) => value._value;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator uint(F24Dot8 value) => (uint) value._value;
+    public static explicit operator uint(F24Dot8 value) => (uint) value._value;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator F24Dot8(int value) => new(value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator F24Dot8(uint value) => new((int) value);
+    public static explicit operator F24Dot8(uint value) => new((int) value);
 
     public bool Equals(F24Dot8 other) => _value == other._value;
 

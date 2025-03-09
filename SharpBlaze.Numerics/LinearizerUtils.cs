@@ -574,15 +574,13 @@ public static class LinearizerUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsCubicFlatEnough(in F24Dot8PointX4 c)
     {
-        //Debug.Assert(c != null);
-
-        F24Dot8 Tolerance = F24Dot8.F24Dot8_1 >> 1;
+        int tolerance = F24Dot8.F24Dot8_1 >> 1;
 
         return
-            F24Dot8.Abs(2 * c[0].X - 3 * c[1].X + c[3].X) <= Tolerance &&
-            F24Dot8.Abs(2 * c[0].Y - 3 * c[1].Y + c[3].Y) <= Tolerance &&
-            F24Dot8.Abs(c[0].X - 3 * c[2].X + 2 * c[3].X) <= Tolerance &&
-            F24Dot8.Abs(c[0].Y - 3 * c[2].Y + 2 * c[3].Y) <= Tolerance;
+            F24Dot8.Abs(2 * c[0].X - 3 * c[1].X + c[3].X) <= tolerance &&
+            F24Dot8.Abs(2 * c[0].Y - 3 * c[1].Y + c[3].Y) <= tolerance &&
+            F24Dot8.Abs(c[0].X - 3 * c[2].X + 2 * c[3].X) <= tolerance &&
+            F24Dot8.Abs(c[0].Y - 3 * c[2].Y + 2 * c[3].Y) <= tolerance;
     }
 
 }

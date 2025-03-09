@@ -334,8 +334,7 @@ public unsafe partial struct Rasterizer<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void* GetLinesForRow(int rowIndex)
         {
-            Debug.Assert(rowIndex >= 0);
-            Debug.Assert(rowIndex < Bounds.RowCount);
+            Debug.Assert((uint) rowIndex < Bounds.RowCount);
 
             return Lines[rowIndex];
         }
@@ -344,8 +343,7 @@ public unsafe partial struct Rasterizer<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetFirstBlockLineCountForRow(int rowIndex)
         {
-            Debug.Assert(rowIndex >= 0);
-            Debug.Assert(rowIndex < Bounds.RowCount);
+            Debug.Assert((uint) rowIndex < Bounds.RowCount);
 
             return FirstBlockLineCounts[rowIndex];
         }
@@ -354,8 +352,7 @@ public unsafe partial struct Rasterizer<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<int> GetCoversForRow(int rowIndex)
         {
-            Debug.Assert(rowIndex >= 0);
-            Debug.Assert(rowIndex < Bounds.RowCount);
+            Debug.Assert((uint) rowIndex < Bounds.RowCount);
 
             if (StartCoverTable == null)
             {
@@ -370,8 +367,7 @@ public unsafe partial struct Rasterizer<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ReadOnlySpan<int> GetActualCoversForRow(int rowIndex)
         {
-            Debug.Assert(rowIndex >= 0);
-            Debug.Assert(rowIndex < Bounds.RowCount);
+            Debug.Assert((uint) rowIndex < Bounds.RowCount);
 
             if (StartCoverTable == null)
             {
@@ -733,8 +729,7 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
     {
-        Debug.Assert(rowIndex >= 0);
-        Debug.Assert(rowIndex < T.TileH);
+        Debug.Assert(rowIndex < (uint) T.TileH);
         Debug.Assert(p0x < p1x);
         Debug.Assert(p0y >= 0);
         Debug.Assert(p0y <= T.TileHF24Dot8);
@@ -856,8 +851,7 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
     {
-        Debug.Assert(rowIndex >= 0);
-        Debug.Assert(rowIndex < T.TileH);
+        Debug.Assert(rowIndex < (uint) T.TileH);
         Debug.Assert(p0x < p1x);
         Debug.Assert(p0y >= 0);
         Debug.Assert(p0y <= T.TileHF24Dot8);
@@ -974,8 +968,7 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
     {
-        Debug.Assert(rowIndex >= 0);
-        Debug.Assert(rowIndex < T.TileH);
+        Debug.Assert(rowIndex < (uint) T.TileH);
         Debug.Assert(p0x > p1x);
         Debug.Assert(p0y >= 0);
         Debug.Assert(p0y <= T.TileHF24Dot8);
@@ -1096,8 +1089,7 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
     {
-        Debug.Assert(rowIndex >= 0);
-        Debug.Assert(rowIndex < T.TileH);
+        Debug.Assert(rowIndex < (uint) T.TileH);
         Debug.Assert(p0x > p1x);
         Debug.Assert(p0y >= 0);
         Debug.Assert(p0y <= T.TileHF24Dot8);
