@@ -598,6 +598,7 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void Vertical_Down(
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable,
@@ -630,6 +631,7 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void Vertical_Up(
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable,
@@ -1048,6 +1050,7 @@ public unsafe partial struct Rasterizer<T>
     /// Rasterize line within single pixel row. Line must go from right to
     /// left or be vertical.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void RowDownL_V(
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable,
@@ -1201,6 +1204,7 @@ public unsafe partial struct Rasterizer<T>
     /// <summary>
     /// ⬊
     /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void LineDownR(
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable,
@@ -1261,6 +1265,7 @@ public unsafe partial struct Rasterizer<T>
     /**
      * ⬈
      */
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void LineUpR(
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable,
@@ -1321,6 +1326,7 @@ public unsafe partial struct Rasterizer<T>
     /**
      * ⬋
      */
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void LineDownL(
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable,
@@ -1381,6 +1387,7 @@ public unsafe partial struct Rasterizer<T>
     /**
      * ⬉
      */
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void LineUpL(
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable,
@@ -1556,6 +1563,7 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void RenderOneLine<B, F>(
         Span<byte> row,
         ReadOnlySpan<BitVector> bitVectors,
@@ -1710,6 +1718,7 @@ public unsafe partial struct Rasterizer<T>
     /// <summary>
     /// Rasterize one item within a single row.
     /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void RasterizeOneItem(
         int localRowIndex,
         in RasterizableGeometry raster,

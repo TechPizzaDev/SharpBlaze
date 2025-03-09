@@ -1841,8 +1841,7 @@ public ref partial struct Linearizer<T, L>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AppendVerticalLine(ThreadMemory memory,
-        TileIndex rowIndex, F24Dot8 x, F24Dot8 y0,
-        F24Dot8 y1)
+        TileIndex rowIndex, F24Dot8 x, F24Dot8 y0, F24Dot8 y1)
     {
         Debug.Assert(rowIndex < mBounds.RowCount);
 
