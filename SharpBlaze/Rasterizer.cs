@@ -565,8 +565,6 @@ public unsafe partial struct Rasterizer<T>
         {
             ref L la = ref linearizer.GetLineArrayAtIndex(i);
 
-            //Debug.Assert(la != null);
-
             if (la.GetFrontBlock() == null)
             {
                 lineBlocks[i] = null;

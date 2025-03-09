@@ -284,8 +284,6 @@ public ref partial struct Linearizer<T, L>
     private const int FullPixelCoverNegative = -256;
 
 
-    private readonly partial ref L LA(TileIndex verticalIndex);
-
     // Initialized at the beginning, does not change later.
     private readonly TileBounds mBounds;
 
@@ -818,7 +816,7 @@ public ref partial struct Linearizer<T, L>
                 F24Dot8 y0 = p0.Y - ty;
                 F24Dot8 y1 = p1.Y - ty;
 
-                LA(rowIndex0).AppendLineDownRL(memory, p0.X, y0, p1.X, y1);
+                mLA[(int) rowIndex0].AppendLineDownRL(memory, p0.X, y0, p1.X, y1);
             }
             else if (p0.X < p1.X)
             {
@@ -852,7 +850,7 @@ public ref partial struct Linearizer<T, L>
                 F24Dot8 y0 = p0.Y - ty;
                 F24Dot8 y1 = p1.Y - ty;
 
-                LA(rowIndex0).AppendLineUpRL(memory, p0.X, y0, p1.X, y1);
+                mLA[(int) rowIndex0].AppendLineUpRL(memory, p0.X, y0, p1.X, y1);
             }
             else if (p0.X < p1.X)
             {
@@ -871,8 +869,6 @@ public ref partial struct Linearizer<T, L>
     private partial void AddUncontainedQuadratic(ThreadMemory memory,
         ClipBounds clip, FloatPointX3 p)
     {
-        //Debug.Assert(p != null);
-
         Vector128<double> pmin = MinNative(
             MinNative(p[0].AsVector128(), p[1].AsVector128()),
             p[2].AsVector128());
@@ -979,7 +975,6 @@ public ref partial struct Linearizer<T, L>
     private partial void AddUncontainedMonotonicQuadratic(
         ThreadMemory memory, ClipBounds clip, FloatPointX3 p)
     {
-        //Debug.Assert(p != null);
         Debug.Assert(double.IsFinite(p[0].X));
         Debug.Assert(double.IsFinite(p[0].Y));
 
@@ -1098,7 +1093,6 @@ public ref partial struct Linearizer<T, L>
     private partial void AddVerticallyContainedMonotonicQuadratic(
         ThreadMemory memory, ClipBounds clip, FloatPointX3 p)
     {
-        //Debug.Assert(p != null);
         Debug.Assert(double.IsFinite(p[0].X));
         Debug.Assert(double.IsFinite(p[0].Y));
 
@@ -1307,8 +1301,6 @@ public ref partial struct Linearizer<T, L>
     private partial void AddUncontainedCubic(ThreadMemory memory,
         ClipBounds clip, FloatPointX4 p)
     {
-        //Debug.Assert(p != null);
-
         Vector128<double> pmin = MinNative(
             MinNative(p[0].AsVector128(), p[1].AsVector128()),
             MinNative(p[2].AsVector128(), p[3].AsVector128()));
@@ -1413,7 +1405,6 @@ public ref partial struct Linearizer<T, L>
     private partial void AddUncontainedMonotonicCubic(ThreadMemory memory,
         ClipBounds clip, FloatPointX4 p)
     {
-        //Debug.Assert(p != null);
         Debug.Assert(double.IsFinite(p[0].X));
         Debug.Assert(double.IsFinite(p[0].Y));
 
@@ -1536,7 +1527,6 @@ public ref partial struct Linearizer<T, L>
     private partial void AddVerticallyContainedMonotonicCubic(
         ThreadMemory memory, ClipBounds clip, FloatPointX4 p)
     {
-        //Debug.Assert(p != null);
         Debug.Assert(double.IsFinite(p[0].X));
         Debug.Assert(double.IsFinite(p[0].Y));
 
@@ -1814,7 +1804,6 @@ public ref partial struct Linearizer<T, L>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AddContainedCubicF24Dot8(ThreadMemory memory, F24Dot8PointX4 c)
     {
-        //Debug.Assert(c != null);
         Debug.Assert(c[0].X >= 0);
         Debug.Assert(c[0].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
         Debug.Assert(c[0].Y >= 0);
@@ -1855,7 +1844,6 @@ public ref partial struct Linearizer<T, L>
         TileIndex rowIndex, F24Dot8 x, F24Dot8 y0,
         F24Dot8 y1)
     {
-        Debug.Assert(rowIndex >= 0);
         Debug.Assert(rowIndex < mBounds.RowCount);
 
         Debug.Assert(x >= 0);
@@ -1867,7 +1855,7 @@ public ref partial struct Linearizer<T, L>
         Debug.Assert(y1 >= 0);
         Debug.Assert(y1 <= T.TileHF24Dot8);
 
-        LA(rowIndex).AppendVerticalLine(memory, x, y0, y1);
+        mLA[(int) rowIndex].AppendVerticalLine(memory, x, y0, y1);
     }
 
 
@@ -1887,7 +1875,7 @@ public ref partial struct Linearizer<T, L>
 
         F24Dot8 cx = p0.X + delta;
 
-        LA(rowIndex0).AppendLineDownR_V(memory, p0.X, fy0, cx, T.TileHF24Dot8);
+        mLA[(int) rowIndex0].AppendLineDownR_V(memory, p0.X, fy0, cx, T.TileHF24Dot8);
 
         TileIndex idy = rowIndex0 + 1;
 
@@ -1913,13 +1901,13 @@ public ref partial struct Linearizer<T, L>
 
                 F24Dot8 nx = cx + delta;
 
-                LA(idy).AppendLineDownR_V(memory, cx, 0, nx, T.TileHF24Dot8);
+                mLA[(int) idy].AppendLineDownR_V(memory, cx, 0, nx, T.TileHF24Dot8);
 
                 cx = nx;
             }
         }
 
-        LA(rowIndex1).AppendLineDownR_V(memory, cx, 0, p1.X, fy1);
+        mLA[(int) rowIndex1].AppendLineDownR_V(memory, cx, 0, p1.X, fy1);
     }
 
 
@@ -1939,7 +1927,7 @@ public ref partial struct Linearizer<T, L>
 
         F24Dot8 cx = p0.X + delta;
 
-        LA(rowIndex0).AppendLineUpR_V(memory, p0.X, fy0, cx, 0);
+        mLA[(int) rowIndex0].AppendLineUpR_V(memory, p0.X, fy0, cx, 0);
 
         TileIndex idy = rowIndex0 - 1;
 
@@ -1965,13 +1953,13 @@ public ref partial struct Linearizer<T, L>
 
                 F24Dot8 nx = cx + delta;
 
-                LA(idy).AppendLineUpR_V(memory, cx, T.TileHF24Dot8, nx, 0);
+                mLA[(int) idy].AppendLineUpR_V(memory, cx, T.TileHF24Dot8, nx, 0);
 
                 cx = nx;
             }
         }
 
-        LA(rowIndex1).AppendLineUpR_V(memory, cx, T.TileHF24Dot8, p1.X, fy1);
+        mLA[(int) rowIndex1].AppendLineUpR_V(memory, cx, T.TileHF24Dot8, p1.X, fy1);
     }
 
 
@@ -1991,7 +1979,7 @@ public ref partial struct Linearizer<T, L>
 
         F24Dot8 cx = p0.X - delta;
 
-        LA(rowIndex0).AppendLineDownL_V(memory, p0.X, fy0, cx, T.TileHF24Dot8);
+        mLA[(int) rowIndex0].AppendLineDownL_V(memory, p0.X, fy0, cx, T.TileHF24Dot8);
 
         TileIndex idy = rowIndex0 + 1;
 
@@ -2017,13 +2005,13 @@ public ref partial struct Linearizer<T, L>
 
                 F24Dot8 nx = cx - delta;
 
-                LA(idy).AppendLineDownL_V(memory, cx, 0, nx, T.TileHF24Dot8);
+                mLA[(int) idy].AppendLineDownL_V(memory, cx, 0, nx, T.TileHF24Dot8);
 
                 cx = nx;
             }
         }
 
-        LA(rowIndex1).AppendLineDownL_V(memory, cx, 0, p1.X, fy1);
+        mLA[(int) rowIndex1].AppendLineDownL_V(memory, cx, 0, p1.X, fy1);
     }
 
 
@@ -2043,7 +2031,7 @@ public ref partial struct Linearizer<T, L>
 
         F24Dot8 cx = p0.X - delta;
 
-        LA(rowIndex0).AppendLineUpL_V(memory, p0.X, fy0, cx, 0);
+        mLA[(int) rowIndex0].AppendLineUpL_V(memory, p0.X, fy0, cx, 0);
 
         TileIndex idy = rowIndex0 - 1;
 
@@ -2069,13 +2057,13 @@ public ref partial struct Linearizer<T, L>
 
                 F24Dot8 nx = cx - delta;
 
-                LA(idy).AppendLineUpL_V(memory, cx, T.TileHF24Dot8, nx, 0);
+                mLA[(int) idy].AppendLineUpL_V(memory, cx, T.TileHF24Dot8, nx, 0);
 
                 cx = nx;
             }
         }
 
-        LA(rowIndex1).AppendLineUpL_V(memory, cx, T.TileHF24Dot8, p1.X, fy1);
+        mLA[(int) rowIndex1].AppendLineUpL_V(memory, cx, T.TileHF24Dot8, p1.X, fy1);
     }
 
 
@@ -2137,8 +2125,7 @@ public ref partial struct Linearizer<T, L>
     private unsafe Span<int> GetStartCoversForRowAtIndex(ThreadMemory memory, int index)
     {
         Debug.Assert(mStartCoverTable != null);
-        Debug.Assert(index >= 0);
-        Debug.Assert(index < mBounds.RowCount);
+        Debug.Assert((uint) index < mBounds.RowCount);
 
         int* p = mStartCoverTable[index];
 
@@ -2202,7 +2189,7 @@ public ref partial struct Linearizer<T, L>
 
             for (TileIndex i = rowIndex0 + 1; i < rowIndex1; i++)
             {
-                UpdateStartCoversFull_Down(memory, (int) i);
+                UpdateStartCoversFull(memory, (int) i, FullPixelCoverNegative);
             }
 
             Span<int> cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
@@ -2231,7 +2218,7 @@ public ref partial struct Linearizer<T, L>
 
             for (TileIndex i = rowIndex0 - 1; i > rowIndex1; i--)
             {
-                UpdateStartCoversFull_Up(memory, (int) i);
+                UpdateStartCoversFull(memory, (int) i, FullPixelCoverPositive);
             }
 
             Span<int> cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
@@ -2242,61 +2229,26 @@ public ref partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void UpdateStartCoversFull_Down(ThreadMemory memory, int index)
+    private unsafe void UpdateStartCoversFull(ThreadMemory memory, int index, int value)
     {
         Debug.Assert(mStartCoverTable != null);
-        Debug.Assert(index >= 0);
-        Debug.Assert(index < mBounds.RowCount);
+        Debug.Assert((uint) index < mBounds.RowCount);
 
         int* p = mStartCoverTable[index];
 
         if (p != null)
         {
             // Accumulate.
-            T.AccumulateStartCovers(new Span<int>(p, T.TileH), FullPixelCoverNegative);
+            T.AccumulateStartCovers(new Span<int>(p, T.TileH), value);
         }
         else
         {
             // Store first.
             p = memory.FrameMallocArray<int>(T.TileH);
 
-            T.FillStartCovers(new Span<int>(p, T.TileH), FullPixelCoverNegative);
+            T.FillStartCovers(new Span<int>(p, T.TileH), value);
 
             mStartCoverTable[index] = p;
         }
-    }
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void UpdateStartCoversFull_Up(ThreadMemory memory, int index)
-    {
-        Debug.Assert(mStartCoverTable != null);
-        Debug.Assert(index >= 0);
-        Debug.Assert(index < mBounds.RowCount);
-
-        int* p = mStartCoverTable[index];
-
-        if (p != null)
-        {
-            // Accumulate.
-            T.AccumulateStartCovers(new Span<int>(p, T.TileH), FullPixelCoverPositive);
-        }
-        else
-        {
-            // Store first.
-            p = memory.FrameMallocArray<int>(T.TileH);
-
-            T.FillStartCovers(new Span<int>(p, T.TileH), FullPixelCoverPositive);
-
-            mStartCoverTable[index] = p;
-        }
-    }
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [UnscopedRef]
-    private readonly partial ref L LA(TileIndex verticalIndex)
-    {
-        return ref mLA[(int) verticalIndex];
     }
 }
