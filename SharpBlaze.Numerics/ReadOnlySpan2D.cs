@@ -32,7 +32,7 @@ public readonly ref struct ReadOnlySpan2D<T>
         if ((uint) width > (uint) stride)
             ThrowHelper.ThrowArgumentOutOfRange();
 
-        _data = ref MemoryMarshal.GetReference(data.Slice(0, height * stride));
+        _data = ref MemoryMarshal.GetReference(data[..(height * stride)]);
         _width = width;
         _height = height;
         _stride = stride;

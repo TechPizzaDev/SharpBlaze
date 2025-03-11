@@ -74,8 +74,8 @@ public static class SIMD
                 Vector128<int> clamped = Clamp(val - vOrigin, Vector128<int>.Zero, vSize);
                 clamped.CopyTo(dst);
 
-                src = src.Slice(2);
-                dst = dst.Slice(4);
+                src = src[2..];
+                dst = dst[4..];
             }
         }
         
@@ -84,8 +84,8 @@ public static class SIMD
             dst[0] = Clamp(DoubleToF24Dot8(src[0].X) - origin.X, 0, size.X);
             dst[1] = Clamp(DoubleToF24Dot8(src[0].Y) - origin.Y, 0, size.Y);
 
-            src = src.Slice(1);
-            dst = dst.Slice(2);
+            src = src[1..];
+            dst = dst[2..];
         }
     }
 
@@ -113,8 +113,8 @@ public static class SIMD
                 Vector128<int> clamped = Clamp(val - vOrigin, Vector128<int>.Zero, vSize);
                 clamped.CopyTo(dst);
 
-                src = src.Slice(2);
-                dst = dst.Slice(4);
+                src = src[2..];
+                dst = dst[4..];
             }
         }
 
@@ -126,8 +126,8 @@ public static class SIMD
             dst[0] = Clamp(DoubleToF24Dot8(src[0].X + tx) - origin.X, 0, size.X);
             dst[1] = Clamp(DoubleToF24Dot8(src[0].Y + ty) - origin.Y, 0, size.Y);
 
-            src = src.Slice(1);
-            dst = dst.Slice(2);
+            src = src[1..];
+            dst = dst[2..];
         }
     }
 
@@ -158,8 +158,8 @@ public static class SIMD
                 Vector128<int> clamped = Clamp(val - vOrigin, Vector128<int>.Zero, vSize);
                 clamped.CopyTo(dst);
 
-                src = src.Slice(2);
-                dst = dst.Slice(4);
+                src = src[2..];
+                dst = dst[4..];
             }
         }
         
@@ -168,8 +168,8 @@ public static class SIMD
             dst[0] = Clamp(ConvertToInt32(src[0].X * sx) - origin.X, 0, size.X);
             dst[1] = Clamp(ConvertToInt32(src[0].Y * sy) - origin.Y, 0, size.Y);
             
-            src = src.Slice(1);
-            dst = dst.Slice(2);
+            src = src[1..];
+            dst = dst[2..];
         }
     }
 
@@ -202,8 +202,8 @@ public static class SIMD
                 Vector128<int> clamped = Clamp(val - vOrigin, Vector128<int>.Zero, vSize);
                 clamped.CopyTo(dst);
 
-                src = src.Slice(2);
-                dst = dst.Slice(4);
+                src = src[2..];
+                dst = dst[4..];
             }
         }
 
@@ -217,8 +217,8 @@ public static class SIMD
             dst[0] = Clamp(ConvertToInt32((src[0].X * sx) + tx) - origin.X, 0, size.X);
             dst[1] = Clamp(ConvertToInt32((src[0].Y * sy) + ty) - origin.Y, 0, size.Y);
 
-            src = src.Slice(1);
-            dst = dst.Slice(2);
+            src = src[1..];
+            dst = dst[2..];
         }
     }
 
@@ -251,8 +251,8 @@ public static class SIMD
                 Vector128<int> clamped = Clamp(val - vOrigin, Vector128<int>.Zero, vSize);
                 clamped.CopyTo(dst);
 
-                src = src.Slice(2);
-                dst = dst.Slice(4);
+                src = src[2..];
+                dst = dst[4..];
             }
         }
 
@@ -271,8 +271,8 @@ public static class SIMD
             dst[0] = Clamp(ConvertToInt32(m00 * x + m10 * y + m20) - origin.X, 0, size.X);
             dst[1] = Clamp(ConvertToInt32(m01 * x + m11 * y + m21) - origin.Y, 0, size.Y);
             
-            src = src.Slice(1);
-            dst = dst.Slice(2);
+            src = src[1..];
+            dst = dst[2..];
         }
     }
 }

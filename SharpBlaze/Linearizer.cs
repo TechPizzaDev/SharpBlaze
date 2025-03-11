@@ -1166,7 +1166,7 @@ public ref partial struct Linearizer<T, L>
                     CutQuadraticAt(p, tmp, t);
 
                     F24Dot8PointX3.ClampFromFloat(
-                        tmp.Slice(0, 3), default, clip.FMax, out F24Dot8PointX3 q);
+                        tmp[..3], default, clip.FMax, out F24Dot8PointX3 q);
 
                     F24Dot8 c = Clamp(DoubleToF24Dot8(tmp[4].Y), 0, clip.FMax.Y);
 

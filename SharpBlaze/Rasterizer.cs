@@ -198,7 +198,7 @@ public unsafe partial struct Rasterizer<T>
             }
         }
 
-        state1.rasterIndices = rasterIndices.Slice(0, rasterCount);
+        state1.rasterIndices = rasterIndices[..rasterCount];
 
         return state1;
     }
@@ -903,7 +903,7 @@ public unsafe partial struct Rasterizer<T>
             F24Dot8 p = F24Dot8_1 * dy;
             (F24Dot8 lift, F24Dot8 rem) = DivRem(p, dx);
 
-            Span<CoverArea> coverSpan = coverArea.Slice(0, (int) columnIndex1);
+            Span<CoverArea> coverSpan = coverArea[..(int) columnIndex1];
             for (PixelIndex i = idx; i < coverSpan.Length; i++)
             {
                 F24Dot8 delta = lift;
@@ -1762,7 +1762,7 @@ public unsafe partial struct Rasterizer<T>
         
         Span<byte> imageData = new(image.Data, image.Height * rowStride);
         Span2D<byte> rowView = new(
-            imageData.Slice(py * rowStride + x * sizeof(uint)),
+            imageData[(py * rowStride + x * sizeof(uint))..],
             rowByteWidth,
             height,
             rowStride);
