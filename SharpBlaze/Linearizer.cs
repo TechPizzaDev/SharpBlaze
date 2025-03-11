@@ -1492,11 +1492,11 @@ public ref partial struct Linearizer<T, L>
             if (sy > clip.Max.Y)
             {
                 // Cut-off at bottom.
-                if (CutMonotonicCubicAtY(p, clip.Max.Y, out double t))
+                if (CutMonotonicCubicAtY(pts, clip.Max.Y, out double t))
                 {
                     // Cut cubic at t and keep upper part of curve (since we are
                     // handling ascending curve and cutting at off bottom).
-                    CutCubicAt(p, tmp, t);
+                    CutCubicAt(pts, tmp, t);
 
                     pts[0] = tmp[3];
                     pts[1] = tmp[4];
@@ -1508,11 +1508,11 @@ public ref partial struct Linearizer<T, L>
             if (py < 0)
             {
                 // Cut-off at top.
-                if (CutMonotonicCubicAtY(p, 0, out double t))
+                if (CutMonotonicCubicAtY(pts, 0, out double t))
                 {
                     // Cut cubic at t and keep bottom part of curve (since we are
                     // handling ascending curve and cutting off at top).
-                    CutCubicAt(p, tmp, t);
+                    CutCubicAt(pts, tmp, t);
 
                     // pts[0] already contains tmp[0].
                     pts[1] = tmp[1];
@@ -1527,11 +1527,11 @@ public ref partial struct Linearizer<T, L>
             if (py > clip.Max.Y)
             {
                 // Cut-off at bottom.
-                if (CutMonotonicCubicAtY(p, clip.Max.Y, out double t))
+                if (CutMonotonicCubicAtY(pts, clip.Max.Y, out double t))
                 {
                     // Cut cubic at t and keep upper part of curve (since we are
                     // handling descending curve and cutting at off bottom).
-                    CutCubicAt(p, tmp, t);
+                    CutCubicAt(pts, tmp, t);
 
                     // pts[0] already contains tmp[0].
                     pts[1] = tmp[1];
@@ -1543,11 +1543,11 @@ public ref partial struct Linearizer<T, L>
             if (sy < 0)
             {
                 // Cut-off at top.
-                if (CutMonotonicCubicAtY(p, 0, out double t))
+                if (CutMonotonicCubicAtY(pts, 0, out double t))
                 {
                     // Cut cubic at t and keep bottom part of curve (since we are
                     // handling descending curve and cutting off at top).
-                    CutCubicAt(p, tmp, t);
+                    CutCubicAt(pts, tmp, t);
 
                     pts[0] = tmp[3];
                     pts[1] = tmp[4];
