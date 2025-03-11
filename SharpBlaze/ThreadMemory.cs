@@ -71,19 +71,7 @@ public unsafe partial class ThreadMemory
      */
     public partial T** TaskMallocPointers<T>(int count) where T : unmanaged;
 
-
-    /**
-     * Allocates memory for a given amount of pointers of type T. Does not
-     * zero-fill allocated memory. Note that this method does not allocate
-     * any objects, only arrays of pointers.
-     *
-     * This method allocates from frame memory.
-     *
-     * @param count A number of pointers to allocate. Must be at least 1.
-     */
-    public partial T** FrameMallocPointers<T>(int count) where T : unmanaged;
-
-
+    
     /**
      * Allocates memory for a given amount of pointers of type T and fills the
      * entire block of allocated memory with zeroes. Note that this method
@@ -115,18 +103,7 @@ public unsafe partial class ThreadMemory
      * @param count A number of pointers to allocate. Must be at least 1.
      */
     public partial T* FrameMallocArray<T>(int count) where T : unmanaged;
-
-
-    /**
-     * Allocates memory for an array of values of type T. Fills allocated
-     * memory with zeroes, but does not call any constructors.
-     *
-     * This method allocates from task memory.
-     *
-     * @param count A number of elements to allocate. Must be at least 1.
-     */
-    public partial T* TaskMallocArrayZeroFill<T>(int count) where T : unmanaged;
-
+    
 
     /**
      * Allocates memory for an array of values of type T. Fills allocated
@@ -188,6 +165,8 @@ public unsafe partial class ThreadMemory
     private BumpAllocator mFrameAllocator = new();
     private BumpAllocator mTaskAllocator = new();
 
+    public BumpAllocator Frame => mFrameAllocator;
+    public BumpAllocator Task => mTaskAllocator;
 
     public partial T* TaskMalloc<T>() where T : unmanaged
     {
@@ -207,12 +186,6 @@ public unsafe partial class ThreadMemory
     }
 
 
-    public partial T** FrameMallocPointers<T>(int count) where T : unmanaged
-    {
-        return mFrameAllocator.MallocPointers<T>(count);
-    }
-
-
     public partial T** FrameMallocPointersZeroFill<T>(int count) where T : unmanaged
     {
         return mFrameAllocator.MallocPointersZeroFill<T>(count);
@@ -229,13 +202,7 @@ public unsafe partial class ThreadMemory
     {
         return mFrameAllocator.MallocArray<T>(count);
     }
-
-
-    public partial T* TaskMallocArrayZeroFill<T>(int count) where T : unmanaged
-    {
-        return mTaskAllocator.MallocArrayZeroFill<T>(count);
-    }
-
+    
 
     public partial T* FrameMallocArrayZeroFill<T>(int count) where T : unmanaged
     {

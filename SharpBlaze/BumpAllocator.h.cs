@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -173,4 +174,10 @@ public unsafe partial class BumpAllocator
         return MallocFromNewBlock(size);
     }
 
+    public Span<T> Alloc<T>(int length)
+        where T : unmanaged
+    {
+        void* ptr = Malloc(length * sizeof(T));
+        return new(ptr, length);
+    }
 }

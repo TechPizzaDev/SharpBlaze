@@ -34,7 +34,7 @@ public readonly struct Geometry
         IntRect pathBounds, 
         ReadOnlyMemory<PathTag> tags,
         ReadOnlyMemory<FloatPoint> points, 
-        in Matrix tm, 
+        in Matrix transform, 
         uint color, 
         FillRule rule)
     {
@@ -44,7 +44,7 @@ public readonly struct Geometry
         PathBounds = pathBounds;
         Tags = tags;
         Points = points;
-        TM = tm;
+        Transform = transform;
         Color = color;
         Rule = rule;
     }
@@ -53,7 +53,7 @@ public readonly struct Geometry
     public readonly IntRect PathBounds;
     public readonly ReadOnlyMemory<PathTag> Tags = null;
     public readonly ReadOnlyMemory<FloatPoint> Points = null;
-    public readonly Matrix TM;
+    public readonly Matrix Transform;
     public readonly uint Color = 0;
     public readonly FillRule Rule = FillRule.NonZero;
 };

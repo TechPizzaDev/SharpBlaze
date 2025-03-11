@@ -74,16 +74,17 @@ public unsafe class SdlMain : Main, IDisposable
 
                     case EventType.Mousewheel:
                         FloatPoint delta = new(1.0 + ev.Wheel.PreciseY * 0.1);
-                        FloatPoint zoom = (mViewData.Scale * delta).Clamp(new(0.001), new(100000.0));
-
-                        if (mViewData.Scale != zoom)
+                        FloatPoint scale = (mViewData.Scale * delta).Clamp(new(0.001), new(100000.0));
+                        if (mViewData.Scale == scale)
                         {
-                            FloatPoint dd = (zoom - mViewData.Scale) / mViewData.Scale;
-                            FloatPoint pn = mViewData.CoordinateSystemMatrix.Inverse().Map(ev.Wheel.MouseX, ev.Wheel.MouseY);
-
-                            mViewData.Translation += (mViewData.Translation - pn) * dd;
-                            mViewData.Scale = zoom;
+                            break;
                         }
+                        
+                        FloatPoint dd = (scale - mViewData.Scale) / mViewData.Scale;
+                        FloatPoint pn = mViewData.CoordinateSystemMatrix.Inverse().Map(ev.Wheel.MouseX, ev.Wheel.MouseY);
+
+                        mViewData.Translation += (mViewData.Translation - pn) * dd;
+                        mViewData.Scale = scale;
                         break;
                 }
             }

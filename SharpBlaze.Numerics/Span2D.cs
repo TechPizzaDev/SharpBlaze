@@ -41,6 +41,10 @@ public readonly ref struct Span2D<T>
         _stride = stride;
     }
 
+    public Span2D(Span<T> data, int width, int height) : this(data, width, height, width)
+    {
+    }
+
     public unsafe Span2D(T* data, int width, int height)
     {
         _data = ref *data;

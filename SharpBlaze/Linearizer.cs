@@ -300,9 +300,7 @@ public ref partial struct Linearizer<T, L>
     public static unsafe Linearizer<T, L> Create(
         ThreadMemory memory, in TileBounds bounds, bool contains, in Geometry geometry)
     {
-        Span<L> lineArray = new(
-            memory.TaskMallocArray<L>((int) bounds.RowCount),
-            (int) bounds.RowCount);
+        Span<L> lineArray = memory.Task.Alloc<L>((int) bounds.RowCount);
 
         Linearizer<T, L> linearizer = new(bounds, lineArray);
 
@@ -321,7 +319,7 @@ public ref partial struct Linearizer<T, L>
 
             ClipBounds clip = new(ch, cv);
 
-            Matrix matrix = geometry.TM;
+            Matrix matrix = geometry.Transform;
             matrix *= Matrix.CreateTranslation(-tx, -ty);
 
             linearizer.ProcessUncontained(geometry, memory, clip, matrix);
@@ -360,8 +358,7 @@ public ref partial struct Linearizer<T, L>
 
         ReadOnlySpan<PathTag> tags = geometry.Tags.Span;
 
-        F24Dot8Point* pp =
-            memory.TaskMallocArray<F24Dot8Point>(geometry.Points.Length);
+        Span<F24Dot8Point> pp = memory.Task.Alloc<F24Dot8Point>(geometry.Points.Length);
 
         F24Dot8Point origin;
         origin.X = T.TileColumnIndexToF24Dot8(mBounds.X);
@@ -371,7 +368,7 @@ public ref partial struct Linearizer<T, L>
         size.X = T.TileColumnIndexToF24Dot8(mBounds.ColumnCount);
         size.Y = T.TileRowIndexToF24Dot8(mBounds.RowCount);
 
-        SIMD.FloatPointsToF24Dot8Points(geometry.TM, new(pp, geometry.Points.Length), geometry.Points.Span, origin, size);
+        SIMD.FloatPointsToF24Dot8Points(geometry.Transform, pp, geometry.Points.Span, origin, size);
 
         F24Dot8Point moveTo = *pp++;
 
