@@ -757,8 +757,9 @@ public unsafe partial struct Rasterizer<T>
 
             F24Dot8 p = F24Dot8_1 * dy;
             (F24Dot8 lift, F24Dot8 rem) = DivRem(p, dx);
-
-            for (; idx != columnIndex1; idx++)
+            
+            Span<CoverArea> coverSpan = coverArea[..(int) columnIndex1];
+            for (PixelIndex i = idx; i < (uint) coverSpan.Length; i++)
             {
                 F24Dot8 delta = lift;
 
@@ -772,7 +773,7 @@ public unsafe partial struct Rasterizer<T>
 
                 F24Dot8 ny = cy + delta;
 
-                Cell(bitVector, coverArea, idx, 0, cy, F24Dot8_1, ny);
+                Cell(bitVector, coverSpan, i, 0, cy, F24Dot8_1, ny);
 
                 cy = ny;
             }
@@ -881,7 +882,7 @@ public unsafe partial struct Rasterizer<T>
             (F24Dot8 lift, F24Dot8 rem) = DivRem(p, dx);
 
             Span<CoverArea> coverSpan = coverArea[..(int) columnIndex1];
-            for (PixelIndex i = idx; i < coverSpan.Length; i++)
+            for (PixelIndex i = idx; i < (uint) coverSpan.Length; i++)
             {
                 F24Dot8 delta = lift;
 
