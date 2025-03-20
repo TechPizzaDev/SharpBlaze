@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
@@ -113,14 +114,19 @@ public static partial class CurveUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValueBetweenAAndB(double a, double value, double b)
     {
-        if (a <= b)
-        {
-            return a <= value && value <= b;
-        }
-        else
-        {
-            return a >= value && value >= b;
-        }
+        double min = ScalarHelper.MinNative(a, b);
+        double max = ScalarHelper.MaxNative(a, b);
+        return value >= min & value <= max; 
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<double> IsValueBetweenAAndB(Vector128<double> a, Vector128<double> value, Vector128<double> b)
+    {
+        Vector128<double> min = V128Helper.MinNative(a, b);
+        Vector128<double> max = V128Helper.MaxNative(a, b);
+        return 
+            Vector128.GreaterThanOrEqual(value, min) & 
+            Vector128.LessThanOrEqual(value, max);
     }
 
 
@@ -134,9 +140,13 @@ public static partial class CurveUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool CubicControlPointsBetweenEndPointsX(ReadOnlySpan<FloatPoint> pts)
     {
+        double x0 = pts[0].X;
+        double x1 = pts[1].X;
+        double x2 = pts[2].X;
+        double x3 = pts[3].X;
         return
-            IsValueBetweenAAndB(pts[0].X, pts[1].X, pts[3].X) &&
-            IsValueBetweenAAndB(pts[0].X, pts[2].X, pts[3].X);
+            IsValueBetweenAAndB(x0, x1, x3) &
+            IsValueBetweenAAndB(x0, x2, x3);
     }
 
 
@@ -148,32 +158,39 @@ public static partial class CurveUtils
 
 
     /**
-     * Returns true if given cubic curve is monotonic in Y. This function only
+     * Returns true if given cubic curve is monotonic in X or Y. This function only
      * checks if cubic control points are between end points. This means that this
-     * function can return false when in fact curve does not change direction in Y.
+     * function can return false when in fact curve does not change direction.
      *
      * Use this function for fast monotonicity checks.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CubicControlPointsBetweenEndPointsY(ReadOnlySpan<FloatPoint> pts)
+    public static Vector128<double> CubicControlPointsBetweenEndPoints(ReadOnlySpan<FloatPoint> pts)
     {
-        return
-            IsValueBetweenAAndB(pts[0].Y, pts[1].Y, pts[3].Y) &&
-            IsValueBetweenAAndB(pts[0].Y, pts[2].Y, pts[3].Y);
+        Vector128<double> p0 = pts[0].AsVector128();
+        Vector128<double> p1 = pts[1].AsVector128();
+        Vector128<double> p2 = pts[2].AsVector128();
+        Vector128<double> p3 = pts[3].AsVector128();
+        return IsValueBetweenAAndB(p0, p1, p3) & IsValueBetweenAAndB(p0, p2, p3);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool QuadraticControlPointBetweenEndPointsY(ReadOnlySpan<FloatPoint> pts)
+    public static Vector128<double> QuadraticControlPointBetweenEndPoints(ReadOnlySpan<FloatPoint> pts)
     {
-        return IsValueBetweenAAndB(pts[0].Y, pts[1].Y, pts[2].Y);
+        Vector128<double> p0 = pts[0].AsVector128();
+        Vector128<double> p1 = pts[1].AsVector128();
+        Vector128<double> p2 = pts[2].AsVector128();
+        return IsValueBetweenAAndB(p0, p1, p2);
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void InterpolateQuadraticCoordinates(
         ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst, Vector128<double> t)
     {
+        src = src[..3];
+        dst = dst[..5];
+
         Vector128<double> ab = InterpolateLinear(src[0].AsVector128(), src[1].AsVector128(), t);
         Vector128<double> bc = InterpolateLinear(src[1].AsVector128(), src[2].AsVector128(), t);
 
@@ -195,10 +212,12 @@ public static partial class CurveUtils
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void InterpolateCubicCoordinates(
         ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst, Vector128<double> t)
     {
+        src = src[..4];
+        dst = dst[..7];
+        
         FloatPoint s0 = src[0];
         Vector128<double> s1 = src[1].AsVector128();
         Vector128<double> s2 = src[2].AsVector128();

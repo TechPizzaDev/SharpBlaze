@@ -3,10 +3,11 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
-using static Utils;
+using static ScalarHelper;
 using static RasterizerUtils;
 using static BitOps;
 using static Linearizer;

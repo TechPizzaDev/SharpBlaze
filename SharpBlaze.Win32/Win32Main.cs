@@ -184,7 +184,7 @@ public unsafe class Win32Main : Main
                     Vector128.Create((byte) 2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15));
 
                 bgra.CopyTo(data);
-                data = data.Slice(Vector128<byte>.Count);
+                data = data[Vector128<byte>.Count..];
             }
         }
 
@@ -196,7 +196,7 @@ public unsafe class Win32Main : Main
             data[0] = r;
             data[2] = b;
 
-            data = data.Slice(4);
+            data = data[4..];
         }
     }
 }

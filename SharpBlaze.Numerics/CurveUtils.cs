@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
@@ -11,7 +12,7 @@ public static partial class CurveUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int AcceptRoot(out double t, double root)
     {
-        double c = Clamp(root, 0.0, 1.0);
+        double c = ScalarHelper.ClampNative(root, 0.0, 1.0);
         t = c;
 
         if (Math.Abs(root - c) <= DBL_EPSILON)
@@ -46,8 +47,8 @@ public static partial class CurveUtils
                 return AcceptRoot(out roots[0], rv0);
             }
 
-            double r0 = Math.Min(rv0, rv1);
-            double r1 = Math.Max(rv0, rv1);
+            double r0 = ScalarHelper.MinNative(rv0, rv1);
+            double r1 = ScalarHelper.MaxNative(rv0, rv1);
 
             int n = AcceptRoot(out roots[0], r0);
 
@@ -81,7 +82,6 @@ public static partial class CurveUtils
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static int FindQuadraticRootsWithin(double a, double b, double c, out DoubleX2 roots)
     {
         Unsafe.SkipInit(out roots);
@@ -162,9 +162,11 @@ public static partial class CurveUtils
     }
 
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
     public static partial int CutCubicAtYExtrema(ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst)
     {
+        src = src[..4];
+        dst = dst[..10];
+
         int n = FindCubicExtrema(src[0].Y, src[1].Y, src[2].Y, src[3].Y, out DoubleX2 t);
 
         if (n == 1)
@@ -203,7 +205,7 @@ public static partial class CurveUtils
             Debug.Assert(double.IsFinite(d));
 
             // Clamp to make sure we don't go out of range due to limited precision.
-            double tt = Clamp((t[1] - t[0]) / d, 0.0, 1.0);
+            double tt = ScalarHelper.ClampNative((t[1] - t[0]) / d, 0.0, 1.0);
 
             CutCubicAt(dst.Slice(3, 4), dst.Slice(3, 7), tt);
 
@@ -230,9 +232,11 @@ public static partial class CurveUtils
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial int CutCubicAtXExtrema(ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst)
     {
+        src = src[..4];
+        dst = dst[..10];
+
         int n = FindCubicExtrema(src[0].X, src[1].X, src[2].X, src[3].X, out DoubleX2 t);
 
         if (n == 1)
@@ -271,7 +275,7 @@ public static partial class CurveUtils
             Debug.Assert(double.IsFinite(d));
 
             // Clamp to make sure we don't go out of range due to limited precision.
-            double tt = Clamp((t[1] - t[0]) / d, 0.0, 1.0);
+            double tt = ScalarHelper.ClampNative((t[1] - t[0]) / d, 0.0, 1.0);
 
             CutCubicAt(dst.Slice(3, 4), dst.Slice(3, 7), tt);
 
@@ -315,6 +319,9 @@ public static partial class CurveUtils
     public static partial int CutQuadraticAtYExtrema(
         ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst)
     {
+        src = src[..3];
+        dst = dst[..5];
+        
         double a = src[0].Y;
         double b = src[1].Y;
         double c = src[2].Y;

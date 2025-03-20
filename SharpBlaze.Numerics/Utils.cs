@@ -2,9 +2,8 @@ using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
@@ -13,54 +12,13 @@ public static class Utils
     internal const double DBL_EPSILON = 2.2204460492503131e-16;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<double> MinNative(Vector128<double> left, Vector128<double> right)
+    public static Vector256<T> ClampNative<T>(Vector256<T> val, Vector256<T> min, Vector256<T> max)
     {
 #if NET9_0_OR_GREATER
-        return Vector128.MinNative(left, right);
+        return Vector256.ClampNative(val, min, max);
 #else
-        if (Sse2.IsSupported)
-        {
-            return Sse2.Min(left, right);
-        }
-        return Vector128.Min(left, right);
+        return Vector256.Min(Vector256.Max(val, min), max);
 #endif
-    }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<double> MaxNative(Vector128<double> left, Vector128<double> right)
-    {
-#if NET9_0_OR_GREATER
-        return Vector128.MaxNative(left, right);
-#else
-        if (Sse2.IsSupported)
-        {
-            return Sse2.Max(left, right);
-        }
-        return Vector128.Max(left, right);
-#endif
-    }
-
-
-    /**
-     * Returns value clamped to range between minimum and maximum values.
-     */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T Clamp<T>(T val, T min, T max)
-        where T : INumber<T>
-    {
-        return T.Max(min, T.Min(val, max));
-    }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<T> Clamp<T>(Vector128<T> val, Vector128<T> min, Vector128<T> max)
-    {
-        return Vector128.Max(min, Vector128.Min(val, max));
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<T> Clamp<T>(Vector256<T> val, Vector256<T> min, Vector256<T> max)
-    {
-        return Vector256.Max(min, Vector256.Min(val, max));
     }
 
 
@@ -70,7 +28,7 @@ public static class Utils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 Clamp(F24Dot8 val, F24Dot8 min, F24Dot8 max)
     {
-        return Clamp(val._value, min._value, max._value);
+        return new(ScalarHelper.Clamp(val._value, min._value, max._value));
     }
 
 
@@ -88,7 +46,7 @@ public static class Utils
         Debug.Assert(t >= V.Zero);
         Debug.Assert(t <= V.One);
 
-        return A + ((B - A) * T.CreateTruncating(t));
+        return ScalarHelper.MulAdd(B - A, T.CreateTruncating(t), A);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -97,7 +55,7 @@ public static class Utils
         Debug.Assert(Vector128.GreaterThanOrEqualAll(t, Vector128.Create(0.0)));
         Debug.Assert(Vector128.LessThanOrEqualAll(t, Vector128.Create(1.0)));
 
-        return A + ((B - A) * t);
+        return V128Helper.MulAdd(B - A, t, A);
     }
 
 
