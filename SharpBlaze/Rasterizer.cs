@@ -395,8 +395,8 @@ public unsafe partial struct Rasterizer<T>
                 F24Dot8 x0 = xx0[i];
                 F24Dot8 x1 = xx1[i];
 
-                F24Dot8 y0 = UnpackLoFromF8Dot8x2(y0y1);
-                F24Dot8 y1 = UnpackHiFromF8Dot8x2(y0y1);
+                F24Dot8 y0 = y0y1.X;
+                F24Dot8 y1 = y0y1.Y;
 
                 RasterizeLine(x0, y0, x1, y1, bitVectorTable, coverAreaTable);
             }
@@ -419,25 +419,23 @@ public unsafe partial struct Rasterizer<T>
 
         while (v != null)
         {
-            F8Dot8x2* yy = &v->Y0Y1[0];
-            F8Dot8x2* xx = &v->X0X1[0];
+            ReadOnlySpan<F8Dot8x4> pp = v->P0P1;
 
             for (int i = 0; i < count; i++)
             {
-                F8Dot8x2 y0y1 = yy[i];
-                F8Dot8x2 x0x1 = xx[i];
+                F8Dot8x4 p0p1 = pp[i];
 
                 RasterizeLine(
-                    UnpackLoFromF8Dot8x2(x0x1),
-                    UnpackLoFromF8Dot8x2(y0y1),
-                    UnpackHiFromF8Dot8x2(x0x1),
-                    UnpackHiFromF8Dot8x2(y0y1),
+                    p0p1.X,
+                    p0p1.Y,
+                    p0p1.Z,
+                    p0p1.W,
                     bitVectorTable,
                     coverAreaTable);
             }
 
             v = v->Next;
-            count = LineArrayX32Y16Block.LinesPerBlock;
+            count = LineArrayX16Y16Block.LinesPerBlock;
         }
     }
 

@@ -123,7 +123,7 @@ public unsafe partial struct LineArrayX32Y16
     {
         if (y0 != y1)
         {
-            AppendLine(memory, F8Dot8.PackF24Dot8ToF8Dot8x2(y0, y1), x0, x1);
+            AppendLine(memory, F8Dot8.Pack(y0, y1), x0, x1);
         }
     }
 

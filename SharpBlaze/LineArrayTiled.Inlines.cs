@@ -539,7 +539,7 @@ public unsafe partial struct LineArrayTiled<T>
 
             LinearizerUtils.UpdateCoverTable(new Span<int>(covers, T.TileH), y0, y1);
 
-            b->P0P1[0] = F8Dot8.PackF24Dot8ToF8Dot8x4(x0, y0, x1, y1);
+            b->P0P1[0] = F8Dot8.Pack(x0, y0, x1, y1);
 
             // First line sets count to 1 for line being inserted right now.
             mBlocks[columnIndex] = b;
@@ -568,7 +568,7 @@ public unsafe partial struct LineArrayTiled<T>
             
             if (countInCurrentBlock < LineArrayTiledBlock.LinesPerBlock)
             {
-                current->P0P1[countInCurrentBlock] = F8Dot8.PackF24Dot8ToF8Dot8x4(x0, y0, x1, y1);
+                current->P0P1[countInCurrentBlock] = F8Dot8.Pack(x0, y0, x1, y1);
 
                 LinearizerUtils.UpdateCoverTable(covers, y0, y1);
             }
@@ -576,7 +576,7 @@ public unsafe partial struct LineArrayTiled<T>
             {
                 LineArrayTiledBlock* b = memory.FrameNewTiledBlock(current);
 
-                b->P0P1[0] = F8Dot8.PackF24Dot8ToF8Dot8x4(x0, y0, x1, y1);
+                b->P0P1[0] = F8Dot8.Pack(x0, y0, x1, y1);
 
                 LinearizerUtils.UpdateCoverTable(covers, y0, y1);
 

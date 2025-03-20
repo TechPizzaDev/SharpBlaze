@@ -88,7 +88,7 @@ public unsafe partial struct LineArrayX16Y16
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void AppendLine(ThreadMemory memory, F8Dot8x2 y0y1, F8Dot8x2 x0x1)
+    private void AppendLine(ThreadMemory memory, F8Dot8x4 p0p1)
     {
         LineArrayX16Y16Block* current = mCurrent;
         int count = mCount;
@@ -96,8 +96,7 @@ public unsafe partial struct LineArrayX16Y16
         if (count < LineArrayX16Y16Block.LinesPerBlock)
         {
             // Most common.
-            current->Y0Y1[count] = y0y1;
-            current->X0X1[count] = x0x1;
+            current->P0P1[count] = p0p1;
 
             mCount = count + 1;
         }
@@ -105,8 +104,7 @@ public unsafe partial struct LineArrayX16Y16
         {
             LineArrayX16Y16Block* b = memory.FrameNewX16Y16Block(current);
 
-            b->Y0Y1[0] = y0y1;
-            b->X0X1[0] = x0x1;
+            b->P0P1[0] = p0p1;
 
             // Set count to 1 for segment being added.
             mCount = 1;
@@ -121,8 +119,7 @@ public unsafe partial struct LineArrayX16Y16
     {
         if (y0 != y1)
         {
-            AppendLine(memory, F8Dot8.PackF24Dot8ToF8Dot8x2(y0, y1),
-                F8Dot8.PackF24Dot8ToF8Dot8x2(x0, x1));
+            AppendLine(memory, F8Dot8.Pack(x0, y0, x1, y1));
         }
     }
 
