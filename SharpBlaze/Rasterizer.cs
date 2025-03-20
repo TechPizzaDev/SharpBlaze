@@ -34,14 +34,6 @@ file struct AreaToAlphaEvenOddFn : IFillRuleFn
 public unsafe partial struct Rasterizer<T>
     where T : unmanaged, ITileDescriptor<T>
 {
-
-    public static partial void Rasterize(
-        ReadOnlySpan<Geometry> geometries,
-        in Matrix matrix,
-        Executor threads,
-        ImageData image);
-
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static PixelIndex F24Dot8ToPixelIndex(F24Dot8 x)
     {
@@ -120,7 +112,7 @@ public unsafe partial struct Rasterizer<T>
         public required Span<RasterizableGeometry> rasters;
         public required ReadOnlySpan<Geometry> geometries;
         public required Matrix transform;
-        public required IntSize imageSize;
+        public required IntRect imageBounds;
     }
 
     /// <summary>
@@ -142,10 +134,7 @@ public unsafe partial struct Rasterizer<T>
             threads.MainMemory.FrameMallocArray<RasterizableGeometry>(geometries.Length),
             geometries.Length);
 
-        IntSize imageSize = new(
-            image.Width,
-            image.Height
-        );
+        IntRect imageBounds = new(0, 0, image.Width, image.Height);
 
         StepState1 state1 = new()
         {
@@ -153,7 +142,7 @@ public unsafe partial struct Rasterizer<T>
             rasters = rasters,
             geometries = geometries,
             transform = transform,
-            imageSize = imageSize,
+            imageBounds = imageBounds,
         };
         threads.For(0, geometries.Length, &state1, static (index, state, memory) =>
         {
@@ -177,7 +166,7 @@ public unsafe partial struct Rasterizer<T>
                 out s->rasters[index],
                 rasterGeo,
                 index,
-                s->imageSize,
+                s->imageBounds,
                 memory);
 
             s->rasterIndices[index] = hasRaster ? index : -1;
@@ -218,7 +207,7 @@ public unsafe partial struct Rasterizer<T>
     /// </summary>
     private static StepState2 Step2(Executor threads, in StepState1 state1)
     {
-        TileIndex rowCount = CalculateRowCount<T>(state1.imageSize.Height);
+        TileIndex rowCount = CalculateRowCount<T>(state1.imageBounds.Height);
 
         RowItemList<RasterizableItem>* rowLists =
             threads.MainMemory.FrameMallocArray<RowItemList<RasterizableItem>>((int) rowCount);
@@ -457,11 +446,10 @@ public unsafe partial struct Rasterizer<T>
         out RasterizableGeometry placement,
         in Geometry geometry,
         int geometryIndex,
-        IntSize imageSize,
+        IntRect imageBounds,
         ThreadMemory memory)
     {
-        Debug.Assert(imageSize.Width > 0);
-        Debug.Assert(imageSize.Height > 0);
+        Debug.Assert(imageBounds.HasArea());
 
         Unsafe.SkipInit(out placement);
         if (geometry.Tags.IsEmpty)
@@ -494,23 +482,20 @@ public unsafe partial struct Rasterizer<T>
 
         IntRect geometryBounds = geometry.PathBounds;
 
-        if (geometryBounds.MinX == geometryBounds.MaxX)
+        if (!geometryBounds.HasArea())
         {
             return false;
         }
 
-        int minx = Math.Max(0, geometryBounds.MinX);
-        int miny = Math.Max(0, geometryBounds.MinY);
-        int maxx = Math.Min(imageSize.Width, geometryBounds.MaxX + 1);
-        int maxy = Math.Min(imageSize.Height, geometryBounds.MaxY);
+        IntRect intersection = IntRect.Intersect(imageBounds, geometryBounds + new IntRect(0, 0, 1, 0));
 
-        if (minx >= maxx || miny >= maxy)
+        if (!intersection.HasArea())
         {
             // Geometry bounds do not intersect with destination image.
             return false;
         }
 
-        TileBounds bounds = CalculateTileBounds<T>(minx, miny, maxx, maxy);
+        TileBounds bounds = CalculateTileBounds<T>(intersection);
 
         bool narrow = 128 > (bounds.ColumnCount * T.TileW);
 
@@ -518,13 +503,13 @@ public unsafe partial struct Rasterizer<T>
         {
             LineIterationFunction fn = new() { value = &IterateLinesX16Y16 };
             Linearize<LineArrayX16Y16>(
-                out placement, geometry, geometryIndex, bounds, imageSize, fn, memory);
+                out placement, geometry, geometryIndex, bounds, imageBounds, fn, memory);
         }
         else
         {
             LineIterationFunction fn = new() { value = &IterateLinesX32Y16 };
             Linearize<LineArrayX32Y16>(
-                out placement, geometry, geometryIndex, bounds, imageSize, fn, memory);
+                out placement, geometry, geometryIndex, bounds, imageBounds, fn, memory);
         }
         return true;
     }
@@ -535,7 +520,7 @@ public unsafe partial struct Rasterizer<T>
         in Geometry geometry,
         int geometryIndex,
         TileBounds bounds,
-        IntSize imageSize,
+        IntRect imageBounds,
         LineIterationFunction iterationFunction,
         ThreadMemory memory)
         where L : unmanaged, ILineArrayBlock<L>
@@ -543,11 +528,7 @@ public unsafe partial struct Rasterizer<T>
         // Determine if path is completely within destination image bounds. If
         // geometry bounds fit within destination image, a shortcut can be made
         // when generating lines.
-        bool contains =
-            geometry.PathBounds.MinX >= 0 &&
-            geometry.PathBounds.MinY >= 0 &&
-            geometry.PathBounds.MaxX <= imageSize.Width &&
-            geometry.PathBounds.MaxY <= imageSize.Height;
+        bool contains = imageBounds.Contains(geometry.PathBounds);
 
         Linearizer<T, L> linearizer =
             Linearizer<T, L>.Create(memory, bounds, contains, geometry);

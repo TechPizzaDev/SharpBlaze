@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
@@ -153,7 +154,7 @@ public static class SIMD
                 Vector128<double> src0 = src[0].AsVector128();
                 Vector128<double> src1 = src[1].AsVector128();
 
-                Vector128<int> val = F24Dot8PointX2.ConvertToInt32(src0 * s, src1 * s);
+                Vector128<int> val = V128Helper.Narrow(src0 * s, src1 * s);
 
                 Vector128<int> clamped = Clamp(val - vOrigin, Vector128<int>.Zero, vSize);
                 clamped.CopyTo(dst);
@@ -195,7 +196,7 @@ public static class SIMD
                 Vector128<double> src0 = src[0].AsVector128();
                 Vector128<double> src1 = src[1].AsVector128();
 
-                Vector128<int> val = F24Dot8PointX2.ConvertToInt32(
+                Vector128<int> val = V128Helper.Narrow(
                     (src0 * s) + t,
                     (src1 * s) + t);
 
@@ -244,7 +245,7 @@ public static class SIMD
                 Vector128<double> src0 = src[0].AsVector128();
                 Vector128<double> src1 = src[1].AsVector128();
 
-                Vector128<int> val = F24Dot8PointX2.ConvertToInt32(
+                Vector128<int> val = V128Helper.Narrow(
                     (src0 * f0) + t,
                     (src1 * f1) + t);
 

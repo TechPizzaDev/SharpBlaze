@@ -40,7 +40,7 @@ public struct FloatPoint : IEquatable<FloatPoint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector128<double> AsVector128()
     {
-        return Vector128.Create(X, Y);
+        return Unsafe.BitCast<FloatPoint, Vector128<double>>(this);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -84,44 +84,32 @@ public struct FloatPoint : IEquatable<FloatPoint>
         return !Vector128.EqualsAll(top, Vector128<ulong>.Zero);
     }
 
-    public readonly bool Equals(FloatPoint other)
-    {
-        return this == other;
-    }
+    public readonly bool Equals(FloatPoint other) => this == other;
 
     public override readonly bool Equals([NotNullWhen(true)] object? obj)
     {
         return obj is FloatPoint other && Equals(other);
     }
 
-    public override readonly int GetHashCode()
-    {
-        return HashCode.Combine(X, Y);
-    }
+    public override readonly int GetHashCode() => HashCode.Combine(X, Y);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FloatPoint operator -(FloatPoint a, FloatPoint b)
-    {
-        return new FloatPoint(a.AsVector128() - b.AsVector128());
-    }
+    public static FloatPoint operator -(FloatPoint a, FloatPoint b) => new(a.AsVector128() - b.AsVector128());
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FloatPoint operator +(FloatPoint a, FloatPoint b)
-    {
-        return new FloatPoint(a.AsVector128() + b.AsVector128());
-    }
+    public static FloatPoint operator +(FloatPoint a, FloatPoint b) => new(a.AsVector128() + b.AsVector128());
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FloatPoint operator *(FloatPoint a, FloatPoint b)
-    {
-        return new FloatPoint(a.AsVector128() * b.AsVector128());
-    }
+    public static FloatPoint operator *(FloatPoint a, FloatPoint b) => new(a.AsVector128() * b.AsVector128());
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FloatPoint operator /(FloatPoint a, FloatPoint b)
-    {
-        return new FloatPoint(a.AsVector128() / b.AsVector128());
-    }
+    public static FloatPoint operator *(FloatPoint a, double b) => new(a.AsVector128() * b);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static FloatPoint operator /(FloatPoint a, FloatPoint b) => new(a.AsVector128() / b.AsVector128());
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static FloatPoint operator /(FloatPoint a, double b) => new(a.AsVector128() / b);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(FloatPoint a, FloatPoint b)
@@ -129,10 +117,7 @@ public struct FloatPoint : IEquatable<FloatPoint>
         return Vector128.EqualsAll(a.AsVector128(), b.AsVector128());
     }
 
-    public static bool operator !=(FloatPoint a, FloatPoint b)
-    {
-        return !(a == b);
-    }
+    public static bool operator !=(FloatPoint a, FloatPoint b) => !(a == b);
 
     public override readonly string ToString()
     {

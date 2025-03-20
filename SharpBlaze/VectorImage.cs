@@ -241,14 +241,11 @@ public unsafe partial class VectorImage
 
         writer.Write(Signature);
         writer.Write(Version);
-        
+
         ReadOnlySpan<Geometry> geometries = mGeometries.Span;
         writer.Write(geometries.Length);
 
-        writer.Write(mBounds.MinX);
-        writer.Write(mBounds.MinY);
-        writer.Write(mBounds.MaxX);
-        writer.Write(mBounds.MaxY);
+        Write(writer, mBounds);
 
         for (int i = 0; i < geometries.Length; i++)
         {
@@ -256,10 +253,7 @@ public unsafe partial class VectorImage
 
             writer.Write(geo.Color);
 
-            writer.Write(geo.PathBounds.MinX);
-            writer.Write(geo.PathBounds.MinY);
-            writer.Write(geo.PathBounds.MaxX);
-            writer.Write(geo.PathBounds.MaxY);
+            Write(writer, geo.PathBounds);
 
             writer.Write((uint) geo.Rule);
 
@@ -274,5 +268,14 @@ public unsafe partial class VectorImage
                 writer.Write(point.Y);
             }
         }
+    }
+
+    private static void Write(BinaryWriter writer, IntRect rect)
+    {
+        (int minX, int minY, int maxX, int maxY) = rect;
+        writer.Write(minX);
+        writer.Write(minY);
+        writer.Write(maxX);
+        writer.Write(maxY);
     }
 }

@@ -8,18 +8,6 @@ using static Utils;
 
 public readonly partial struct Matrix
 {
-    /**
-     * Constructs translation matrix with given position.
-     */
-    public static explicit operator Matrix(FloatPoint translation)
-    {
-        Vector128<double> r0 = Vector128.Create(1.0, 0);
-        Vector128<double> r1 = Vector128.Create(0.0, 1);
-        Vector128<double> r2 = Vector128.Create(translation.X, translation.Y);
-        return new Matrix(r0, r1, r2);
-    }
-
-
     public static partial Matrix CreateRotation(double degrees)
     {
         if (FuzzyIsZero(degrees))
@@ -54,16 +42,13 @@ public readonly partial struct Matrix
     }
 
 
-    public static partial Matrix Lerp(in Matrix matrix1, in Matrix matrix2,
-        double t)
+    public static partial Matrix Lerp(in Matrix matrix1, in Matrix matrix2, double t)
     {
+        Vector128<double> vt = Vector128.Create(t);
         return new Matrix(
-            matrix1.m[0][0] + (matrix2.m[0][0] - matrix1.m[0][0]) * t,
-            matrix1.m[0][1] + (matrix2.m[0][1] - matrix1.m[0][1]) * t,
-            matrix1.m[1][0] + (matrix2.m[1][0] - matrix1.m[1][0]) * t,
-            matrix1.m[1][1] + (matrix2.m[1][1] - matrix1.m[1][1]) * t,
-            matrix1.m[2][0] + (matrix2.m[2][0] - matrix1.m[2][0]) * t,
-            matrix1.m[2][1] + (matrix2.m[2][1] - matrix1.m[2][1]) * t);
+            InterpolateLinear(matrix1.m[0], matrix2.m[0], vt),
+            InterpolateLinear(matrix1.m[1], matrix2.m[1], vt),
+            InterpolateLinear(matrix1.m[2], matrix2.m[2], vt));
     }
 
 
@@ -96,21 +81,25 @@ public readonly partial struct Matrix
     }
 
 
-    public readonly partial FloatRect Map(in FloatRect rect)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly partial FloatRect Map(FloatRect rect)
     {
-        Vector128<double> topLeft = Map(rect.Min).AsVector128();
-        Vector128<double> topRight = Map(rect.Max.X, rect.Min.Y).AsVector128();
-        Vector128<double> botLeft = Map(rect.Min.X, rect.Max.Y).AsVector128();
-        Vector128<double> botRight = Map(rect.Max).AsVector128();
+        Vector128<double> min = rect.Min;
+        Vector128<double> max = rect.Max;
 
-        Vector128<double> min = MinNative(topLeft, MinNative(topRight, MinNative(botLeft, botRight)));
-        Vector128<double> max = MaxNative(topLeft, MaxNative(topRight, MaxNative(botLeft, botRight)));
+        Vector128<double> topLeft = Map(min);
+        Vector128<double> topRight = Map(Vector128.Create(max.GetElement(0), min.GetElement(1)));
+        Vector128<double> botLeft = Map(Vector128.Create(min.GetElement(0), max.GetElement(1)));
+        Vector128<double> botRight = Map(max);
 
-        return new FloatRect(new FloatPoint(min), new FloatPoint(max));
+        Vector128<double> rMin = MinNative(topLeft, MinNative(topRight, MinNative(botLeft, botRight)));
+        Vector128<double> rMax = MaxNative(topLeft, MaxNative(topRight, MaxNative(botLeft, botRight)));
+
+        return new FloatRect(rMin, rMax);
     }
 
 
-    public readonly partial IntRect MapBoundingRect(in IntRect rect)
+    public readonly partial IntRect MapBoundingRect(IntRect rect)
     {
         FloatRect r = Map(new FloatRect(rect));
 
@@ -163,9 +152,10 @@ public readonly partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial MatrixComplexity DetermineComplexity()
     {
-        Vector128<double> m0 = FuzzyNotEqual(m[0], Vector128.Create(1.0, 0));
-        Vector128<double> m1 = FuzzyNotEqual(m[1], Vector128.Create(0, 1.0));
-        uint m01 = (m0 | Vector128.Shuffle(m1, Vector128.Create(1, 0))).ExtractMostSignificantBits();
+        Vector128<double> test = Vector128.Create(1.0, 0);
+        Vector128<double> m0 = FuzzyNotEqual(m[0], test);
+        Vector128<double> m1 = FuzzyNotEqual(Vector128.Shuffle(m[1], Vector128.Create(1, 0)), test);
+        uint m01 = (m0 | m1).ExtractMostSignificantBits();
         bool m2 = FuzzyNotZero(m[2]);
 
         uint translation = m2 ? 0b001 : 0u;

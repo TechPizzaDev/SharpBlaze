@@ -36,7 +36,7 @@ public unsafe class Main
         executor = Executor.CreateOptimalExecutor();
 
         mViewData = new ViewData();
-        mViewData.SetupCoordinateSystem((int) WindowWidth, (int) WindowHeight, mVectorImage);
+        mViewData.SetupCoordinateSystem((int) WindowWidth, (int) WindowHeight, mVectorImage.GetBounds());
     }
 
     public void Rasterize()

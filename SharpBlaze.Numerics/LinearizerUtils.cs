@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
@@ -25,33 +26,9 @@ public struct F24Dot8PointX2
         Vector128<double> factor = Vector128.Create(256.0);
         Vector128<double> s0 = p0 * factor;
         Vector128<double> s1 = p1 * factor;
-        return ConvertToInt32(s0, s1);
+        return V128Helper.Narrow(s0, s1);
     }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector128<int> ConvertToInt32(Vector128<double> p0, Vector128<double> p1)
-    {
-        if (AdvSimd.Arm64.IsSupported)
-        {
-            Vector128<long> r0 = AdvSimd.Arm64.ConvertToInt64RoundToEven(p0);
-            Vector128<long> r1 = AdvSimd.Arm64.ConvertToInt64RoundToEven(p1);
-            return AdvSimd.ExtractNarrowingUpper(AdvSimd.ExtractNarrowingLower(r0), r1);
-        }
-        else if (Sse2.IsSupported)
-        {
-            Vector128<long> r0 = Sse2.ConvertToVector128Int32(p0).AsInt64();
-            Vector128<long> r1 = Sse2.ConvertToVector128Int32(p1).AsInt64();
-            return Sse2.UnpackLow(r0, r1).AsInt32();
-        }
-
-        Vector128<float> narrow01 = Vector128.Narrow(p0, p1);
-#if NET9_0_OR_GREATER
-        return Vector128.ConvertToInt32Native(narrow01);
-#else
-        return Vector128.ConvertToInt32(narrow01);
-#endif
-    }
-    
+     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8PointX2 ClampFromFloat(
         FloatPoint p0, FloatPoint p1,

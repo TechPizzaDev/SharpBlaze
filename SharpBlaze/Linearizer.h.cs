@@ -34,10 +34,11 @@ public static class Linearizer
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TileBounds CalculateTileBounds<T>(int minx, int miny, int maxx, int maxy)
+    public static TileBounds CalculateTileBounds<T>(IntRect rect)
         where T : ITileDescriptor<T>
     {
+        (int minx, int miny, int maxx, int maxy) = rect;
+
         Debug.Assert(minx >= 0);
         Debug.Assert(miny >= 0);
         Debug.Assert(minx < maxx);

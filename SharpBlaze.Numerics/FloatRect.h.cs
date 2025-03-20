@@ -1,25 +1,37 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using SharpBlaze.Numerics;
+
 namespace SharpBlaze;
 
 public partial struct FloatRect
 {
     public FloatRect(double x, double y, double width, double height)
     {
-        Min = new FloatPoint(x, y);
-        Max = new FloatPoint(x + width, y + height);
+        Min = Vector128.Create(x, y);
+        Max = Vector128.Create(x + width, y + height);
     }
 
-    public FloatRect(FloatPoint min, FloatPoint max)
+    public FloatRect(Vector128<double> min, Vector128<double> max)
     {
         Min = min;
         Max = max;
     }
 
-    public FloatRect(in IntRect r)
+    public FloatRect(FloatPoint min, FloatPoint max)
     {
-        Min = new FloatPoint(r.MinX, r.MinY);
-        Max = new FloatPoint(r.MaxX, r.MaxY);
+        Min = min.AsVector128();
+        Max = max.AsVector128();
     }
 
-    public FloatPoint Min;
-    public FloatPoint Max;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public FloatRect(IntRect r)
+    {
+        Vector128<int> minMax = r.AsVector128();
+        Min = V128Helper.ConvertToDoubleLower(minMax);
+        Max = V128Helper.ConvertToDoubleUpper(minMax);
+    }
+
+    public Vector128<double> Min;
+    public Vector128<double> Max;
 }

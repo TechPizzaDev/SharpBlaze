@@ -151,14 +151,14 @@ public readonly partial struct Matrix
     /**
      * Maps given rectangle by this matrix.
      */
-    public readonly partial FloatRect Map(in FloatRect rect);
+    public readonly partial FloatRect Map(FloatRect rect);
 
 
     /**
      * Maps all four corner points of a given rectangle and returns a new
      * rectangle which fully contains transformed points.
      */
-    public readonly partial IntRect MapBoundingRect(in IntRect rect);
+    public readonly partial IntRect MapBoundingRect(IntRect rect);
 
 
     /**
@@ -267,6 +267,13 @@ public readonly partial struct Matrix
     {
         return CreateTranslation(translation.X, translation.Y);
     }
+    
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix CreateTranslation(Vector128<double> translation)
+    {
+        return new Matrix(Vector128.Create(1.0, 0), Vector128.Create(0.0, 1), translation);
+    }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -329,6 +336,15 @@ public readonly partial struct Matrix
             m[0] * Vector128.Create(point.X) + 
             m[1] * Vector128.Create(point.Y) + 
             m[2]);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector128<double> Map(Vector128<double> point)
+    {
+        return
+            m[0] * Vector128.Create(point.GetElement(0)) + 
+            m[1] * Vector128.Create(point.GetElement(1)) + 
+            m[2];
     }
 
 

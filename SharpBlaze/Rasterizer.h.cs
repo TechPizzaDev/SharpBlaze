@@ -1,6 +1,6 @@
+using System;
 
 namespace SharpBlaze;
-
 
 public unsafe partial struct Rasterizer<T>
     where T : unmanaged, ITileDescriptor<T>
@@ -20,11 +20,9 @@ public unsafe partial struct Rasterizer<T>
      *
      * @param image Destination image. 
      */
-    static void Rasterize(Geometry* geometries,
-        int geometryCount, in Matrix matrix, Executor threads,
-        in ImageData image)
-    {
-        Rasterize(geometries, geometryCount, matrix, threads, image);
-    }
-
+    public static partial void Rasterize(
+        ReadOnlySpan<Geometry> geometries,
+        in Matrix matrix,
+        Executor threads,
+        ImageData image);
 }

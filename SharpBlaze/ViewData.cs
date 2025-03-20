@@ -1,24 +1,40 @@
-﻿namespace SharpBlaze;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using SharpBlaze.Numerics;
 
-public class ViewData
+namespace SharpBlaze;
+
+public struct ViewData
 {
     public Matrix CoordinateSystemMatrix;
     public FloatPoint Translation;
-    public FloatPoint Scale = new(1);
+    public FloatPoint Scale;
 
-    public void SetupCoordinateSystem(int width, int height, VectorImage image)
+    public ViewData()
     {
-        IntRect bounds = image.GetBounds();
-
-        double x = (bounds.MaxX - bounds.MinX) / 2.0;
-        double y = (bounds.MaxY - bounds.MinY) / 2.0;
-
-        CoordinateSystemMatrix = Matrix.CreateTranslation(
-            (width / 2.0) - x,
-            (height / 2.0) - y);
+        Scale = new(1);
     }
 
-    public Matrix GetMatrix()
+    public void SetupCoordinateSystem(int width, int height, IntRect bounds)
+    {
+        (Vector128<double> min, Vector128<double> max) = V128Helper.Widen(bounds.AsVector128());
+
+        Unsafe.SkipInit(out Vector128<int> isize);
+        isize = isize.WithElement(0, width);
+        isize = isize.WithElement(1, height);
+        Vector128<double> size = V128Helper.WidenLower(isize);
+
+        SetupCoordinateSystem(size, min, max);
+    }
+
+    public void SetupCoordinateSystem(Vector128<double> size, Vector128<double> min, Vector128<double> max)
+    {
+        Vector128<double> p = (max - min) * 0.5;
+        Vector128<double> s = size * 0.5;
+        CoordinateSystemMatrix = Matrix.CreateTranslation(s - p);
+    }
+
+    public readonly Matrix GetMatrix()
     {
         Matrix m = Matrix.CreateScale(Scale);
 
