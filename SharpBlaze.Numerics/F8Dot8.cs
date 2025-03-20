@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
 
-
 /**
  * 8.8 fixed point number.
  */
@@ -13,11 +12,13 @@ public readonly partial struct F8Dot8
 {
     private readonly short _value;
 
-    private F8Dot8(short value) => _value = value;
+    internal F8Dot8(short value) => _value = value;
 
     public static implicit operator short(F8Dot8 value) => value._value;
 
-    public static implicit operator F8Dot8(short value) => new(value);
+    public static implicit operator F24Dot8(F8Dot8 value) => new(value._value);
+
+    public static explicit operator F8Dot8(short value) => new(value);
 
     public override string ToString()
     {
@@ -37,12 +38,12 @@ public readonly struct F8Dot8x2
 
     private F8Dot8x2(uint value) => _value = value;
 
-    public F8Dot8 X => (short) _value;
-    public F8Dot8 Y => (short) (_value >> 16);
+    public F8Dot8 X => new((short) _value);
+    public F8Dot8 Y => new((short) (_value >> 16));
 
-    public static implicit operator uint(F8Dot8x2 value) => value._value;
+    public static explicit operator uint(F8Dot8x2 value) => value._value;
 
-    public static implicit operator F8Dot8x2(uint value) => new(value);
+    public static explicit operator F8Dot8x2(uint value) => new(value);
 
     private string GetDebuggerDisplay()
     {
@@ -56,18 +57,18 @@ public readonly struct F8Dot8x2
 public readonly struct F8Dot8x4
 {
     private readonly ulong _value;
-    
+
     private F8Dot8x4(ulong value) => _value = value;
 
-    public F8Dot8 X => (short) _value;
-    public F8Dot8 Y => (short) (_value >> 16);
-    public F8Dot8 Z => (short) (_value >> 32);
-    public F8Dot8 W => (short) (_value >> 48);
+    public F8Dot8 X => new((short) _value);
+    public F8Dot8 Y => new((short) (_value >> 16));
+    public F8Dot8 Z => new((short) (_value >> 32));
+    public F8Dot8 W => new((short) (_value >> 48));
 
-    public static implicit operator ulong(F8Dot8x4 value) => value._value;
+    public static explicit operator ulong(F8Dot8x4 value) => value._value;
 
-    public static implicit operator F8Dot8x4(ulong value) => new(value);
-    
+    public static explicit operator F8Dot8x4(ulong value) => new(value);
+
     private string GetDebuggerDisplay()
     {
         string separator = NumberFormatInfo.GetInstance(null).NumberGroupSeparator;
@@ -76,22 +77,21 @@ public readonly struct F8Dot8x4
     }
 }
 
-
 public readonly partial struct F8Dot8
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F8Dot8x2 PackF24Dot8ToF8Dot8x2(F24Dot8 a, F24Dot8 b)
+    public static F8Dot8x2 Pack(F24Dot8 a, F24Dot8 b)
     {
         // Values must be small enough.
         Debug.Assert((a & 0xffff0000) == 0);
         Debug.Assert((b & 0xffff0000) == 0);
 
-        return (uint) a | ((uint) b << 16);
+        return (F8Dot8x2) (uint) (a._value | (b._value << 16));
     }
 
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F8Dot8x4 PackF24Dot8ToF8Dot8x4(F24Dot8 a, F24Dot8 b, F24Dot8 c, F24Dot8 d)
+    public static F8Dot8x4 Pack(F24Dot8 a, F24Dot8 b, F24Dot8 c, F24Dot8 d)
     {
         // Values must be small enough.
         Debug.Assert((a & 0xffff0000) == 0);
@@ -99,21 +99,9 @@ public readonly partial struct F8Dot8
         Debug.Assert((c & 0xffff0000) == 0);
         Debug.Assert((d & 0xffff0000) == 0);
 
-        return (uint) a | ((uint) b << 16) |
-            ((uint) c << 32) | ((uint) d << 48);
-    }
-
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F24Dot8 UnpackLoFromF8Dot8x2(F8Dot8x2 a)
-    {
-        return (F24Dot8) ((uint) a & 0xffff);
-    }
-
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F24Dot8 UnpackHiFromF8Dot8x2(F8Dot8x2 a)
-    {
-        return (F24Dot8) ((uint) a >> 16);
+        uint lo = (uint) a._value | ((uint) b._value << 16);
+        ulong hi = ((ulong) c._value << 32) | ((ulong) d._value << 48);
+        
+        return (F8Dot8x4) (lo | hi);
     }
 }

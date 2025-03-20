@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SharpBlaze.Numerics;
 
@@ -185,20 +186,24 @@ public static partial class CurveUtils
     }
 
 
-    public static void InterpolateQuadraticCoordinates(
-        ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst, Vector128<double> t)
+    private static void InterpolateQuadraticCoordinates(
+        ReadOnlySpan<Vector128<double>> src, Span<Vector128<double>> dst, Vector128<double> t)
     {
         src = src[..3];
         dst = dst[..5];
 
-        Vector128<double> ab = InterpolateLinear(src[0].AsVector128(), src[1].AsVector128(), t);
-        Vector128<double> bc = InterpolateLinear(src[1].AsVector128(), src[2].AsVector128(), t);
+        Vector128<double> s0 = src[0];
+        Vector128<double> s1 = src[1];
+        Vector128<double> s2 = src[2];
+        
+        Vector128<double> ab = InterpolateLinear(s0, s1, t);
+        Vector128<double> bc = InterpolateLinear(s1, s2, t);
 
-        dst[0] = src[0];
-        dst[1] = new FloatPoint(ab);
-        dst[2] = new FloatPoint(InterpolateLinear(ab, bc, t));
-        dst[3] = new FloatPoint(bc);
-        dst[4] = src[2];
+        dst[0] = s0;
+        dst[1] = ab;
+        dst[2] = InterpolateLinear(ab, bc, t);
+        dst[3] = bc;
+        dst[4] = s2;
     }
 
 
@@ -208,34 +213,37 @@ public static partial class CurveUtils
         Debug.Assert(t >= 0.0);
         Debug.Assert(t <= 1.0);
 
-        InterpolateQuadraticCoordinates(src, dst, Vector128.Create(t));
+        InterpolateQuadraticCoordinates(
+            MemoryMarshal.Cast<FloatPoint, Vector128<double>>(src),
+            MemoryMarshal.Cast<FloatPoint, Vector128<double>>(dst),
+            Vector128.Create(t));
     }
 
 
     private static void InterpolateCubicCoordinates(
-        ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst, Vector128<double> t)
+        ReadOnlySpan<Vector128<double>> src, Span<Vector128<double>> dst, Vector128<double> t)
     {
         src = src[..4];
         dst = dst[..7];
         
-        FloatPoint s0 = src[0];
-        Vector128<double> s1 = src[1].AsVector128();
-        Vector128<double> s2 = src[2].AsVector128();
-        FloatPoint s3 = src[3];
+        Vector128<double> s0 = src[0];
+        Vector128<double> s1 = src[1];
+        Vector128<double> s2 = src[2];
+        Vector128<double> s3 = src[3];
         
-        Vector128<double> ab = InterpolateLinear(s0.AsVector128(), s1, t);
+        Vector128<double> ab = InterpolateLinear(s0, s1, t);
         Vector128<double> bc = InterpolateLinear(s1, s2, t);
-        Vector128<double> cd = InterpolateLinear(s2, s3.AsVector128(), t);
+        Vector128<double> cd = InterpolateLinear(s2, s3, t);
         Vector128<double> abc = InterpolateLinear(ab, bc, t);
         Vector128<double> bcd = InterpolateLinear(bc, cd, t);
         Vector128<double> abcd = InterpolateLinear(abc, bcd, t);
 
         dst[0] = s0;
-        dst[1] = new FloatPoint(ab);
-        dst[2] = new FloatPoint(abc);
-        dst[3] = new FloatPoint(abcd);
-        dst[4] = new FloatPoint(bcd);
-        dst[5] = new FloatPoint(cd);
+        dst[1] = ab;
+        dst[2] = abc;
+        dst[3] = abcd;
+        dst[4] = bcd;
+        dst[5] = cd;
         dst[6] = s3;
     }
 
@@ -245,6 +253,9 @@ public static partial class CurveUtils
         Debug.Assert(t >= 0.0);
         Debug.Assert(t <= 1.0);
 
-        InterpolateCubicCoordinates(src, dst, Vector128.Create(t));
+        InterpolateCubicCoordinates(
+            MemoryMarshal.Cast<FloatPoint, Vector128<double>>(src),
+            MemoryMarshal.Cast<FloatPoint, Vector128<double>>(dst),
+            Vector128.Create(t));
     }
 }
