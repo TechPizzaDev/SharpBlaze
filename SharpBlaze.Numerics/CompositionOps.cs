@@ -56,7 +56,7 @@ public static partial class CompositionOps
             {
                 Vector256<uint> dd = Vector256.Create<uint>(d);
                 BlendSourceOver_Avx512BW(dd, cba, a).CopyTo(d);
-                d = d.Slice(Vector256<uint>.Count);
+                d = d[Vector256<uint>.Count..];
             }
         }
 
@@ -66,7 +66,7 @@ public static partial class CompositionOps
             {
                 Vector128<uint> dd = Vector128.Create<uint>(d);
                 BlendSourceOver(dd, cba, a).CopyTo(d);
-                d = d.Slice(Vector128<uint>.Count);
+                d = d[Vector128<uint>.Count..];
             }
         }
 

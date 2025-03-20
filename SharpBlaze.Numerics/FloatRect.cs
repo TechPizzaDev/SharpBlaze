@@ -9,6 +9,6 @@ public partial struct FloatRect
     {
         Vector128<double> rmin = Vector128.Floor(Min);
         Vector128<double> rmax = Vector128.Ceiling(Max);
-        return IntRect.FromMinMax(V128Helper.Narrow(rmin, rmax));
+        return IntRect.FromMinMax(V128Helper.RoundToInt32(rmin, rmax));
     }
 }

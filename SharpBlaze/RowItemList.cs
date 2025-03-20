@@ -1,4 +1,6 @@
+using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
@@ -27,12 +29,18 @@ public unsafe partial struct RowItemList<T>
         public const int ItemsPerBlock = 32;
 
         public Array Items;
-        public Block* Previous = null;
+        
         public Block* Next = null;
 
         // Always start with one. Blocks never sit allocated, but without
         // items.
         public int Count = 1;
+
+        [UnscopedRef]
+        public Span<T> AsSpan()
+        {
+            return Items[..Count];
+        }
     };
 
     public Block* First = null;
@@ -76,9 +84,8 @@ public unsafe partial struct RowItemList<T>
 
                 b->Items[0] = value;
 
-                // Insert to doubly-linked list.
+                // Insert to linked list.
                 current->Next = b;
-                b->Previous = current;
 
                 Last = b;
             }

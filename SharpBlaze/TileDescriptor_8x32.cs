@@ -18,7 +18,7 @@ public struct TileDescriptor_8x32 : ITileDescriptor<TileDescriptor_8x32>
     public static bool CoverArrayContainsOnlyZeroes(ReadOnlySpan<int> t)
     {
         // Combine all 32 values.
-        Vector512<int> v = Vector512.Create(t) | Vector512.Create(t.Slice(16));
+        Vector512<int> v = Vector512.Create(t) | Vector512.Create(t[16..]);
 
         // Zero means there are no non-zero values there.
         return Vector512.EqualsAll(v, Vector512<int>.Zero);
@@ -29,7 +29,7 @@ public struct TileDescriptor_8x32 : ITileDescriptor<TileDescriptor_8x32>
     {
         Vector512<int> v = Vector512.Create(value);
         v.CopyTo(p);
-        v.CopyTo(p.Slice(16));
+        v.CopyTo(p[16..]);
     }
 
     /// <inheritdoc />
@@ -38,7 +38,7 @@ public struct TileDescriptor_8x32 : ITileDescriptor<TileDescriptor_8x32>
         Vector512<int> v = Vector512.Create(value);
         
         (v + Vector512.Create<int>(p)).CopyTo(p);
-        p = p.Slice(16);
+        p = p[16..];
         (v + Vector512.Create<int>(p)).CopyTo(p);
     }
 }

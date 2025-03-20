@@ -35,10 +35,14 @@ public readonly ref struct Span2D<T>
         // Last row does not need full stride.
         int length = (height - 1) * stride + width;
 
-        _data = ref MemoryMarshal.GetReference(data.Slice(0, length));
+        _data = ref MemoryMarshal.GetReference(data[..length]);
         _width = width;
         _height = height;
         _stride = stride;
+    }
+
+    public Span2D(Span<T> data, int width, int height) : this(data, width, height, width)
+    {
     }
 
     public unsafe Span2D(T* data, int width, int height)

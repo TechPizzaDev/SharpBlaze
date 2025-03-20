@@ -4,15 +4,13 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
 [DebuggerDisplay($"{{{nameof(ToString)}(),nq}}")]
 public struct FloatPoint : IEquatable<FloatPoint>
 {
-    private const ulong PositiveInfinityBits = 0x7FF0_0000_0000_0000;
-
     public double X;
     public double Y;
 
@@ -33,8 +31,7 @@ public struct FloatPoint : IEquatable<FloatPoint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FloatPoint(Vector128<double> xy)
     {
-        X = xy.GetElement(0);
-        Y = xy.GetElement(1);
+        this = Unsafe.BitCast<Vector128<double>, FloatPoint>(xy);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -44,45 +41,25 @@ public struct FloatPoint : IEquatable<FloatPoint>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly F24Dot8Point ToF24Dot8(F24Dot8Point min, F24Dot8Point max)
+    public static Vector128<int> ToF24Dot8(Vector128<double> value, Vector128<int> min, Vector128<int> max)
     {
-        Vector128<double> scaled = AsVector128() * 256.0;
+        Vector128<double> scaled = value * 256.0;
 
-        Vector128<int> conv;
-        if (Sse2.IsSupported)
-        {
-            conv = Sse2.ConvertToVector128Int32(scaled);
-        }
-        else
-        {
-            Vector128<float> narrow = Vector128.Narrow(scaled, scaled);
-#if NET9_0_OR_GREATER
-            conv = Vector128.ConvertToInt32Native(narrow);
-#else
-            conv = Vector128.ConvertToInt32(narrow);
-#endif
-        }
-
+        Vector128<int> conv = V128Helper.RoundToInt32(scaled);
+        
         // Operating on vectors is cheaper than clamping extracted scalars later.
-        conv = Utils.Clamp(conv, min.ToVector128(), max.ToVector128());
-
-        return new F24Dot8Point(conv.GetElement(0), conv.GetElement(1));
+        return V128Helper.Clamp(conv, min, max);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly FloatPoint Clamp(FloatPoint min, FloatPoint max)
     {
-        Vector128<double> left = Utils.MaxNative(AsVector128(), min.AsVector128());
-        return new FloatPoint(Utils.MinNative(left, max.AsVector128()));
+        return new FloatPoint(
+            V128Helper.Clamp(AsVector128(), min.AsVector128(), max.AsVector128()));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool IsFinite()
-    {
-        Vector128<ulong> bits = AsVector128().AsUInt64();
-        Vector128<ulong> top = ~bits & Vector128.Create(PositiveInfinityBits);
-        return !Vector128.EqualsAll(top, Vector128<ulong>.Zero);
-    }
+    public readonly bool IsFinite() => V128Helper.IsFiniteAll(AsVector128());
 
     public readonly bool Equals(FloatPoint other) => this == other;
 

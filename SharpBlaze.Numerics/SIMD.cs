@@ -6,6 +6,8 @@ using SharpBlaze.Numerics;
 namespace SharpBlaze;
 
 using static Utils;
+using static ScalarHelper;
+using static V128Helper;
 using static F24Dot8;
 
 public static class SIMD
@@ -72,21 +74,20 @@ public static class SIMD
                 Vector128<double> src1 = src[1].AsVector128();
 
                 Vector128<int> val = F24Dot8PointX2.FromFloatToV128(src0, src1);
-                Vector128<int> clamped = Clamp(val - vOrigin, Vector128<int>.Zero, vSize);
-                clamped.CopyTo(dst);
+                Clamp(val - vOrigin, Vector128<int>.Zero, vSize).CopyTo(dst);
 
-                src = src.Slice(2);
-                dst = dst.Slice(4);
+                src = src[2..];
+                dst = dst[4..];
             }
         }
-        
+
         while (src.Length >= 1 && dst.Length >= 2)
         {
             dst[0] = Clamp(DoubleToF24Dot8(src[0].X) - origin.X, 0, size.X);
             dst[1] = Clamp(DoubleToF24Dot8(src[0].Y) - origin.Y, 0, size.Y);
 
-            src = src.Slice(1);
-            dst = dst.Slice(2);
+            src = src[1..];
+            dst = dst[2..];
         }
     }
 
@@ -111,24 +112,23 @@ public static class SIMD
 
                 Vector128<int> val = F24Dot8PointX2.FromFloatToV128(src0 + t, src1 + t);
 
-                Vector128<int> clamped = Clamp(val - vOrigin, Vector128<int>.Zero, vSize);
-                clamped.CopyTo(dst);
+                Clamp(val - vOrigin, Vector128<int>.Zero, vSize).CopyTo(dst);
 
-                src = src.Slice(2);
-                dst = dst.Slice(4);
+                src = src[2..];
+                dst = dst[4..];
             }
         }
 
         double tx = matrix.M31();
         double ty = matrix.M32();
-        
+
         while (src.Length >= 1 && dst.Length >= 2)
         {
             dst[0] = Clamp(DoubleToF24Dot8(src[0].X + tx) - origin.X, 0, size.X);
             dst[1] = Clamp(DoubleToF24Dot8(src[0].Y + ty) - origin.Y, 0, size.Y);
 
-            src = src.Slice(1);
-            dst = dst.Slice(2);
+            src = src[1..];
+            dst = dst[2..];
         }
     }
 
@@ -154,23 +154,22 @@ public static class SIMD
                 Vector128<double> src0 = src[0].AsVector128();
                 Vector128<double> src1 = src[1].AsVector128();
 
-                Vector128<int> val = V128Helper.Narrow(src0 * s, src1 * s);
+                Vector128<int> val = RoundToInt32(src0 * s, src1 * s);
 
-                Vector128<int> clamped = Clamp(val - vOrigin, Vector128<int>.Zero, vSize);
-                clamped.CopyTo(dst);
+                Clamp(val - vOrigin, Vector128<int>.Zero, vSize).CopyTo(dst);
 
-                src = src.Slice(2);
-                dst = dst.Slice(4);
+                src = src[2..];
+                dst = dst[4..];
             }
         }
-        
+
         while (src.Length >= 1 && dst.Length >= 2)
         {
-            dst[0] = Clamp(ConvertToInt32(src[0].X * sx) - origin.X, 0, size.X);
-            dst[1] = Clamp(ConvertToInt32(src[0].Y * sy) - origin.Y, 0, size.Y);
-            
-            src = src.Slice(1);
-            dst = dst.Slice(2);
+            dst[0] = Clamp(RoundToInt32(src[0].X * sx) - origin.X, 0, size.X);
+            dst[1] = Clamp(RoundToInt32(src[0].Y * sy) - origin.Y, 0, size.Y);
+
+            src = src[1..];
+            dst = dst[2..];
         }
     }
 
@@ -196,15 +195,14 @@ public static class SIMD
                 Vector128<double> src0 = src[0].AsVector128();
                 Vector128<double> src1 = src[1].AsVector128();
 
-                Vector128<int> val = V128Helper.Narrow(
-                    (src0 * s) + t,
-                    (src1 * s) + t);
+                Vector128<int> val = RoundToInt32(
+                    MulAdd(src0, s, t),
+                    MulAdd(src1, s, t));
 
-                Vector128<int> clamped = Clamp(val - vOrigin, Vector128<int>.Zero, vSize);
-                clamped.CopyTo(dst);
+                Clamp(val - vOrigin, Vector128<int>.Zero, vSize).CopyTo(dst);
 
-                src = src.Slice(2);
-                dst = dst.Slice(4);
+                src = src[2..];
+                dst = dst[4..];
             }
         }
 
@@ -212,14 +210,14 @@ public static class SIMD
         double ty = m.M32();
         double sx = m.M11();
         double sy = m.M22();
-        
+
         while (src.Length >= 1 && dst.Length >= 2)
         {
-            dst[0] = Clamp(ConvertToInt32((src[0].X * sx) + tx) - origin.X, 0, size.X);
-            dst[1] = Clamp(ConvertToInt32((src[0].Y * sy) + ty) - origin.Y, 0, size.Y);
+            dst[0] = Clamp(RoundToInt32((src[0].X * sx) + tx) - origin.X, 0, size.X);
+            dst[1] = Clamp(RoundToInt32((src[0].Y * sy) + ty) - origin.Y, 0, size.Y);
 
-            src = src.Slice(1);
-            dst = dst.Slice(2);
+            src = src[1..];
+            dst = dst[2..];
         }
     }
 
@@ -245,15 +243,14 @@ public static class SIMD
                 Vector128<double> src0 = src[0].AsVector128();
                 Vector128<double> src1 = src[1].AsVector128();
 
-                Vector128<int> val = V128Helper.Narrow(
-                    (src0 * f0) + t,
-                    (src1 * f1) + t);
+                Vector128<int> val = RoundToInt32(
+                    MulAdd(src0, f0, t),
+                    MulAdd(src1, f1, t));
 
-                Vector128<int> clamped = Clamp(val - vOrigin, Vector128<int>.Zero, vSize);
-                clamped.CopyTo(dst);
+                Clamp(val - vOrigin, Vector128<int>.Zero, vSize).CopyTo(dst);
 
-                src = src.Slice(2);
-                dst = dst.Slice(4);
+                src = src[2..];
+                dst = dst[4..];
             }
         }
 
@@ -269,11 +266,11 @@ public static class SIMD
             double x = src[0].X;
             double y = src[0].Y;
 
-            dst[0] = Clamp(ConvertToInt32(m00 * x + m10 * y + m20) - origin.X, 0, size.X);
-            dst[1] = Clamp(ConvertToInt32(m01 * x + m11 * y + m21) - origin.Y, 0, size.Y);
-            
-            src = src.Slice(1);
-            dst = dst.Slice(2);
+            dst[0] = Clamp(RoundToInt32(m00 * x + m10 * y + m20) - origin.X, 0, size.X);
+            dst[1] = Clamp(RoundToInt32(m01 * x + m11 * y + m21) - origin.Y, 0, size.Y);
+
+            src = src[1..];
+            dst = dst[2..];
         }
     }
 }

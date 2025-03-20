@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
@@ -122,8 +123,8 @@ public class VectorImageBuilder
         {
             Vector128<double> p = src[i].AsVector128();
 
-            min = Utils.MinNative(min, p);
-            max = Utils.MaxNative(max, p);
+            min = V128Helper.MinNative(min, p);
+            max = V128Helper.MaxNative(max, p);
 
             dst[i] = new FloatPoint(p);
         }

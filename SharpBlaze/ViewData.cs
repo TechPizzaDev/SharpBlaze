@@ -17,12 +17,12 @@ public struct ViewData
 
     public void SetupCoordinateSystem(int width, int height, IntRect bounds)
     {
-        (Vector128<double> min, Vector128<double> max) = V128Helper.Widen(bounds.AsVector128());
+        (Vector128<double> min, Vector128<double> max) = V128Helper.ConvertToDouble(bounds.AsVector128());
 
         Unsafe.SkipInit(out Vector128<int> isize);
         isize = isize.WithElement(0, width);
         isize = isize.WithElement(1, height);
-        Vector128<double> size = V128Helper.WidenLower(isize);
+        Vector128<double> size = V128Helper.ConvertToDoubleLower(isize);
 
         SetupCoordinateSystem(size, min, max);
     }

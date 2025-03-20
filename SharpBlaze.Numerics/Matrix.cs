@@ -1,10 +1,12 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
 using static Utils;
+using static V128Helper;
 
 public readonly partial struct Matrix
 {

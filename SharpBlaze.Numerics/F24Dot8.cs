@@ -1,8 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
@@ -33,26 +32,7 @@ public readonly struct F24Dot8 : IEquatable<F24Dot8>
      * small enough to be represented as 24.8 number.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F24Dot8 DoubleToF24Dot8(double v)
-    {
-        return new(ConvertToInt32(v * 256.0));
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int ConvertToInt32(double v)
-    {
-        if (Sse2.IsSupported)
-        {
-            return Sse2.ConvertToInt32(Vector128.CreateScalarUnsafe(v));
-        }
-
-        double r = Math.Round(v);
-#if NET9_0_OR_GREATER
-        return double.ConvertToIntegerNative<int>(r);
-#else
-        return (int) r;
-#endif
-    }
+    public static F24Dot8 DoubleToF24Dot8(double v) => new(ScalarHelper.RoundToInt32(v * 256.0));
 
 
     /**

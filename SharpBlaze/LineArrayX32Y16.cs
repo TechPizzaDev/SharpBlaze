@@ -26,8 +26,7 @@ public unsafe struct LineArrayX32Y16Block
     public const int LinesPerBlock = 32;
 
 
-    // Y0 and Y1 encoded as two 8.8 fixed point numbers packed into one 32 bit
-    // integer.
+    // Y0 and Y1 encoded as two 8.8 fixed point numbers packed into one 32-bit int.
     public ArrayF8Dot8x2 Y0Y1;
     public ArrayF24Dot8 X0;
     public ArrayF24Dot8 X1;

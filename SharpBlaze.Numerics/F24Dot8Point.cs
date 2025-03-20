@@ -3,10 +3,10 @@ using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
 
-public struct F24Dot8Point 
+public readonly struct F24Dot8Point 
 {
-    public F24Dot8 X;
-    public F24Dot8 Y;
+    public readonly F24Dot8 X;
+    public readonly F24Dot8 Y;
 
     public F24Dot8Point(F24Dot8 x, F24Dot8 y)
     {
@@ -33,4 +33,10 @@ public struct F24Dot8Point
             Utils.Clamp(X, min.X, max.X),
             Utils.Clamp(Y, min.Y, max.Y));
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8Point operator +(F24Dot8Point a, F24Dot8Point b) => new(a.X + b.X, a.Y + b.Y);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8Point operator >>(F24Dot8Point a, int b) => new(a.X >> b, a.Y >> b);
 }
