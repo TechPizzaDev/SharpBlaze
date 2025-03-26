@@ -34,7 +34,7 @@ public unsafe partial class BumpAllocator
         {
             Block* next = block->Next;
 
-            NativeMemory.Free(block->Bytes);
+            NativeMemory.AlignedFree(block->Bytes);
             NativeMemory.Free(block);
 
             block = next;
@@ -78,7 +78,7 @@ public unsafe partial class BumpAllocator
 
         block->BlockSize = Math.Max(kMinimumMasterBlockSize, RoundUpBlockSize(size));
 
-        block->Bytes = (byte*) (NativeMemory.Alloc((nuint) block->BlockSize));
+        block->Bytes = (byte*) (NativeMemory.AlignedAlloc((nuint) block->BlockSize, 16));
 
         Debug.Assert(block->Bytes != null);
 
