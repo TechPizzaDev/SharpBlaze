@@ -34,4 +34,10 @@ public partial struct FloatRect
 
     public Vector128<double> Min;
     public Vector128<double> Max;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool HasArea()
+    {
+        return Vector128.LessThanAll(Min, Max);
+    }
 }

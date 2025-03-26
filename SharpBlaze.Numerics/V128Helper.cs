@@ -19,18 +19,6 @@ public static class V128Helper
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<double> AbsLower(Vector128<double> value)
-    {
-        return value & Vector128.Create(0x7FFFFFFFFFFFFFFF, ~0).AsDouble();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<double> AbsUpper(Vector128<double> value)
-    {
-        return value & Vector128.Create(~0, 0x7FFFFFFFFFFFFFFF).AsDouble();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<double> MinNative(Vector128<double> left, Vector128<double> right)
     {
 #if NET9_0_OR_GREATER

@@ -101,14 +101,6 @@ public readonly partial struct Matrix
     }
 
 
-    public readonly partial IntRect MapBoundingRect(IntRect rect)
-    {
-        FloatRect r = Map(new FloatRect(rect));
-
-        return r.ToExpandedIntRect();
-    }
-
-
     public readonly partial bool IsIdentity()
     {
         // Look at diagonal elements first to return if scale is not 1.

@@ -103,7 +103,7 @@ public ref partial struct Linearizer<T, L>
      *
      * @param memory Thread memory for allocations.
      */
-    private unsafe partial void ProcessContained(in Geometry geometry, ThreadMemory memory);
+    private unsafe partial void ProcessContained(in LinearGeometry geometry, ThreadMemory memory);
 
 
     /**
@@ -112,7 +112,7 @@ public ref partial struct Linearizer<T, L>
      * ProcessContained because of doing extra work of determining how
      * individual segments contribute to the result.
      */
-    private partial void ProcessUncontained(in Geometry geometry, ThreadMemory memory, ClipBounds clip,
+    private partial void ProcessUncontained(in LinearGeometry geometry, ThreadMemory memory, ClipBounds clip,
         in Matrix matrix);
 
 
@@ -301,7 +301,7 @@ public ref partial struct Linearizer<T, L>
 
 
     public static Linearizer<T, L> Create(
-        ThreadMemory memory, in TileBounds bounds, bool contains, in Geometry geometry)
+        ThreadMemory memory, TileBounds bounds, bool contains, in LinearGeometry geometry)
     {
         Span<L> lineArray = memory.Task.Alloc<L>((int) bounds.RowCount);
 
@@ -322,8 +322,7 @@ public ref partial struct Linearizer<T, L>
 
             ClipBounds clip = new(ch, cv);
 
-            Matrix matrix = geometry.Transform;
-            matrix *= Matrix.CreateTranslation(-tx, -ty);
+            Matrix matrix = geometry.Transform * Matrix.CreateTranslation(-tx, -ty);
 
             linearizer.ProcessUncontained(geometry, memory, clip, matrix);
         }
@@ -354,12 +353,12 @@ public ref partial struct Linearizer<T, L>
     }
 
 
-    private unsafe partial void ProcessContained(in Geometry geometry, ThreadMemory memory)
+    private unsafe partial void ProcessContained(in LinearGeometry geometry, ThreadMemory memory)
     {
         // In this case path is known to be completely within destination image.
         // Some checks can be skipped.
 
-        ReadOnlySpan<PathTag> tags = geometry.Tags.Span;
+        ReadOnlySpan<PathTag> tags = geometry.Tags;
 
         Span<F24Dot8Point> pp = memory.Task.Alloc<F24Dot8Point>(geometry.Points.Length);
 
@@ -371,7 +370,7 @@ public ref partial struct Linearizer<T, L>
             T.TileColumnIndexToF24Dot8(mBounds.ColumnCount),
             T.TileRowIndexToF24Dot8(mBounds.RowCount));
 
-        SIMD.FloatPointsToF24Dot8Points(geometry.Transform, pp, geometry.Points.Span, origin, size);
+        SIMD.FloatPointsToF24Dot8Points(geometry.Transform, pp, geometry.Points, origin, size);
 
         F24Dot8Point moveTo = pp[0];
 
@@ -427,13 +426,13 @@ public ref partial struct Linearizer<T, L>
 
 
     private partial void ProcessUncontained(
-        in Geometry geometry,
+        in LinearGeometry geometry,
         ThreadMemory memory,
         ClipBounds clip, 
         in Matrix matrix)
     {
-        ReadOnlySpan<PathTag> tags = geometry.Tags.Span;
-        ReadOnlySpan<FloatPoint> points = geometry.Points.Span;
+        ReadOnlySpan<PathTag> tags = geometry.Tags;
+        ReadOnlySpan<FloatPoint> points = geometry.Points;
 
         Span<FloatPoint> segment = stackalloc FloatPoint[4];
 

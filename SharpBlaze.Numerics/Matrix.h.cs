@@ -155,13 +155,6 @@ public readonly partial struct Matrix
 
 
     /**
-     * Maps all four corner points of a given rectangle and returns a new
-     * rectangle which fully contains transformed points.
-     */
-    public readonly partial IntRect MapBoundingRect(IntRect rect);
-
-
-    /**
      * Returns M11 element of matrix.
      */
     public readonly partial double M11();

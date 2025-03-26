@@ -466,14 +466,15 @@ public unsafe partial struct Rasterizer<T>
         // this fix.
 
         Matrix geometryTransform = geometry.Transform * transform;
-        IntRect geometryBounds = geometryTransform.MapBoundingRect(geometry.PathBounds);
+        FloatRect geometryBoundsFrac = geometryTransform.Map(new FloatRect(geometry.PathBounds));
 
-        if (!geometryBounds.HasArea())
+        if (!geometryBoundsFrac.HasArea())
         {
             return false;
         }
 
-        IntRect intersection = IntRect.Intersect(imageBounds, geometryBounds + new IntRect(0, 0, 1, 0));
+        IntRect geometryBounds = geometryBoundsFrac.ToExpandedIntRect() + new IntRect(0, 0, 1, 0);
+        IntRect intersection = IntRect.Intersect(imageBounds, geometryBounds);
 
         if (!intersection.HasArea())
         {
@@ -481,30 +482,32 @@ public unsafe partial struct Rasterizer<T>
             return false;
         }
         
-        Geometry rasterGeo = new(
-            geometryBounds,
-            geometry.Tags,
-            geometry.Points, 
-            geometryTransform, 
-            geometry.Color, 
-            geometry.Rule
-        );
-        
+        // Determine if path is completely within destination image bounds. If
+        // geometry bounds fit within destination image, a shortcut can be made
+        // when generating lines.
+        bool contains = imageBounds.Contains(geometryBounds);
+
         TileBounds bounds = CalculateTileBounds<T>(intersection);
 
+        LinearGeometry linearGeo = new(
+            geometryTransform,
+            geometry.Tags.Span,
+            geometry.Points.Span
+        );
+        
         bool narrow = 128 > (bounds.ColumnCount * T.TileW);
 
         if (narrow)
         {
             LineIterationFunction fn = new() { value = &IterateLinesX16Y16 };
             Linearize<LineArrayX16Y16>(
-                out placement, rasterGeo, geometryIndex, bounds, imageBounds, fn, memory);
+                out placement, linearGeo, geometryIndex, bounds, contains, fn, memory);
         }
         else
         {
             LineIterationFunction fn = new() { value = &IterateLinesX32Y16 };
             Linearize<LineArrayX32Y16>(
-                out placement, rasterGeo, geometryIndex, bounds, imageBounds, fn, memory);
+                out placement, linearGeo, geometryIndex, bounds, contains, fn, memory);
         }
         return true;
     }
@@ -512,19 +515,14 @@ public unsafe partial struct Rasterizer<T>
 
     private static void Linearize<L>(
         out RasterizableGeometry placement,
-        in Geometry geometry,
+        in LinearGeometry geometry,
         int geometryIndex,
         TileBounds bounds,
-        IntRect imageBounds,
+        bool contains,
         LineIterationFunction iterationFunction,
         ThreadMemory memory)
         where L : unmanaged, ILineArrayBlock<L>
     {
-        // Determine if path is completely within destination image bounds. If
-        // geometry bounds fit within destination image, a shortcut can be made
-        // when generating lines.
-        bool contains = imageBounds.Contains(geometry.PathBounds);
-
         Linearizer<T, L> linearizer =
             Linearizer<T, L>.Create(memory, bounds, contains, geometry);
 
