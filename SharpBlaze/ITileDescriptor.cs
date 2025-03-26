@@ -41,22 +41,22 @@ public interface ITileDescriptor<T>
     /// <summary>
     /// Converts X value expressed as 24.8 fixed point number to horizontal tile index.
     /// </summary>
-    static virtual TileIndex F24Dot8ToTileColumnIndex(F24Dot8 x) => (TileIndex) (x / T.TileWF24Dot8);
+    static virtual TileIndex F24Dot8ToTileColumnIndex(F24Dot8 x) => (uint) x / (uint) T.TileWF24Dot8;
 
     /// <summary>
     /// Converts Y value expressed as 24.8 fixed point number to vertical tile index.
     /// </summary>
-    static virtual TileIndex F24Dot8ToTileRowIndex(F24Dot8 y) => (TileIndex) (y / T.TileHF24Dot8);
+    static virtual TileIndex F24Dot8ToTileRowIndex(F24Dot8 y) => (uint) y / (uint) T.TileHF24Dot8;
 
     /// <summary>
     /// Converts X value to horizontal tile index.
     /// </summary>
-    static virtual TileIndex PointsToTileColumnIndex(int x) => (TileIndex) (x / T.TileW);
+    static virtual TileIndex PointsToTileColumnIndex(int x) => (uint) x / (uint) T.TileW;
 
     /// <summary>
     /// Converts Y value to vertical tile index.
     /// </summary>
-    static virtual TileIndex PointsToTileRowIndex(int y) => (TileIndex) (y / T.TileH);
+    static virtual TileIndex PointsToTileRowIndex(int y) => (uint) y / (uint) T.TileH;
 
     /// <summary>
     /// Converts horizontal tile index to X value.
@@ -72,13 +72,13 @@ public interface ITileDescriptor<T>
     /// Returns given vertical tile index to position in 24.8 format.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static virtual F24Dot8 TileColumnIndexToF24Dot8(TileIndex x) => new F24Dot8((int) x) * T.TileWF24Dot8;
+    static virtual F24Dot8 TileColumnIndexToF24Dot8(TileIndex x) => new(x * (uint) T.TileWF24Dot8);
 
     /// <summary>
     /// Returns given horizontal tile index to position in 24.8 format.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static virtual F24Dot8 TileRowIndexToF24Dot8(TileIndex y) => new F24Dot8((int) y) * T.TileHF24Dot8;
+    static virtual F24Dot8 TileRowIndexToF24Dot8(TileIndex y) => new(y * (uint) T.TileHF24Dot8);
 
     static abstract bool CoverArrayContainsOnlyZeroes(ReadOnlySpan<int> t);
 

@@ -13,7 +13,6 @@ using static BitOps;
 using static Linearizer;
 
 using static F24Dot8;
-using static F8Dot8;
 
 using PixelIndex = uint;
 
@@ -1830,10 +1829,10 @@ public unsafe partial struct Rasterizer<T>
         ImageData image)
     {
         // How many columns can fit into image.
-        TileIndex columnCount = CalculateColumnCount<T>(image.Width);
+        int columnCount = (int) CalculateColumnCount<T>(image.Width);
 
         // Create bit vector arrays.
-        int bitVectorsPerRow = BitVectorsForMaxBitCount((int) columnCount * T.TileW);
+        int bitVectorsPerRow = BitVectorsForMaxBitCount(columnCount * T.TileW);
         int bitVectorCount = bitVectorsPerRow * T.TileH;
 
         Span2D<BitVector> bitVectors = new(
@@ -1842,7 +1841,7 @@ public unsafe partial struct Rasterizer<T>
             T.TileH);
 
         // Create cover/area table.
-        int coverAreaPerRow = (int) columnCount * T.TileW;
+        int coverAreaPerRow = columnCount * T.TileW;
         int coverAreaCount = coverAreaPerRow * T.TileH;
 
         Span2D<CoverArea> coverArea = new(
@@ -1866,7 +1865,7 @@ public unsafe partial struct Rasterizer<T>
                     in geometry,
                     bitVectors,
                     coverArea,
-                    (int) columnCount,
+                    columnCount,
                     image);
             }
 

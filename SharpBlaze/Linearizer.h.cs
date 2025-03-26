@@ -11,6 +11,7 @@ public static class Linearizer
      *
      * @param width Image width in pixels. Must be at least 1.
      */
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TileIndex CalculateColumnCount<T>(int width) 
         where T : ITileDescriptor<T>
     {
@@ -25,6 +26,7 @@ public static class Linearizer
      *
      * @param height Image height in pixels. Must be at least 1.
      */
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TileIndex CalculateRowCount<T>(int height)
         where T : ITileDescriptor<T>
     {
@@ -33,7 +35,7 @@ public static class Linearizer
         return T.PointsToTileRowIndex(height + T.TileH - 1);
     }
 
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TileBounds CalculateTileBounds<T>(IntRect rect)
         where T : ITileDescriptor<T>
     {
@@ -47,11 +49,8 @@ public static class Linearizer
         TileIndex x = T.PointsToTileColumnIndex(minx);
         TileIndex y = T.PointsToTileRowIndex(miny);
 
-        TileIndex horizontalCount = T.PointsToTileColumnIndex(
-            maxx + T.TileW - 1) - x;
-
-        TileIndex verticalCount = T.PointsToTileRowIndex(
-            maxy + T.TileH - 1) - y;
+        TileIndex horizontalCount = CalculateColumnCount<T>(maxx) - x;
+        TileIndex verticalCount = CalculateRowCount<T>(maxy) - y;
 
         return new TileBounds(x, y, horizontalCount, verticalCount);
     }

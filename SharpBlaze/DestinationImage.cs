@@ -36,7 +36,7 @@ public unsafe class DestinationImage<T>
         TileIndex w = Linearizer.CalculateColumnCount<T>(size.Width) * (TileIndex) T.TileW;
 
         // Calculate how many bytes are required for the image.
-        int bytes = (int) w * 4 * size.Height;
+        int bytes = checked((int) (w * 4 * (uint) size.Height));
 
         if (mImageDataSize < bytes)
         {
