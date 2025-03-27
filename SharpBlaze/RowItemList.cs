@@ -5,8 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
 
-
-public unsafe partial struct RowItemList<T>
+public unsafe struct RowItemList<T>
     where T : unmanaged
 {
     public RowItemList()
@@ -29,7 +28,7 @@ public unsafe partial struct RowItemList<T>
         public const int ItemsPerBlock = 32;
 
         public Array Items;
-        
+
         public Block* Next = null;
 
         // Always start with one. Blocks never sit allocated, but without
@@ -52,20 +51,7 @@ public unsafe partial struct RowItemList<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(ThreadMemory memory, in T value)
     {
-        if (Last == null)
-        {
-            // Adding first item.
-            Block* b = memory.FrameMalloc<Block>();
-            *b = new Block();
-
-            Debug.Assert(First == null);
-
-            b->Items[0] = value;
-
-            First = b;
-            Last = b;
-        }
-        else
+        if (Last != null)
         {
             // Inserting n-th item.
             Block* current = Last;
@@ -76,19 +62,31 @@ public unsafe partial struct RowItemList<T>
                 current->Items[count] = value;
 
                 current->Count = count + 1;
-            }
-            else
-            {
-                Block* b = memory.FrameMalloc<Block>();
-                *b = new Block();
-
-                b->Items[0] = value;
-
-                // Insert to linked list.
-                current->Next = b;
-
-                Last = b;
+                return;
             }
         }
+        AppendSlow(memory, value);
+    }
+
+    private void AppendSlow(ThreadMemory memory, in T value)
+    {
+        Block* b = memory.FrameMalloc<Block>();
+        *b = new Block();
+
+        b->Items[0] = value;
+
+        if (Last == null)
+        {
+            // Adding first item.
+            Debug.Assert(First == null);
+
+            First = b;
+        }
+        else
+        {
+            // Insert to linked list.
+            Last->Next = b;
+        }
+        Last = b;
     }
 }
