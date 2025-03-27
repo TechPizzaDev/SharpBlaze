@@ -94,17 +94,17 @@ public readonly struct IntRect
         Vector128<int> mix;
         if (Vector64.IsHardwareAccelerated)
         {
-            Vector64<int> min = Vector64.GreaterThanOrEqual(vB.GetLower(), vA.GetLower());
-            Vector64<int> max = Vector64.LessThanOrEqual(vB.GetUpper(), vA.GetUpper());
+            Vector64<int> min = Vector64.LessThan(vB.GetLower(), vA.GetLower());
+            Vector64<int> max = Vector64.GreaterThan(vB.GetUpper(), vA.GetUpper());
             mix = Vector128.Create(min, max);
         }
         else
         {
-            Vector128<int> min = Vector128.GreaterThanOrEqual(vB, vA);
-            Vector128<int> max = Vector128.LessThanOrEqual(vB, vA);
+            Vector128<int> min = Vector128.LessThan(vB, vA);
+            Vector128<int> max = Vector128.GreaterThan(vB, vA);
             mix = Vector128.ConditionalSelect(Vector128.Create(~0, ~0, 0, 0), min, max);
         }
-        return Vector128.EqualsAll(mix, Vector128<int>.AllBitsSet);
+        return Vector128.EqualsAll(mix, Vector128<int>.Zero);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -126,7 +126,9 @@ public readonly struct IntRect
             return Vector64.LessThanAll(v.GetLower(), v.GetUpper());
         }
 
-        (Vector128<long> left, Vector128<long> right) = Vector128.Widen(v);
+        Vector128<int> left = Vector128.Shuffle(v, Vector128.Create(0, 1, 0, 1));
+        Vector128<int> right = Vector128.Shuffle(v, Vector128.Create(2, 3, 2, 3));
+        
         return Vector128.LessThanAll(left, right);
     }
 
