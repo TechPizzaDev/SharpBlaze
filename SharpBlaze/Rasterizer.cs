@@ -373,20 +373,13 @@ public unsafe partial struct Rasterizer<T>
 
         while (v != null)
         {
-            F8Dot8x2* yy = &v->Y0Y1[0];
-            F24Dot8* xx0 = &v->X0[0];
-            F24Dot8* xx1 = &v->X1[0];
-
-            for (int i = 0; i < count; i++)
+            foreach (LineArrayX32Y16Block.Line line in v->P0P1[..count])
             {
-                F8Dot8x2 y0y1 = yy[i];
-                F24Dot8 x0 = xx0[i];
-                F24Dot8 x1 = xx1[i];
-
+                F8Dot8x2 y0y1 = line.Y0Y1;
                 F24Dot8 y0 = y0y1.X;
                 F24Dot8 y1 = y0y1.Y;
 
-                RasterizeLine(x0, y0, x1, y1, bitVectorTable, coverAreaTable);
+                RasterizeLine(line.X0, y0, line.X1, y1, bitVectorTable, coverAreaTable);
             }
 
             v = v->Next;
@@ -407,12 +400,8 @@ public unsafe partial struct Rasterizer<T>
 
         while (v != null)
         {
-            ReadOnlySpan<F8Dot8x4> pp = v->P0P1;
-
-            for (int i = 0; i < count; i++)
+            foreach (F8Dot8x4 p0p1 in v->P0P1[..count])
             {
-                F8Dot8x4 p0p1 = pp[i];
-
                 RasterizeLine(
                     p0p1.X,
                     p0p1.Y,

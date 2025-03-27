@@ -96,9 +96,7 @@ public unsafe partial struct LineArrayX32Y16
         if (count < LineArrayX32Y16Block.LinesPerBlock)
         {
             // Most common.
-            current->Y0Y1[count] = y0y1;
-            current->X0[count] = x0;
-            current->X1[count] = x1;
+            current->P0P1[count] = new LineArrayX32Y16Block.Line(y0y1, x0, x1);
 
             mCount = count + 1;
         }
@@ -106,9 +104,7 @@ public unsafe partial struct LineArrayX32Y16
         {
             LineArrayX32Y16Block* b = memory.FrameNewX32Y16Block(current);
 
-            b->Y0Y1[0] = y0y1;
-            b->X0[0] = x0;
-            b->X1[0] = x1;
+            b->P0P1[0] = new LineArrayX32Y16Block.Line(y0y1, x0, x1);
 
             // Set count to 1 for segment being added.
             mCount = 1;

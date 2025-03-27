@@ -6,15 +6,9 @@ namespace SharpBlaze;
 public unsafe struct LineArrayX32Y16Block
 {
     [InlineArray(LinesPerBlock)]
-    public struct ArrayF8Dot8x2
+    public struct Array
     {
-        private F8Dot8x2 _e0;
-    }
-
-    [InlineArray(LinesPerBlock)]
-    public struct ArrayF24Dot8
-    {
-        private F24Dot8 _e0;
+        private Line _e0;
     }
 
     public LineArrayX32Y16Block(LineArrayX32Y16Block* next)
@@ -26,16 +20,29 @@ public unsafe struct LineArrayX32Y16Block
     public const int LinesPerBlock = 32;
 
 
-    // Y0 and Y1 encoded as two 8.8 fixed point numbers packed into one 32-bit int.
-    public ArrayF8Dot8x2 Y0Y1;
-    public ArrayF24Dot8 X0;
-    public ArrayF24Dot8 X1;
+    public Array P0P1;
 
     // Pointer to the next block of lines in the same row.
     public LineArrayX32Y16Block* Next;
 
     [Obsolete]
     public LineArrayX32Y16Block() { }
+
+    public struct Line
+    {
+        // Y0 and Y1 encoded as two 8.8 fixed point numbers packed into one 32-bit int.
+        public F8Dot8x2 Y0Y1;
+        
+        public F24Dot8 X0;
+        public F24Dot8 X1;
+
+        public Line(F8Dot8x2 y0Y1, F24Dot8 x0, F24Dot8 x1)
+        {
+            Y0Y1 = y0Y1;
+            X0 = x0;
+            X1 = x1;
+        }
+    }
 }
 
 
