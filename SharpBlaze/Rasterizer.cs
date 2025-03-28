@@ -17,21 +17,6 @@ using static F8Dot8;
 
 using PixelIndex = uint;
 
-internal interface IFillRuleFn
-{
-    static abstract int ApplyFillRule(int value);
-}
-
-file struct AreaToAlphaNonZeroFn : IFillRuleFn
-{
-    public static int ApplyFillRule(int value) => AreaToAlphaNonZero(value);
-}
-
-file struct AreaToAlphaEvenOddFn : IFillRuleFn
-{
-    public static int ApplyFillRule(int value) => AreaToAlphaEvenOdd(value);
-}
-
 public unsafe partial struct Rasterizer<T>
     where T : unmanaged, ITileDescriptor<T>
 {
@@ -1542,14 +1527,13 @@ public unsafe partial struct Rasterizer<T>
 
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void RenderOneLine<B, F>(
+    private static void RenderOneLine<B>(
         Span<byte> row,
         ReadOnlySpan<BitVector> bitVectors,
         ReadOnlySpan<CoverArea> coverAreas,
         int startCover,
         B blender)
         where B : ISpanBlender
-        where F : IFillRuleFn
     {
         Span<uint> d = MemoryMarshal.Cast<byte, uint>(row);
 
@@ -1581,7 +1565,7 @@ public unsafe partial struct Rasterizer<T>
                 int area = coverAreas[index].Area + (cover << 9);
 
                 // Area converted to alpha according to fill rule.
-                uint alpha = (uint) F.ApplyFillRule(area);
+                uint alpha = (uint) blender.ApplyFillRule(area);
 
                 if (spanEnd == edgeX)
                 {
@@ -1636,7 +1620,7 @@ public unsafe partial struct Rasterizer<T>
                     {
                         // Non empty gap.
                         // Attempt to merge gap with current span.
-                        uint gapAlpha = (uint) F.ApplyFillRule(cover << 9);
+                        uint gapAlpha = (uint) blender.ApplyFillRule(cover << 9);
 
                         // If alpha matches, extend current span.
                         if (spanAlpha == gapAlpha)
@@ -1686,7 +1670,7 @@ public unsafe partial struct Rasterizer<T>
         if (cover != 0 && spanEnd < d.Length)
         {
             // Composite anything that goes to the edge of destination image.
-            int alpha = F.ApplyFillRule(cover << 9);
+            int alpha = blender.ApplyFillRule(cover << 9);
 
             blender.CompositeSpan(d[spanEnd..], (uint) alpha);
         }
@@ -1707,14 +1691,24 @@ public unsafe partial struct Rasterizer<T>
         ImageData image)
     {
         // A maximum number of horizontal tiles.
-        int horizontalCount = (int) raster.Bounds.ColumnCount;
+        int horizontalCount = (int)raster.Bounds.ColumnCount;
         Debug.Assert(horizontalCount <= columnCount);
 
         int rowWidth = horizontalCount * T.TileW;
         int bitVectorsPerRow = BitVectorsForMaxBitCount(rowWidth);
 
-        // Pointer to backdrop.
-        ReadOnlySpan<int> coversStart = raster.GetActualCoversForRow(localRowIndex);
+        // Limit views to proper dimensions.
+        Span2D<BitVector> bitVectorIter = bitVectorTable.Cut(bitVectorsPerRow);
+        Span2D<CoverArea> coverAreaIter = coverAreaTable.Cut(rowWidth);
+
+        // Erase bit vector table.
+        for (int i = 0; i < bitVectorIter.Height; i++)
+        {
+            bitVectorIter[i].Clear();
+        }
+
+        raster.IterationFunction.value(
+            localRowIndex, in raster, bitVectorIter, coverAreaIter);
 
         int x = (int) raster.Bounds.X * T.TileW;
 
@@ -1737,82 +1731,31 @@ public unsafe partial struct Rasterizer<T>
 
         int rowStride = image.BytesPerRow;
         int rowByteWidth = Math.Min(rowWidth, image.Width - x) * sizeof(uint);
-        
+
         Span<byte> imageData = new(image.Data, image.Height * rowStride);
         Span2D<byte> rowView = new(
             imageData[(py * rowStride + x * sizeof(uint))..],
             rowByteWidth,
             height,
             rowStride);
-        
-        // Limit views to proper dimensions.
-        Span2D<BitVector> bitVectorView = bitVectorTable.Cut(bitVectorsPerRow, height);
-        Span2D<CoverArea> coverAreaView = coverAreaTable.Cut(rowWidth, height);
-        
-        // Erase bit vector table.
-        for (int i = 0; i < bitVectorView.Height; i++)
-        {
-            bitVectorView[i].Clear();
-        }
 
-        raster.IterationFunction.value(
-            localRowIndex, in raster, bitVectorView, coverAreaView);
+        // Pointer to backdrop.
+        ReadOnlySpan<int> coversStart = raster.GetActualCoversForRow(localRowIndex);
 
-        // Fill color.
-        uint color = geometry.Color;
-        FillRule rule = geometry.Rule;
+        ReadOnlySpan2D<BitVector> bitVectorView = bitVectorTable.Cut(bitVectorsPerRow, height);
+        ReadOnlySpan2D<CoverArea> coverAreaView = coverAreaTable.Cut(rowWidth, height);
 
-        if (color >= 0xff000000)
-        {
-            SpanBlenderOpaque blender = new(color);
-                
-            if (rule == FillRule.NonZero)
-            {
-                RenderLines<SpanBlenderOpaque, AreaToAlphaNonZeroFn>(
-                    rowView, bitVectorView, coverAreaView, coversStart, blender);
-            }
-            else
-            {
-                RenderLines<SpanBlenderOpaque, AreaToAlphaEvenOddFn>(
-                    rowView, bitVectorView, coverAreaView, coversStart, blender);
-            }
-        }
-        else
-        {
-            SpanBlender blender = new(color);
-            
-            if (rule == FillRule.NonZero)
-            {
-                RenderLines<SpanBlender, AreaToAlphaNonZeroFn>(
-                    rowView, bitVectorView, coverAreaView, coversStart, blender);
-            }
-            else
-            {
-                RenderLines<SpanBlender, AreaToAlphaEvenOddFn>(
-                    rowView, bitVectorView, coverAreaView, coversStart, blender);
-            }
-        }
-    }
+        SpanBlender blender = new(geometry.Color, geometry.Rule);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RenderLines<B, F>(
-        Span2D<byte> rowData,
-        ReadOnlySpan2D<BitVector> bitVectorTable,
-        ReadOnlySpan2D<CoverArea> coverAreaTable,
-        ReadOnlySpan<int> coversStart,
-        B blender)
-        where B : ISpanBlender
-        where F : IFillRuleFn
-    {
-        for (int y = 0; y < rowData.Height; y++)
+        for (int y = 0; y < height; y++)
         {
-            Span<byte> row = rowData[y];
+            Span<byte> row = rowView[y];
             int startCover = y < coversStart.Length ? coversStart[y] : 0;
-            
-            RenderOneLine<B, F>(
+
+            RenderOneLine(
                 row,
-                bitVectorTable[y],
-                coverAreaTable[y],
+                bitVectorView[y],
+                coverAreaView[y],
                 startCover,
                 blender);
         }

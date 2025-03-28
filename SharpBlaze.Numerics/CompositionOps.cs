@@ -105,35 +105,36 @@ public static partial class CompositionOps
 
 public readonly struct SpanBlender : ISpanBlender
 {
-    public SpanBlender(uint color)
+    public SpanBlender(uint color, FillRule fillRule)
     {
         Color = color;
+        FillRule = fillRule;
     }
 
     readonly uint Color = 0;
+    readonly FillRule FillRule;
 
 
     public void CompositeSpan(Span<uint> d, uint alpha)
     {
-        CompositionOps.CompositeSpanSourceOver(d, alpha, Color);
-    }
-}
-
-/**
- * Span blender which assumes source color is opaque.
- */
-public readonly struct SpanBlenderOpaque : ISpanBlender
-{
-    public SpanBlenderOpaque(uint color)
-    {
-        Color = color;
+        if (Color >= 0xff000000 && alpha == 255)
+        {
+            // Solid span, write only.
+            d.Fill(Color);
+        }
+        else
+        {
+            // Transparent span.
+            CompositionOps.CompositeSpanSourceOver(d, alpha, Color);
+        }
     }
 
-    readonly uint Color = 0;
-
-
-    public void CompositeSpan(Span<uint> d, uint alpha)
+    public int ApplyFillRule(int value)
     {
-        CompositionOps.CompositeSpanSourceOverOpaque(d, alpha, Color);
+        if (FillRule == FillRule.EvenOdd)
+        {
+            return RasterizerUtils.AreaToAlphaEvenOdd(value);
+        }
+        return RasterizerUtils.AreaToAlphaNonZero(value);
     }
 }
