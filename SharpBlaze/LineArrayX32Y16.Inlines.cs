@@ -90,27 +90,29 @@ public unsafe partial struct LineArrayX32Y16
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void AppendLine(ThreadMemory memory, F8Dot8x2 y0y1, F24Dot8 x0, F24Dot8 x1)
     {
-        LineArrayX32Y16Block* current = mCurrent;
         int count = mCount;
-
-        if (count < LineArrayX32Y16Block.LinesPerBlock)
+        if ((uint) count < LineArrayX32Y16Block.LinesPerBlock)
         {
             // Most common.
-            current->P0P1[count] = new LineArrayX32Y16Block.Line(y0y1, x0, x1);
+            mCurrent->P0P1[count] = new LineArrayX32Y16Block.Line(y0y1, x0, x1);
 
             mCount = count + 1;
+            return;
         }
-        else
-        {
-            LineArrayX32Y16Block* b = memory.FrameNewX32Y16Block(current);
+        GrowAndAppendLine(memory, y0y1, x0, x1);
+    }
+    
 
-            b->P0P1[0] = new LineArrayX32Y16Block.Line(y0y1, x0, x1);
+    private void GrowAndAppendLine(ThreadMemory memory, F8Dot8x2 y0y1, F24Dot8 x0, F24Dot8 x1)
+    {
+        LineArrayX32Y16Block* b = memory.FrameNewX32Y16Block(mCurrent);
 
-            // Set count to 1 for segment being added.
-            mCount = 1;
+        b->P0P1[0] = new LineArrayX32Y16Block.Line(y0y1, x0, x1);
 
-            mCurrent = b;
-        }
+        // Set count to 1 for segment being added.
+        mCount = 1;
+
+        mCurrent = b;
     }
 
 
