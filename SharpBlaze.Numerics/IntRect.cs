@@ -1,3 +1,4 @@
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
@@ -130,6 +131,15 @@ public readonly struct IntRect
         Vector128<int> right = Vector128.Shuffle(v, Vector128.Create(2, 3, 2, 3));
         
         return Vector128.LessThanAll(left, right);
+    }
+    
+    public void Write(BinaryWriter writer)
+    {
+        (int minX, int minY, int maxX, int maxY) = this;
+        writer.Write(minX);
+        writer.Write(minY);
+        writer.Write(maxX);
+        writer.Write(maxY);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

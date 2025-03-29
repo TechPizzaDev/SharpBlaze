@@ -2,11 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 
 namespace SharpBlaze;
 
-public unsafe class Main
+public class Main
 {
     public uint WindowWidth { get; }
     public uint WindowHeight { get; }
@@ -24,12 +23,9 @@ public unsafe class Main
         WindowWidth = width;
         WindowHeight = height;
 
-        mVectorImage = new VectorImage();
-
-        byte[] bytes = File.ReadAllBytes("../../../../Images/Paris-30k.vectorimage");
-        fixed (byte* pBytes = bytes)
+        using (FileStream bytes = File.OpenRead("../../../../Images/Paris-30k.vectorimage"))
         {
-            mVectorImage.Parse(pBytes, (ulong) bytes.Length);
+            mVectorImage = VectorImage.Parse(bytes);
         }
 
         mImage = new DestinationImage<TileDescriptor_8x16>();

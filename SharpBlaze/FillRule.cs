@@ -8,5 +8,5 @@ namespace SharpBlaze;
 public enum FillRule : byte
 {
     NonZero = 0,
-    EvenOdd
+    EvenOdd = 1,
 }

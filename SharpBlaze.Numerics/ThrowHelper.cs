@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace SharpBlaze;
+namespace SharpBlaze.Numerics;
 
 internal static class ThrowHelper
 {
