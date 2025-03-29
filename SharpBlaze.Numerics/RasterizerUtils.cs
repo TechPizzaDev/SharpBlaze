@@ -43,7 +43,7 @@ public static class RasterizerUtils
 
         if (aac > 256)
         {
-            return 512 - aac;
+            aac = 512 - aac;
         }
 
         return Math.Min(aac, 255);
