@@ -35,6 +35,7 @@ public readonly struct GeometryHeader
         {
             return OperationStatus.NeedMoreData;
         }
+        bytesConsumed += 4 * 6;
 
         // 4 bytes, color as premultiplied RGBA8.
         uint color = BinaryPrimitives.ReadUInt32LittleEndian(data);
@@ -49,9 +50,9 @@ public readonly struct GeometryHeader
         uint fillRule = BinaryPrimitives.ReadUInt32LittleEndian(data[20..]);
         if (fillRule > 1)
         {
-            bytesConsumed += 4 * 6;
             return OperationStatus.InvalidData;
         }
+        bytesConsumed += 4 * 2;
 
         // 4 bytes, tag count.
         uint tagCount = BinaryPrimitives.ReadUInt32LittleEndian(data[24..]);
