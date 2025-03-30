@@ -48,13 +48,15 @@ public unsafe struct LineArrayX32Y16Block
 
 public unsafe partial struct LineArrayX32Y16 : ILineArrayBlock<LineArrayX32Y16>
 {
+    public static int BlockSize => sizeof(LineArrayX32Y16Block);
+
     public LineArrayX32Y16()
     {
     }
 
-    void* ILineArrayBlock<LineArrayX32Y16>.GetFrontBlock()
+    BumpToken<byte> ILineArrayBlock<LineArrayX32Y16>.GetFrontBlock()
     {
-        return GetFrontBlock();
+        return new ((byte*) GetFrontBlock(), BlockSize);
     }
 
     private LineArrayX32Y16Block* mCurrent = null;

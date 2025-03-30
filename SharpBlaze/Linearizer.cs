@@ -71,7 +71,7 @@ public ref partial struct Linearizer<T, L>
      * geometry to the left of destination image, will contain null in the
      * returned table.
      */
-    public unsafe readonly partial int** GetStartCoverTable();
+    public readonly partial BumpToken2D<int> GetStartCoverTable();
 
 
     /**
@@ -103,7 +103,7 @@ public ref partial struct Linearizer<T, L>
      *
      * @param memory Thread memory for allocations.
      */
-    private unsafe partial void ProcessContained(in LinearGeometry geometry, ThreadMemory memory);
+    private partial void ProcessContained(in LinearGeometry geometry, ThreadMemory memory);
 
 
     /**
@@ -295,7 +295,7 @@ public ref partial struct Linearizer<T, L>
     // Keeps pointers to start cover arrays for each row of tiles. Allocated
     // in task memory and zero-filled when the first start cover array is
     // requested. Each entry is then allocated on demand in frame memory.
-    private unsafe int** mStartCoverTable;
+    private BumpToken2D<int> mStartCoverTable;
 
     private readonly Span<L> mLA;
 
@@ -303,7 +303,7 @@ public ref partial struct Linearizer<T, L>
     public static Linearizer<T, L> Create(
         ThreadMemory memory, TileBounds bounds, bool contains, in LinearGeometry geometry)
     {
-        Span<L> lineArray = memory.Task.Alloc<L>((int) bounds.RowCount);
+        Span<L> lineArray = memory.Task.Alloc<L>((int) bounds.RowCount).AsSpan();
 
         Linearizer<T, L> linearizer = new(bounds, lineArray);
 
@@ -339,7 +339,7 @@ public ref partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe readonly partial int** GetStartCoverTable()
+    public readonly partial BumpToken2D<int> GetStartCoverTable()
     {
         return mStartCoverTable;
     }
@@ -353,14 +353,14 @@ public ref partial struct Linearizer<T, L>
     }
 
 
-    private unsafe partial void ProcessContained(in LinearGeometry geometry, ThreadMemory memory)
+    private partial void ProcessContained(in LinearGeometry geometry, ThreadMemory memory)
     {
         // In this case path is known to be completely within destination image.
         // Some checks can be skipped.
 
         ReadOnlySpan<PathTag> tags = geometry.Tags;
 
-        Span<F24Dot8Point> pp = memory.Task.Alloc<F24Dot8Point>(geometry.Points.Length);
+        Span<F24Dot8Point> pp = memory.Task.Alloc<F24Dot8Point>(geometry.Points.Length).AsSpan();
 
         F24Dot8Point origin = new(
             T.TileColumnIndexToF24Dot8(mBounds.X),
@@ -2138,20 +2138,21 @@ public ref partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe Span<int> GetStartCoversForRowAtIndex(ThreadMemory memory, int index)
+    private Span<int> GetStartCoversForRowAtIndex(ThreadMemory memory, int index)
     {
-        Debug.Assert(mStartCoverTable != null);
+        Debug.Assert(mStartCoverTable.HasValue);
         Debug.Assert((uint) index < mBounds.RowCount);
 
-        int* p = mStartCoverTable[index];
+        BumpToken<int> p = mStartCoverTable[index];
 
-        if (p == null)
+        if (!p.HasValue)
         {
-            p = memory.FrameMallocArrayZeroFill<int>(T.TileH);
+            p = memory.Frame.Alloc<int>(T.TileH);
+            p.AsSpan().Clear();
             mStartCoverTable[index] = p;
         }
 
-        return new Span<int>(p, T.TileH);
+        return p.AsSpan();
     }
 
 
@@ -2164,7 +2165,7 @@ public ref partial struct Linearizer<T, L>
     }
     
 
-    private unsafe void UpdateStartCovers(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1)
+    private void UpdateStartCovers(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1)
     {
         Debug.Assert(y0 >= 0);
         Debug.Assert(y0 <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
@@ -2178,10 +2179,10 @@ public ref partial struct Linearizer<T, L>
             return;
         }
 
-        if (mStartCoverTable == null)
+        if (!mStartCoverTable.HasValue)
         {
             // Allocate pointers to row masks.
-            mStartCoverTable = memory.FrameMallocPointersZeroFill<int>((int) mBounds.RowCount);
+            mStartCoverTable = memory.Frame.Alloc2D<int>(T.TileH, (int) mBounds.RowCount);
         }
 
         if (y0 < y1)
@@ -2256,24 +2257,21 @@ public ref partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void UpdateStartCoversFull(ThreadMemory memory, int index, int value)
+    private void UpdateStartCoversFull(ThreadMemory memory, int index, int value)
     {
-        Debug.Assert(mStartCoverTable != null);
-        Debug.Assert((uint) index < mBounds.RowCount);
+        BumpToken<int> p = mStartCoverTable[index];
 
-        int* p = mStartCoverTable[index];
-
-        if (p != null)
+        if (p.HasValue)
         {
             // Accumulate.
-            T.AccumulateStartCovers(new Span<int>(p, T.TileH), value);
+            T.AccumulateStartCovers(p.AsSpan(), value);
         }
         else
         {
             // Store first.
-            p = memory.FrameMallocArray<int>(T.TileH);
+            p = memory.Frame.Alloc<int>(T.TileH);
 
-            T.FillStartCovers(new Span<int>(p, T.TileH), value);
+            T.FillStartCovers(p.AsSpan(), value);
 
             mStartCoverTable[index] = p;
         }

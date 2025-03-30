@@ -70,7 +70,7 @@ public unsafe struct RowItemList<T>
 
     private void AppendSlow(ThreadMemory memory, in T value)
     {
-        Block* b = memory.FrameMalloc<Block>();
+        Block* b = memory.Frame.Alloc<Block>(1).GetPointer();
         *b = new Block();
 
         b->Items[0] = value;

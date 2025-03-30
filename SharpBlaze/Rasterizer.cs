@@ -48,9 +48,9 @@ public unsafe partial struct Rasterizer<T>
             int geometry,
             LineIterationFunction iterationFunction,
             TileBounds bounds,
-            void** lines,
-            int* firstBlockLineCounts,
-            int** startCoverTable)
+            BumpToken2D<byte> lines,
+            BumpToken<int> firstBlockLineCounts,
+            BumpToken2D<int> startCoverTable)
         {
             Geometry = geometry;
             IterationFunction = iterationFunction;
@@ -63,9 +63,9 @@ public unsafe partial struct Rasterizer<T>
         public readonly int Geometry;
         public readonly LineIterationFunction IterationFunction;
         public readonly TileBounds Bounds;
-        public readonly void** Lines;
-        public readonly int* FirstBlockLineCounts;
-        public readonly int** StartCoverTable;
+        public readonly BumpToken2D<byte> Lines;
+        public readonly BumpToken<int> FirstBlockLineCounts;
+        public readonly BumpToken2D<int> StartCoverTable;
     }
 
 
@@ -111,11 +111,11 @@ public unsafe partial struct Rasterizer<T>
         in Matrix transform)
     {
         Span<int> rasterIndices = 
-            threads.MainMemory.Frame.Alloc<int>(geometries.Length);
+            threads.MainMemory.Frame.Alloc<int>(geometries.Length).AsSpan();
         
         // Allocate memory for RasterizableGeometry instances.
         Span<RasterizableGeometry> rasters = 
-            threads.MainMemory.Frame.Alloc<RasterizableGeometry>(geometries.Length);
+            threads.MainMemory.Frame.Alloc<RasterizableGeometry>(geometries.Length).AsSpan();
 
         IntRect imageBounds = new(0, 0, image.Width, image.Height);
 
@@ -182,7 +182,7 @@ public unsafe partial struct Rasterizer<T>
         TileIndex rowCount = CalculateRowCount<T>(state1.imageBounds.Height);
 
         Span<RowItemList<RasterizableItem>> rowLists =
-            threads.MainMemory.Frame.Alloc<RowItemList<RasterizableItem>>((int) rowCount);
+            threads.MainMemory.Frame.Alloc<RowItemList<RasterizableItem>>((int) rowCount).AsSpan();
 
         int threadCount = Math.Max(1, threads.WorkerCount);
 
@@ -235,8 +235,8 @@ public unsafe partial struct Rasterizer<T>
                     // inserted. Either it has segments or it has non-zero cover
                     // array.
                     bool emptyRow =
-                        rasterizable.GetLinesForRow((int) localIndex) == null &&
-                        rasterizable.GetCoversForRow((int) localIndex) == null;
+                        rasterizable.GetLinesForRow<byte>((int) localIndex) == null &&
+                        rasterizable.GetCoversForRow((int) localIndex).IsEmpty;
 
                     if (emptyRow)
                     {
@@ -293,56 +293,47 @@ public unsafe partial struct Rasterizer<T>
     {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void* GetLinesForRow(int rowIndex)
+        public T* GetLinesForRow<T>(int rowIndex)
         {
-            Debug.Assert((uint) rowIndex < Bounds.RowCount);
-
-            return Lines[rowIndex];
+            BumpToken<byte> token = Lines[rowIndex];
+            if (token.HasValue && sizeof(T) > token.Length)
+            {
+                ThrowHelper.ThrowInvalidOperation();
+            }
+            return (T*) token.GetPointer();
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetFirstBlockLineCountForRow(int rowIndex)
         {
-            Debug.Assert((uint) rowIndex < Bounds.RowCount);
-
-            return FirstBlockLineCounts[rowIndex];
+            return FirstBlockLineCounts.AsSpan()[rowIndex];
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<int> GetCoversForRow(int rowIndex)
         {
-            Debug.Assert((uint) rowIndex < Bounds.RowCount);
-
-            if (StartCoverTable == null)
+            if (!StartCoverTable.HasValue)
             {
                 // No table at all.
                 return default;
             }
 
-            return new Span<int>(StartCoverTable[rowIndex], T.TileH);
+            return StartCoverTable[rowIndex].AsSpan();
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ReadOnlySpan<int> GetActualCoversForRow(int rowIndex)
         {
-            Debug.Assert((uint) rowIndex < Bounds.RowCount);
-
-            if (StartCoverTable == null)
+            if (!StartCoverTable.HasValue)
             {
                 // No table at all.
                 return default;
             }
 
-            int* covers = StartCoverTable[rowIndex];
-            if (covers == null)
-            {
-                return default;
-            }
-
-            return new(covers, T.TileH);
+            return StartCoverTable[rowIndex];
         }
     }
 
@@ -354,7 +345,7 @@ public unsafe partial struct Rasterizer<T>
     {
         int count = raster.GetFirstBlockLineCountForRow(localRowIndex);
 
-        LineArrayX32Y16Block* v = (LineArrayX32Y16Block*) raster.GetLinesForRow(localRowIndex);
+        LineArrayX32Y16Block* v = raster.GetLinesForRow<LineArrayX32Y16Block>(localRowIndex);
 
         while (v != null)
         {
@@ -381,7 +372,7 @@ public unsafe partial struct Rasterizer<T>
     {
         int count = raster.GetFirstBlockLineCountForRow(localRowIndex);
 
-        LineArrayX16Y16Block* v = (LineArrayX16Y16Block*) raster.GetLinesForRow(localRowIndex);
+        LineArrayX16Y16Block* v = raster.GetLinesForRow<LineArrayX16Y16Block>(localRowIndex);
 
         while (v != null)
         {
@@ -501,37 +492,37 @@ public unsafe partial struct Rasterizer<T>
             Linearizer<T, L>.Create(memory, bounds, contains, geometry);
 
         // Finalize.
-        void** lineBlocks = (void**) memory.FrameMallocArray<nint>((int) bounds.RowCount);
+        BumpToken2D<byte> lineBlocks = memory.Frame.Alloc2D<byte>(L.BlockSize, (int) bounds.RowCount);
 
-        int* firstLineBlockCounts = memory.FrameMallocArray<int>((int) bounds.RowCount);
+        BumpToken<int> firstLineBlockCounts = memory.Frame.Alloc<int>((int) bounds.RowCount);
+        Span<int> countSpan = firstLineBlockCounts.AsSpan();
 
         for (TileIndex i = 0; i < bounds.RowCount; i++)
         {
             ref L la = ref linearizer.GetLineArrayAtIndex(i);
 
-            if (la.GetFrontBlock() == null)
+            BumpToken<byte> block = la.GetFrontBlock();
+            if (!block.HasValue)
             {
-                lineBlocks[i] = null;
-                firstLineBlockCounts[i] = 0;
                 continue;
             }
 
-            lineBlocks[i] = la.GetFrontBlock();
-            firstLineBlockCounts[i] = la.GetFrontBlockLineCount();
+            lineBlocks[(int) i] = la.GetFrontBlock();
+            countSpan[(int) i] = la.GetFrontBlockLineCount();
         }
 
-        int** startCoverTable = linearizer.GetStartCoverTable();
-        if (startCoverTable != null)
+        BumpToken2D<int> startCoverTable = linearizer.GetStartCoverTable();
+        if (startCoverTable.HasValue)
         {
             for (int i = 0; i < bounds.RowCount; i++)
             {
-                int* t = startCoverTable[i];
+                BumpToken<int> t = startCoverTable[i];
 
-                if (t != null && T.CoverArrayContainsOnlyZeroes(new (t, T.TileH)))
+                if (t.HasValue && T.CoverArrayContainsOnlyZeroes(t))
                 {
                     // Don't need cover array after all,
                     // all segments cancelled each other.
-                    startCoverTable[i] = null;
+                    startCoverTable[i] = default;
                 }
             }
         }
@@ -1766,7 +1757,7 @@ public unsafe partial struct Rasterizer<T>
         int bitVectorCount = bitVectorsPerRow * T.TileH;
 
         Span2D<BitVector> bitVectors = new(
-            memory.Task.Alloc<BitVector>(bitVectorCount),
+            memory.Task.Alloc<BitVector>(bitVectorCount).AsSpan(),
             bitVectorsPerRow,
             T.TileH);
 
@@ -1775,7 +1766,7 @@ public unsafe partial struct Rasterizer<T>
         int coverAreaCount = coverAreaPerRow * T.TileH;
 
         Span2D<CoverArea> coverArea = new(
-            memory.Task.Alloc<CoverArea>(coverAreaCount),
+            memory.Task.Alloc<CoverArea>(coverAreaCount).AsSpan(),
             coverAreaPerRow,
             T.TileH);
 

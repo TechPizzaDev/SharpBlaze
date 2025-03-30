@@ -1,3 +1,4 @@
+using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -19,6 +20,7 @@ internal static class ThrowHelper
         }
     }
 
+    [DoesNotReturn]
     private static void ThrowInvalidData()
     {
         throw new InvalidDataException();
@@ -28,5 +30,23 @@ internal static class ThrowHelper
     private static void ThrowUnreachableException<T>(T value)
     {
         throw new UnreachableException(value?.ToString());
+    }
+    
+    [DoesNotReturn]
+    public static void ThrowIndexOutOfRange()
+    {
+        throw new IndexOutOfRangeException();
+    }
+    
+    [DoesNotReturn]
+    public static void ThrowArgumentOutOfRange()
+    {
+        throw new ArgumentOutOfRangeException();
+    }
+
+    [DoesNotReturn]
+    public static void ThrowInvalidOperation()
+    {
+        throw new InvalidOperationException();
     }
 }

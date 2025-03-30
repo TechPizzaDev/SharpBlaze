@@ -20,16 +20,17 @@ public unsafe partial struct LineArrayTiled<T>
         int bitVectorsPerRow = BitOps.BitVectorsForMaxBitCount((int) columnCount);
         int bitVectorCount = bitVectorsPerRow * rowCount;
 
-        BitVector* bitVectors = memory.FrameMallocArrayZeroFill<BitVector>(bitVectorCount);
+        // TODO: use BumpToken2D here... unless we remove all LineArrayTiled code
+        BitVector* bitVectors = memory.Frame.Alloc<BitVector>(bitVectorCount).GetPointer();
 
         LineArrayTiledBlock** blocks =
-            memory.TaskMallocPointers<LineArrayTiledBlock>((int) columnCount * rowCount);
+            memory.Task.Alloc2D<LineArrayTiledBlock>(0, (int) columnCount * rowCount).GetPointer();
 
         int** covers =
-            memory.TaskMallocPointers<int>((int) columnCount * rowCount);
+            memory.Task.Alloc2D<int>(0, (int) columnCount * rowCount).GetPointer();
 
         int* counts =
-            memory.TaskMallocArray<int>((int) columnCount * rowCount);
+            memory.Task.Alloc<int>((int) columnCount * rowCount).GetPointer();
 
         for (int i = 0; i < rowCount; i++)
         {
@@ -535,7 +536,7 @@ public unsafe partial struct LineArrayTiled<T>
         {
             // First time line is inserted into this column.
             LineArrayTiledBlock* b = memory.FrameNewTiledBlock(null);
-            int* covers = memory.FrameMallocArrayZeroFill<int>(T.TileH);
+            int* covers = memory.Frame.Alloc<int>(T.TileH).GetPointer();
 
             LinearizerUtils.UpdateCoverTable(new Span<int>(covers, T.TileH), y0, y1);
 

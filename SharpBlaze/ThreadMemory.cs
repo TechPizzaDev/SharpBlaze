@@ -41,81 +41,6 @@ public unsafe partial class ThreadMemory
     }
 
 
-
-    /**
-     * Allocates memory for one element of type T. Does not zero-fill
-     * allocated memory and does not call any constructors.
-     *
-     * This method allocates from frame memory.
-     */
-    public partial T* TaskMalloc<T>() where T : unmanaged;
-
-
-    /**
-      * Allocates memory for one element of type T. Does not zero-fill
-      * allocated memory and does not call any constructors.
-      *
-      * This method allocates from frame memory.
-      */
-    public partial T* FrameMalloc<T>() where T : unmanaged;
-
-
-    /**
-     * Allocates memory for a given amount of pointers of type T. Does not
-     * zero-fill allocated memory. Note that this method does not allocate
-     * any objects, only arrays of pointers.
-     *
-     * This method allocates from task memory.
-     *
-     * @param count A number of pointers to allocate. Must be at least 1.
-     */
-    public partial T** TaskMallocPointers<T>(int count) where T : unmanaged;
-
-    
-    /**
-     * Allocates memory for a given amount of pointers of type T and fills the
-     * entire block of allocated memory with zeroes. Note that this method
-     * does not allocate any objects, only arrays of pointers.
-     *
-     * This method allocates from frame memory.
-     *
-     * @param count A number of pointers to allocate. Must be at least 1.
-     */
-    public partial T** FrameMallocPointersZeroFill<T>(int count) where T : unmanaged;
-
-
-    /**
-     * Allocates memory for an array of values of type T. 
-     *
-     * This method allocates from task memory.
-     *
-     * @param count A number of elements to allocate. Must be at least 1.
-     */
-    public partial T* TaskMallocArray<T>(int count) where T : unmanaged;
-
-
-    /**
-     * Allocates memory for an array of values of type T. Does not zero-fill
-     * allocated memory and does not call any constructors.
-     *
-     * This method allocates from frame memory.
-     *
-     * @param count A number of pointers to allocate. Must be at least 1.
-     */
-    public partial T* FrameMallocArray<T>(int count) where T : unmanaged;
-    
-
-    /**
-     * Allocates memory for an array of values of type T. Fills allocated
-     * memory with zeroes, but does not call any constructors.
-     *
-     * This method allocates from frame memory.
-     *
-     * @param count A number of pointers to allocate. Must be at least 1.
-     */
-    public partial T* FrameMallocArrayZeroFill<T>(int count) where T : unmanaged;
-
-
     /**
      * Returns new tiled line array block. Returned memory is not zero-filled.
      *
@@ -167,47 +92,6 @@ public unsafe partial class ThreadMemory
 
     public BumpAllocator Frame => mFrameAllocator;
     public BumpAllocator Task => mTaskAllocator;
-
-    public partial T* TaskMalloc<T>() where T : unmanaged
-    {
-        return mTaskAllocator.Malloc<T>();
-    }
-
-
-    public partial T* FrameMalloc<T>() where T : unmanaged
-    {
-        return mFrameAllocator.Malloc<T>();
-    }
-
-
-    public partial T** TaskMallocPointers<T>(int count) where T : unmanaged
-    {
-        return mTaskAllocator.MallocPointers<T>(count);
-    }
-
-
-    public partial T** FrameMallocPointersZeroFill<T>(int count) where T : unmanaged
-    {
-        return mFrameAllocator.MallocPointersZeroFill<T>(count);
-    }
-    
-
-    public partial T* TaskMallocArray<T>(int count) where T : unmanaged
-    {
-        return mTaskAllocator.MallocArray<T>(count);
-    }
-
-
-    public partial T* FrameMallocArray<T>(int count) where T : unmanaged
-    {
-        return mFrameAllocator.MallocArray<T>(count);
-    }
-    
-
-    public partial T* FrameMallocArrayZeroFill<T>(int count) where T : unmanaged
-    {
-        return mFrameAllocator.MallocArrayZeroFill<T>(count);
-    }
 
 
     public partial LineArrayTiledBlock* FrameNewTiledBlock(LineArrayTiledBlock* next)

@@ -10,57 +10,13 @@ public unsafe partial class BumpAllocator
     {
     }
 
-    /**
-     * Allocates memory for one element of type T. Does not zero-fill
-     * allocated memory and does not call any constructors.
-     */
-    public partial T* Malloc<T>() where T : unmanaged;
-
-
-    /**
-     * Allocates memory for a given amount of pointers of type T. Does not
-     * zero-fill allocated memory. Note that this method does not allocate
-     * any objects, only arrays of pointers.
-     *
-     * @param count A number of pointers to allocate. Must be at least 1.
-     */
-    public partial T** MallocPointers<T>(int count) where T : unmanaged;
-
-
-    /**
-     * Allocates memory for a given amount of pointers of type T and fills the
-     * entire block of allocated memory with zeroes. Note that this method
-     * does not allocate any objects, only arrays of pointers.
-     *
-     * @param count A number of pointers to allocate. Must be at least 1.
-     */
-    public partial T** MallocPointersZeroFill<T>(int count) where T : unmanaged;
-
-
-    /**
-     * Allocates memory for an array of values of type T. Does not zero-fill
-     * allocated memory and does not call any constructors.
-     *
-     * @param count A number of pointers to allocate. Must be at least 1.
-     */
-    public partial T* MallocArray<T>(int count) where T : unmanaged;
-
-
-    /**
-     * Allocates memory for an array of values of type T. Fills allocated
-     * memory with zeroes, but does not call any constructors.
-     *
-     * @param count A number of pointers to allocate. Must be at least 1.
-     */
-    public partial T* MallocArrayZeroFill<T>(int count) where T : unmanaged;
-
 
     /**
      * Allocates given amount of bytes. Does not zero-fill allocated memory.
      *
      * @param size A number of bytes to allocate. Must be at least 1.
      */
-    public partial void* Malloc(int size);
+    private partial void* Malloc(int size);
 
 
     /**
@@ -102,58 +58,7 @@ public unsafe partial class BumpAllocator
     }
 
 
-
-    public partial T* Malloc<T>() where T : unmanaged
-    {
-        return (T*) (Malloc(sizeof(T)));
-    }
-
-
-    public partial T** MallocPointers<T>(int count) where T : unmanaged
-    {
-        Debug.Assert(count > 0);
-
-        return (T**) (Malloc(sizeof(T*) * count));
-    }
-
-
-    public partial T** MallocPointersZeroFill<T>(int count) where T : unmanaged
-    {
-        Debug.Assert(count > 0);
-
-        int b = sizeof(T*) * count;
-
-        T** p = (T**) (Malloc(b));
-
-        NativeMemory.Clear(p, (nuint) b);
-
-        return p;
-    }
-
-
-    public partial T* MallocArray<T>(int count) where T : unmanaged
-    {
-        Debug.Assert(count > 0);
-
-        return (T*) (Malloc(sizeof(T) * count));
-    }
-
-
-    public partial T* MallocArrayZeroFill<T>(int count) where T : unmanaged
-    {
-        Debug.Assert(count > 0);
-
-        int b = sizeof(T) * count;
-
-        T* p = (T*) (Malloc(b));
-
-        NativeMemory.Clear(p, (nuint) b);
-
-        return p;
-    }
-
-
-    public partial void* Malloc(int size)
+    private partial void* Malloc(int size)
     {
         Block* mal = mMasterActiveList;
 
@@ -174,10 +79,19 @@ public unsafe partial class BumpAllocator
         return MallocFromNewBlock(size);
     }
 
-    public Span<T> Alloc<T>(int length)
+    public BumpToken<T> Alloc<T>(int length)
         where T : unmanaged
     {
         void* ptr = Malloc(length * sizeof(T));
-        return new(ptr, length);
+        return new((T*) ptr, length);
+    }
+    
+    public BumpToken2D<T> Alloc2D<T>(int width, int height)
+        where T : unmanaged
+    {
+        int size = height * sizeof(T*);
+        void* ptr = Malloc(size);
+        new Span<byte>(ptr, size).Clear();
+        return new((T**) ptr, width, height);
     }
 }

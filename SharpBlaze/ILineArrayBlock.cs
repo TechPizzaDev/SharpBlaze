@@ -1,8 +1,12 @@
-﻿namespace SharpBlaze;
+﻿
+namespace SharpBlaze;
 
-public unsafe interface ILineArrayBlock<T> : ILineArray<T>
+public interface ILineArrayBlock<T> : ILineArray<T>
     where T : unmanaged, ILineArrayBlock<T>
 {
-    void* GetFrontBlock();
+    static abstract int BlockSize { get; }
+    
+    BumpToken<byte> GetFrontBlock();
+    
     int GetFrontBlockLineCount();
 }
