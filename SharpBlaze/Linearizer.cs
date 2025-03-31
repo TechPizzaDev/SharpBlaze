@@ -705,18 +705,9 @@ public ref partial struct Linearizer<T, L>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AddContainedLineF24Dot8(ThreadMemory memory, F24Dot8Point p0, F24Dot8Point p1)
     {
-        Debug.Assert(p0.X >= 0);
-        Debug.Assert(p0.X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
-
-        Debug.Assert(p0.Y >= 0);
-        Debug.Assert(p0.Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-
-        Debug.Assert(p1.X >= 0);
-        Debug.Assert(p1.X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
-
-        Debug.Assert(p1.Y >= 0);
-        Debug.Assert(p1.Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-
+        AssertInBounds(p0);
+        AssertInBounds(p1);
+        
         if (p0.Y == p1.Y)
         {
             // Ignore horizontal lines.
@@ -1246,21 +1237,11 @@ public ref partial struct Linearizer<T, L>
     {
         q = q[..3];
         
-        Debug.Assert(q[0].X >= 0);
-        Debug.Assert(q[0].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
-        Debug.Assert(q[0].Y >= 0);
-        Debug.Assert(q[0].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-
-        Debug.Assert(q[1].X >= 0);
-        Debug.Assert(q[1].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
-        Debug.Assert(q[1].Y >= 0);
-        Debug.Assert(q[1].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-
-        Debug.Assert(q[2].X >= 0);
-        Debug.Assert(q[2].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
-        Debug.Assert(q[2].Y >= 0);
-        Debug.Assert(q[2].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-
+        for (int i = 0; i < 3; i++)
+        {
+            AssertInBounds(q[i]);
+        }
+        
         if (IsQuadraticFlatEnough(q))
         {
             AddContainedLineF24Dot8(memory, q[0], q[2]);
@@ -1410,11 +1391,11 @@ public ref partial struct Linearizer<T, L>
         scoped ReadOnlySpan<FloatPoint> p)
     {
         p = p[..4];
-        
-        Debug.Assert(p[0].IsFinite());
-        Debug.Assert(p[1].IsFinite());
-        Debug.Assert(p[2].IsFinite());
-        Debug.Assert(p[3].IsFinite());
+
+        for (int i = 0; i < 4; i++)
+        {
+            Debug.Assert(p[i].IsFinite());
+        }
 
         // Assuming curve is monotonic.
 
@@ -1541,10 +1522,10 @@ public ref partial struct Linearizer<T, L>
     private partial void AddVerticallyContainedMonotonicCubic(
         ThreadMemory memory, ClipBounds clip, scoped Span<FloatPoint> p)
     {
-        Debug.Assert(p[0].IsFinite());
-        Debug.Assert(p[1].IsFinite());
-        Debug.Assert(p[2].IsFinite());
-        Debug.Assert(p[3].IsFinite());
+        for (int i = 0; i < 4; i++)
+        {
+            Debug.Assert(p[i].IsFinite());
+        }
         
         double sx = p[0].X;
         double px = p[3].X;
@@ -1815,26 +1796,11 @@ public ref partial struct Linearizer<T, L>
     [SkipLocalsInit]
     private partial void AddContainedCubicF24Dot8(ThreadMemory memory, scoped ReadOnlySpan<F24Dot8Point> c)
     {
-        Debug.Assert(c[0].X >= 0);
-        Debug.Assert(c[0].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
-        Debug.Assert(c[0].Y >= 0);
-        Debug.Assert(c[0].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-
-        Debug.Assert(c[1].X >= 0);
-        Debug.Assert(c[1].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
-        Debug.Assert(c[1].Y >= 0);
-        Debug.Assert(c[1].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-
-        Debug.Assert(c[2].X >= 0);
-        Debug.Assert(c[2].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
-        Debug.Assert(c[2].Y >= 0);
-        Debug.Assert(c[2].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-
-        Debug.Assert(c[3].X >= 0);
-        Debug.Assert(c[3].X <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
-        Debug.Assert(c[3].Y >= 0);
-        Debug.Assert(c[3].Y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-
+        for (int i = 0; i < 4; i++)
+        {
+            AssertInBounds(c[i]);
+        }
+        
         if (IsCubicFlatEnough(c))
         {
             AddContainedLineF24Dot8(memory, c[0], c[3]);
@@ -1854,17 +1820,10 @@ public ref partial struct Linearizer<T, L>
     private partial void AppendVerticalLine(ThreadMemory memory,
         TileIndex rowIndex, F24Dot8 x, F24Dot8 y0, F24Dot8 y1)
     {
-        Debug.Assert(rowIndex < mBounds.RowCount);
-
-        Debug.Assert(x >= 0);
-        Debug.Assert(x <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
-
-        Debug.Assert(y0 >= 0);
-        Debug.Assert(y0 <= T.TileHF24Dot8);
-
-        Debug.Assert(y1 >= 0);
-        Debug.Assert(y1 <= T.TileHF24Dot8);
-
+        AssertInBoundsX(x);
+        AssertInBoundsY(y0);
+        AssertInBoundsY(y1);
+        
         mLA[(int) rowIndex].AppendVerticalLine(memory, x, y0, y1);
     }
 
@@ -2140,9 +2099,6 @@ public ref partial struct Linearizer<T, L>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Span<int> GetStartCoversForRowAtIndex(ThreadMemory memory, int index)
     {
-        Debug.Assert(mStartCoverTable.HasValue);
-        Debug.Assert((uint) index < mBounds.RowCount);
-
         BumpToken<int> p = mStartCoverTable[index];
 
         if (!p.HasValue)
@@ -2167,12 +2123,9 @@ public ref partial struct Linearizer<T, L>
 
     private void UpdateStartCovers(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1)
     {
-        Debug.Assert(y0 >= 0);
-        Debug.Assert(y0 <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-
-        Debug.Assert(y1 >= 0);
-        Debug.Assert(y1 <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
-
+        AssertInBoundsY(y0);
+        AssertInBoundsY(y1);
+        
         if (y0 == y1)
         {
             // Not contributing to mask.
@@ -2275,5 +2228,26 @@ public ref partial struct Linearizer<T, L>
 
             mStartCoverTable[index] = p;
         }
+    }
+
+    [Conditional("DEBUG")]
+    private void AssertInBounds(F24Dot8Point point)
+    {
+        AssertInBoundsX(point.X);
+        AssertInBoundsY(point.Y);
+    }
+    
+    [Conditional("DEBUG")]
+    private void AssertInBoundsX(F24Dot8 x)
+    {
+        Debug.Assert(x >= 0);
+        Debug.Assert(x <= T.TileColumnIndexToF24Dot8(mBounds.ColumnCount));
+    }
+    
+    [Conditional("DEBUG")]
+    private void AssertInBoundsY(F24Dot8 y)
+    {
+        Debug.Assert(y >= 0);
+        Debug.Assert(y <= T.TileRowIndexToF24Dot8(mBounds.RowCount));
     }
 }

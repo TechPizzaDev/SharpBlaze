@@ -665,10 +665,7 @@ public unsafe partial struct Rasterizer<T>
     {
         Debug.Assert(rowIndex < (uint) T.TileH);
         Debug.Assert(p0x < p1x);
-        Debug.Assert(p0y >= 0);
-        Debug.Assert(p0y <= T.TileHF24Dot8);
-        Debug.Assert(p1y >= 0);
-        Debug.Assert(p1y <= T.TileHF24Dot8);
+        AssertInTileY(p0y, p1y);
         Debug.Assert(p0y <= p1y);
 
         Span<BitVector> bitVector = bitVectorTable[(int) rowIndex];
@@ -683,10 +680,7 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 fx0 = p0x - PixelIndexToF24Dot8(columnIndex0);
         F24Dot8 fx1 = p1x - PixelIndexToF24Dot8(columnIndex1);
 
-        Debug.Assert(fx0 >= 0);
-        Debug.Assert(fx0 <= F24Dot8_1);
-        Debug.Assert(fx1 >= 0);
-        Debug.Assert(fx1 <= F24Dot8_1);
+        AssertInOneX(fx0, fx1);
 
         if (columnIndex0 == columnIndex1)
         {
@@ -753,10 +747,7 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 p1x, F24Dot8 p1y)
     {
         Debug.Assert(p0x <= p1x);
-        Debug.Assert(p0y >= 0);
-        Debug.Assert(p0y <= T.TileHF24Dot8);
-        Debug.Assert(p1y >= 0);
-        Debug.Assert(p1y <= T.TileHF24Dot8);
+        AssertInTileY(p0y, p1y);
         Debug.Assert(p0y <= p1y);
 
         if (p0x < p1x)
@@ -786,12 +777,8 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
     {
-        Debug.Assert(rowIndex < (uint) T.TileH);
         Debug.Assert(p0x < p1x);
-        Debug.Assert(p0y >= 0);
-        Debug.Assert(p0y <= T.TileHF24Dot8);
-        Debug.Assert(p1y >= 0);
-        Debug.Assert(p1y <= T.TileHF24Dot8);
+        AssertInTileY(p0y, p1y);
         Debug.Assert(p0y >= p1y);
 
         Span<BitVector> bitVector = bitVectorTable[(int) rowIndex];
@@ -806,10 +793,7 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 fx0 = p0x - PixelIndexToF24Dot8(columnIndex0);
         F24Dot8 fx1 = p1x - PixelIndexToF24Dot8(columnIndex1);
 
-        Debug.Assert(fx0 >= 0);
-        Debug.Assert(fx0 <= F24Dot8_1);
-        Debug.Assert(fx1 >= 0);
-        Debug.Assert(fx1 <= F24Dot8_1);
+        AssertInOneX(fx0, fx1);
 
         if (columnIndex0 == columnIndex1)
         {
@@ -870,10 +854,7 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 p1x, F24Dot8 p1y)
     {
         Debug.Assert(p0x <= p1x);
-        Debug.Assert(p0y >= 0);
-        Debug.Assert(p0y <= T.TileHF24Dot8);
-        Debug.Assert(p1y >= 0);
-        Debug.Assert(p1y <= T.TileHF24Dot8);
+        AssertInTileY(p0y, p1y);
         Debug.Assert(p0y >= p1y);
 
         if (p0x < p1x)
@@ -903,12 +884,8 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
     {
-        Debug.Assert(rowIndex < (uint) T.TileH);
         Debug.Assert(p0x > p1x);
-        Debug.Assert(p0y >= 0);
-        Debug.Assert(p0y <= T.TileHF24Dot8);
-        Debug.Assert(p1y >= 0);
-        Debug.Assert(p1y <= T.TileHF24Dot8);
+        AssertInTileY(p0y, p1y);
         Debug.Assert(p0y <= p1y);
 
         Span<BitVector> bitVector = bitVectorTable[(int) rowIndex];
@@ -923,10 +900,7 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 fx0 = p0x - PixelIndexToF24Dot8(columnIndex0);
         F24Dot8 fx1 = p1x - PixelIndexToF24Dot8(columnIndex1);
 
-        Debug.Assert(fx0 >= 0);
-        Debug.Assert(fx0 <= F24Dot8_1);
-        Debug.Assert(fx1 >= 0);
-        Debug.Assert(fx1 <= F24Dot8_1);
+        AssertInOneX(fx0, fx1);
 
         if (columnIndex0 == columnIndex1)
         {
@@ -992,10 +966,7 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 p1x, F24Dot8 p1y)
     {
         Debug.Assert(p0x >= p1x);
-        Debug.Assert(p0y >= 0);
-        Debug.Assert(p0y <= T.TileHF24Dot8);
-        Debug.Assert(p1y >= 0);
-        Debug.Assert(p1y <= T.TileHF24Dot8);
+        AssertInTileY(p0y, p1y);
         Debug.Assert(p0y <= p1y);
 
         if (p0x > p1x)
@@ -1025,12 +996,8 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 p0x, F24Dot8 p0y,
         F24Dot8 p1x, F24Dot8 p1y)
     {
-        Debug.Assert(rowIndex < (uint) T.TileH);
         Debug.Assert(p0x > p1x);
-        Debug.Assert(p0y >= 0);
-        Debug.Assert(p0y <= T.TileHF24Dot8);
-        Debug.Assert(p1y >= 0);
-        Debug.Assert(p1y <= T.TileHF24Dot8);
+        AssertInTileY(p0y, p1y);
         Debug.Assert(p0y >= p1y);
 
         Span<BitVector> bitVector = bitVectorTable[(int) rowIndex];
@@ -1045,10 +1012,7 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 fx0 = p0x - PixelIndexToF24Dot8(columnIndex0);
         F24Dot8 fx1 = p1x - PixelIndexToF24Dot8(columnIndex1);
 
-        Debug.Assert(fx0 >= 0);
-        Debug.Assert(fx0 <= F24Dot8_1);
-        Debug.Assert(fx1 >= 0);
-        Debug.Assert(fx1 <= F24Dot8_1);
+        AssertInOneX(fx0, fx1);
 
         if (columnIndex0 == columnIndex1)
         {
@@ -1114,10 +1078,7 @@ public unsafe partial struct Rasterizer<T>
         F24Dot8 p1x, F24Dot8 p1y)
     {
         Debug.Assert(p0x >= p1x);
-        Debug.Assert(p0y >= 0);
-        Debug.Assert(p0y <= T.TileHF24Dot8);
-        Debug.Assert(p1y >= 0);
-        Debug.Assert(p1y <= T.TileHF24Dot8);
+        AssertInTileY(p0y, p1y);
         Debug.Assert(p0y >= p1y);
 
         if (p0x > p1x)
@@ -1787,4 +1748,23 @@ public unsafe partial struct Rasterizer<T>
         }
     }
 
+    [Conditional("DEBUG")]
+    private static void AssertInOneX(F24Dot8 x0, F24Dot8 x1)
+    {
+        Debug.Assert(x0 >= 0);
+        Debug.Assert(x0 <= F24Dot8_1);
+        
+        Debug.Assert(x1 >= 0);
+        Debug.Assert(x1 <= F24Dot8_1);
+    }
+
+    [Conditional("DEBUG")]
+    private static void AssertInTileY(F24Dot8 y0, F24Dot8 y1)
+    {
+        Debug.Assert(y0 >= 0);
+        Debug.Assert(y0 <= T.TileHF24Dot8);
+        
+        Debug.Assert(y1 >= 0);
+        Debug.Assert(y1 <= T.TileHF24Dot8);
+    }
 }
