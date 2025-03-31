@@ -5,8 +5,8 @@ namespace SharpBlaze;
 public unsafe readonly struct BumpToken2D<T>
 {
     private readonly T** _ptr;
-    private readonly ushort _width;
     private readonly int _height;
+    private readonly int _width;
 
     public bool HasValue => _ptr != null;
 
@@ -17,7 +17,7 @@ public unsafe readonly struct BumpToken2D<T>
     internal BumpToken2D(T** ptr, int width, int height)
     {
         _ptr = ptr;
-        _width = checked((ushort) width);
+        _width = width;
         _height = height;
     }
 

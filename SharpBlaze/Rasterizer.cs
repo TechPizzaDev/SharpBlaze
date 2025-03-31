@@ -235,7 +235,7 @@ public unsafe partial struct Rasterizer<T>
                     // inserted. Either it has segments or it has non-zero cover
                     // array.
                     bool emptyRow =
-                        rasterizable.GetLinesForRow<byte>((int) localIndex) == null &&
+                        !rasterizable.HasLinesForRow((int) localIndex) &&
                         rasterizable.GetCoversForRow((int) localIndex).IsEmpty;
 
                     if (emptyRow)
@@ -291,6 +291,12 @@ public unsafe partial struct Rasterizer<T>
 
     partial struct RasterizableGeometry
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool HasLinesForRow(int rowIndex)
+        {
+            return Lines[rowIndex].HasValue;
+        }
+        
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T* GetLinesForRow<T>(int rowIndex)
@@ -312,20 +318,7 @@ public unsafe partial struct Rasterizer<T>
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<int> GetCoversForRow(int rowIndex)
-        {
-            if (!StartCoverTable.HasValue)
-            {
-                // No table at all.
-                return default;
-            }
-
-            return StartCoverTable[rowIndex].AsSpan();
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ReadOnlySpan<int> GetActualCoversForRow(int rowIndex)
+        public ReadOnlySpan<int> GetCoversForRow(int rowIndex)
         {
             if (!StartCoverTable.HasValue)
             {
@@ -1717,7 +1710,7 @@ public unsafe partial struct Rasterizer<T>
             rowStride);
 
         // Pointer to backdrop.
-        ReadOnlySpan<int> coversStart = raster.GetActualCoversForRow(localRowIndex);
+        ReadOnlySpan<int> coversStart = raster.GetCoversForRow(localRowIndex);
 
         ReadOnlySpan2D<BitVector> bitVectorView = bitVectorTable.Cut(bitVectorsPerRow, height);
         ReadOnlySpan2D<CoverArea> coverAreaView = coverAreaTable.Cut(rowWidth, height);

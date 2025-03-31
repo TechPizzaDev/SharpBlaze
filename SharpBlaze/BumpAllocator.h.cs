@@ -89,9 +89,8 @@ public unsafe partial class BumpAllocator
     public BumpToken2D<T> Alloc2D<T>(int width, int height)
         where T : unmanaged
     {
-        int size = height * sizeof(T*);
-        void* ptr = Malloc(size);
-        new Span<byte>(ptr, size).Clear();
+        void* ptr = Malloc(height * sizeof(nint));
+        new Span<nint>(ptr, height).Clear();
         return new((T**) ptr, width, height);
     }
 }
