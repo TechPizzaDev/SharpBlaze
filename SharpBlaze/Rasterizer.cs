@@ -93,7 +93,7 @@ public unsafe partial struct Rasterizer<T>
 
     private ref struct StepState1
     {
-        public required Span<int> rasterIndices;
+        public required Span<bool> validRasters;
         public required Span<RasterizableGeometry> rasters;
         public required ReadOnlySpan<Geometry> geometries;
         public required Matrix transform;
@@ -110,8 +110,8 @@ public unsafe partial struct Rasterizer<T>
         ReadOnlySpan<Geometry> geometries,
         in Matrix transform)
     {
-        Span<int> rasterIndices = 
-            threads.MainMemory.Frame.Alloc<int>(geometries.Length).AsSpan();
+        Span<bool> validRasters = 
+            threads.MainMemory.Frame.Alloc<bool>(geometries.Length).AsSpan();
         
         // Allocate memory for RasterizableGeometry instances.
         Span<RasterizableGeometry> rasters = 
@@ -121,7 +121,7 @@ public unsafe partial struct Rasterizer<T>
 
         StepState1 state1 = new()
         {
-            rasterIndices = rasterIndices,
+            validRasters = validRasters,
             rasters = rasters,
             geometries = geometries,
             transform = transform,
@@ -141,32 +141,18 @@ public unsafe partial struct Rasterizer<T>
                 s->imageBounds,
                 memory);
 
-            s->rasterIndices[index] = hasRaster ? index : -1;
+            s->validRasters[index] = hasRaster;
         });
 
         // Linearizer may decide that some paths do not contribute to the final
         // image. In these situations CreateRasterizable will return null.
-        // In the following step, non-null pointers are packed into front of array.
-
-        int rasterCount = 0;
-
-        for (int i = 0; i < rasterIndices.Length; i++)
-        {
-            int rasterIndex = rasterIndices[i];
-            if (rasterIndex != -1)
-            {
-                rasterIndices[rasterCount++] = rasterIndex;
-            }
-        }
-
-        state1.rasterIndices = rasterIndices[..rasterCount];
-
+        
         return state1;
     }
 
     private ref struct StepState2
     {
-        public required ReadOnlySpan<int> rasterIndices;
+        public required ReadOnlySpan<bool> validRasters;
         public required ReadOnlySpan<RasterizableGeometry> rasters;
 
         public required TileIndex rowCount;
@@ -193,7 +179,7 @@ public unsafe partial struct Rasterizer<T>
 
         StepState2 state2 = new()
         {
-            rasterIndices = state1.rasterIndices,
+            validRasters = state1.validRasters,
             rasters = state1.rasters,
             rowCount = rowCount,
             rowLists = rowLists,
@@ -212,9 +198,15 @@ public unsafe partial struct Rasterizer<T>
                 s->rowLists[(int) i] = new RowItemList<RasterizableItem>();
             }
 
-            foreach (int rasterIndex in s->rasterIndices)
+            ReadOnlySpan<bool> validRasters = s->validRasters; 
+            for (int i = 0; i < validRasters.Length; i++)
             {
-                ref readonly RasterizableGeometry rasterizable = ref s->rasters[rasterIndex];
+                if (!validRasters[i])
+                {
+                    continue;
+                }
+                
+                ref readonly RasterizableGeometry rasterizable = ref s->rasters[i];
                 TileBounds b = rasterizable.Bounds;
 
                 TileIndex min = Clamp(b.Y, threadY, threadMaxY);
@@ -247,7 +239,7 @@ public unsafe partial struct Rasterizer<T>
 
                     ref RowItemList<RasterizableItem> list = ref s->rowLists[(int) y];
 
-                    list.Append(memory, new RasterizableItem(rasterIndex, (int) localIndex));
+                    list.Append(memory, new RasterizableItem(i, (int) localIndex));
                 }
             }
         });
