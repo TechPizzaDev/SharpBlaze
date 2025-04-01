@@ -1,12 +1,14 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SharpBlaze;
 
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
 public unsafe readonly struct BumpToken2D<T>
 {
     private readonly T** _ptr;
-    private readonly int _height;
-    private readonly int _width;
+    private readonly ushort _height;
+    private readonly ushort _width;
 
     public bool HasValue => _ptr != null;
 
@@ -17,8 +19,8 @@ public unsafe readonly struct BumpToken2D<T>
     internal BumpToken2D(T** ptr, int width, int height)
     {
         _ptr = ptr;
-        _width = width;
-        _height = height;
+        _width = checked((ushort) width);
+        _height = checked((ushort) height);
     }
 
     public T** GetPointer() => _ptr;

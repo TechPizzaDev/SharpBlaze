@@ -46,7 +46,7 @@ public unsafe partial class BumpAllocator
 
     /**
      * Returns allocation size rounded up so that the next allocation from the
-     * same block will be aligned oto 16 byte boundary.
+     * same block will be aligned onto 64 byte boundary.
      */
     private static int RoundUpAllocationSizeForNextAllocation(int size)
     {

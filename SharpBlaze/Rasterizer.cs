@@ -32,28 +32,16 @@ public unsafe partial struct Rasterizer<T>
         return (F24Dot8) (x) << 8;
     }
 
-    struct LineIterationFunction
-    {
-        public required delegate* managed<
-            int, 
-            in RasterizableGeometry,
-            Span2D<BitVector>,
-            Span2D<CoverArea>,
-            void> value;
-    }
-
     readonly partial struct RasterizableGeometry
     {
         public RasterizableGeometry(
             int geometry,
-            LineIterationFunction iterationFunction,
             TileBounds bounds,
             BumpToken2D<byte> lines,
             BumpToken<int> firstBlockLineCounts,
             BumpToken2D<int> startCoverTable)
         {
             Geometry = geometry;
-            IterationFunction = iterationFunction;
             Bounds = bounds;
             Lines = lines;
             FirstBlockLineCounts = firstBlockLineCounts;
@@ -61,7 +49,6 @@ public unsafe partial struct Rasterizer<T>
         }
 
         public readonly int Geometry;
-        public readonly LineIterationFunction IterationFunction;
         public readonly TileBounds Bounds;
         public readonly BumpToken2D<byte> Lines;
         public readonly BumpToken<int> FirstBlockLineCounts;
@@ -444,22 +431,24 @@ public unsafe partial struct Rasterizer<T>
             geometry.Tags.Span,
             geometry.Points.Span
         );
-        
-        bool narrow = 128 > (bounds.ColumnCount * T.TileW);
 
-        if (narrow)
+        if (IsNarrow(bounds))
         {
-            LineIterationFunction fn = new() { value = &IterateLinesX16Y16 };
             Linearize<LineArrayX16Y16>(
-                out placement, linearGeo, geometryIndex, bounds, contains, fn, memory);
+                out placement, linearGeo, geometryIndex, bounds, contains, memory);
         }
         else
         {
-            LineIterationFunction fn = new() { value = &IterateLinesX32Y16 };
             Linearize<LineArrayX32Y16>(
-                out placement, linearGeo, geometryIndex, bounds, contains, fn, memory);
+                out placement, linearGeo, geometryIndex, bounds, contains, memory);
         }
         return true;
+    }
+
+
+    private static bool IsNarrow(TileBounds bounds)
+    {
+        return 128 > (bounds.ColumnCount * T.TileW);
     }
 
 
@@ -469,7 +458,6 @@ public unsafe partial struct Rasterizer<T>
         int geometryIndex,
         TileBounds bounds,
         bool contains,
-        LineIterationFunction iterationFunction,
         ThreadMemory memory)
         where L : unmanaged, ILineArrayBlock<L>
     {
@@ -514,7 +502,6 @@ public unsafe partial struct Rasterizer<T>
         
         placement = new RasterizableGeometry(
             geometryIndex, 
-            iterationFunction,
             bounds,
             lineBlocks,
             firstLineBlockCounts,
@@ -1630,8 +1617,14 @@ public unsafe partial struct Rasterizer<T>
             bitVectorIter[i].Clear();
         }
 
-        raster.IterationFunction.value(
-            localRowIndex, in raster, bitVectorIter, coverAreaIter);
+        if (IsNarrow(raster.Bounds))
+        {
+            IterateLinesX16Y16(localRowIndex, in raster, bitVectorIter, coverAreaIter);
+        }
+        else
+        {
+            IterateLinesX32Y16(localRowIndex, in raster, bitVectorIter, coverAreaIter);
+        }
 
         int x = (int) raster.Bounds.X * T.TileW;
 
