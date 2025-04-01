@@ -24,5 +24,6 @@ public unsafe partial struct Rasterizer<T>
         ReadOnlySpan<Geometry> geometries,
         in Matrix matrix,
         Executor threads,
-        ImageData image);
+        ImageData image,
+        LineRasterizer lineRasterizer);
 }

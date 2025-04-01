@@ -65,7 +65,8 @@ public unsafe partial struct Rasterizer<T>
         ReadOnlySpan<Geometry> geometries,
         in Matrix matrix,
         Executor threads,
-        ImageData image)
+        ImageData image,
+        LineRasterizer lineRasterizer)
     {
         Debug.Assert(geometries.Length > 0);
         Debug.Assert(image.Data != null);
@@ -75,7 +76,7 @@ public unsafe partial struct Rasterizer<T>
 
         StepState1 state1 = Step1(threads, image, geometries, matrix);
         StepState2 state2 = Step2(threads, state1);
-        Step3(threads, image, geometries, state2);
+        Step3(threads, image, geometries, lineRasterizer, state2);
     }
 
     private ref struct StepState1
@@ -240,6 +241,7 @@ public unsafe partial struct Rasterizer<T>
         public required ImageData image;
         public required ReadOnlySpan<RasterizableGeometry> rasters;
         public required ReadOnlySpan<Geometry> geometries;
+        public required LineRasterizer rasterizer;
     }
 
     /// <summary>
@@ -249,6 +251,7 @@ public unsafe partial struct Rasterizer<T>
         Executor threads, 
         in ImageData image,
         ReadOnlySpan<Geometry> geometries, 
+        LineRasterizer lineRasterizer,
         in StepState2 state2)
     {
         StepState3 state3 = new()
@@ -257,6 +260,7 @@ public unsafe partial struct Rasterizer<T>
             image = image,
             rasters = state2.rasters,
             geometries = geometries,
+            rasterizer = lineRasterizer,
         };
         threads.For(0, (int) state2.rowCount, &state3, static (rowIndex, state, memory) =>
         {
@@ -264,7 +268,7 @@ public unsafe partial struct Rasterizer<T>
 
             ref readonly RowItemList<RasterizableItem> item = ref s->rowLists[rowIndex];
 
-            RasterizeRow(item, s->rasters, s->geometries, memory, s->image);
+            RasterizeRow(item, s->rasters, s->geometries, memory, s->image, s->rasterizer);
         });
     }
 
@@ -1436,157 +1440,6 @@ public unsafe partial struct Rasterizer<T>
     }
 
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void RenderOneLine<B>(
-        Span<byte> row,
-        ReadOnlySpan<BitVector> bitVectors,
-        ReadOnlySpan<CoverArea> coverAreas,
-        int startCover,
-        B blender)
-        where B : ISpanBlender
-    {
-        Span<uint> d = MemoryMarshal.Cast<byte, uint>(row);
-
-        // Cover accumulation.
-        int cover = startCover;
-
-        // Span state.
-        int spanX = 0;
-        int spanEnd = 0;
-        uint spanAlpha = 0;
-
-        for (int i = 0; i < bitVectors.Length; i++)
-        {
-            nuint bitset = bitVectors[i]._value;
-
-            while (bitset != 0)
-            {
-                nuint t = bitset & (nuint) (-(nint) bitset);
-                int r = BitOperations.TrailingZeroCount(bitset);
-                int index = (i * Unsafe.SizeOf<BitVector>() * 8) + r;
-
-                bitset ^= t;
-
-                // Note that index is in local geometry coordinates.
-                int edgeX = index;
-                int nextEdgeX = edgeX + 1;
-
-                // Signed area for pixel at bit index.
-                int area = coverAreas[index].Area + (cover << 9);
-
-                // Area converted to alpha according to fill rule.
-                uint alpha = (uint) blender.ApplyFillRule(area);
-
-                if (spanEnd == edgeX)
-                {
-                    // No gap between previous span and current pixel.
-                    if (alpha == 0)
-                    {
-                        if (spanAlpha != 0)
-                        {
-                            blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
-                        }
-
-                        spanX = nextEdgeX;
-                        spanEnd = spanX;
-                        spanAlpha = 0;
-                    }
-                    else if (spanAlpha == alpha)
-                    {
-                        spanEnd = nextEdgeX;
-                    }
-                    else
-                    {
-                        // Alpha is not zero, but not equal to previous span alpha.
-                        if (spanAlpha != 0)
-                        {
-                            blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
-                        }
-
-                        spanX = edgeX;
-                        spanEnd = nextEdgeX;
-                        spanAlpha = alpha;
-                    }
-                }
-                else
-                {
-                    Debug.Assert(spanEnd < edgeX);
-
-                    // There is a gap between last filled pixel and the new one.
-                    if (cover == 0)
-                    {
-                        // Empty gap.
-                        // Fill span if there is one and reset current span.
-                        if (spanAlpha != 0)
-                        {
-                            blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
-                        }
-
-                        spanX = edgeX;
-                        spanEnd = nextEdgeX;
-                        spanAlpha = alpha;
-                    }
-                    else
-                    {
-                        // Non empty gap.
-                        // Attempt to merge gap with current span.
-                        uint gapAlpha = (uint) blender.ApplyFillRule(cover << 9);
-
-                        // If alpha matches, extend current span.
-                        if (spanAlpha == gapAlpha)
-                        {
-                            if (alpha == gapAlpha)
-                            {
-                                // Current pixel alpha matches as well.
-                                spanEnd = nextEdgeX;
-                            }
-                            else
-                            {
-                                // Only gap alpha matches current span.
-                                blender.CompositeSpan(d[spanX..edgeX], spanAlpha);
-
-                                spanX = edgeX;
-                                spanEnd = nextEdgeX;
-                                spanAlpha = alpha;
-                            }
-                        }
-                        else
-                        {
-                            if (spanAlpha != 0)
-                            {
-                                blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
-                            }
-
-                            // Compose gap.
-                            blender.CompositeSpan(d[spanEnd..edgeX], gapAlpha);
-
-                            spanX = edgeX;
-                            spanEnd = nextEdgeX;
-                            spanAlpha = alpha;
-                        }
-                    }
-                }
-
-                cover += coverAreas[index].Delta;
-            }
-        }
-
-        if (spanAlpha != 0)
-        {
-            // Composite current span.
-            blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
-        }
-
-        if (cover != 0 && spanEnd < d.Length)
-        {
-            // Composite anything that goes to the edge of destination image.
-            int alpha = blender.ApplyFillRule(cover << 9);
-
-            blender.CompositeSpan(d[spanEnd..], (uint) alpha);
-        }
-    }
-
-
     /// <summary>
     /// Rasterize one item within a single row.
     /// </summary>
@@ -1598,7 +1451,8 @@ public unsafe partial struct Rasterizer<T>
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable,
         int columnCount,
-        ImageData image)
+        ImageData image,
+        LineRasterizer lineRasterizer)
     {
         // A maximum number of horizontal tiles.
         int horizontalCount = (int)raster.Bounds.ColumnCount;
@@ -1658,23 +1512,7 @@ public unsafe partial struct Rasterizer<T>
         // Pointer to backdrop.
         ReadOnlySpan<int> coversStart = raster.GetCoversForRow(localRowIndex);
 
-        ReadOnlySpan2D<BitVector> bitVectorView = bitVectorTable.Cut(bitVectorsPerRow, height);
-        ReadOnlySpan2D<CoverArea> coverAreaView = coverAreaTable.Cut(rowWidth, height);
-
-        SpanBlender blender = new(geometry.Color, geometry.Rule);
-
-        for (int y = 0; y < height; y++)
-        {
-            Span<byte> row = rowView[y];
-            int startCover = y < coversStart.Length ? coversStart[y] : 0;
-
-            RenderOneLine(
-                row,
-                bitVectorView[y],
-                coverAreaView[y],
-                startCover,
-                blender);
-        }
+        lineRasterizer.Rasterize(geometry, rowView, coversStart, bitVectorIter, coverAreaIter);
     }
 
 
@@ -1686,7 +1524,8 @@ public unsafe partial struct Rasterizer<T>
         ReadOnlySpan<RasterizableGeometry> rasterizables,
         ReadOnlySpan<Geometry> geometries,
         ThreadMemory memory,
-        ImageData image)
+        ImageData image,
+        LineRasterizer lineRasterizer)
     {
         // How many columns can fit into image.
         int columnCount = (int) CalculateColumnCount<T>(image.Width);
@@ -1726,7 +1565,8 @@ public unsafe partial struct Rasterizer<T>
                     bitVectors,
                     coverArea,
                     columnCount,
-                    image);
+                    image,
+                    lineRasterizer);
             }
 
             b = b->Next;

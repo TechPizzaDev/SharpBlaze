@@ -77,12 +77,20 @@ public unsafe class DestinationImage<T>
 
         ImageData d = new(mImageData, mImageSize.Width, mImageSize.Height, mBytesPerRow);
 
-        Rasterizer<T>.Rasterize(geometries.Span, matrix, executor, d);
+        Rasterizer<T>.Rasterize(geometries.Span, matrix, executor, d, new SpanRasterizer());
         
         GC.KeepAlive(image);
 
         // Free all the memory allocated by threads.
         executor.ResetFrameMemory();
+    }
+
+    sealed class SpanRasterizer : LineRasterizer<uint, byte, SpanBlender>
+    {
+        protected override SpanBlender CreateBlender(in Geometry geometry)
+        {
+            return new SpanBlender(geometry.Color, geometry.Rule);
+        }
     }
 
 

@@ -2,9 +2,9 @@
 
 namespace SharpBlaze;
 
-public interface ISpanBlender
+public interface ISpanBlender<TColor, TAlpha>
 {
-    void CompositeSpan(Span<uint> d, uint alpha);
+    void CompositeSpan(Span<TColor> d, TAlpha alpha);
 
-    int ApplyFillRule(int value);
+    TAlpha ApplyFillRule(int value);
 }

@@ -40,14 +40,12 @@ public static partial class CompositionOps
         return Vector256.Create(s) + ApplyAlpha_Avx512BW(d, a);
     }
 
-    internal static void CompositeSpanSourceOver(Span<uint> d, uint alpha, uint color)
+    internal static void CompositeSpanSourceOver(Span<uint> d, byte alpha, uint color)
     {
-        Debug.Assert(alpha <= 255);
-
         // For opaque colors, use opaque span composition version.
         Debug.Assert(alpha != 255 || (color >> 24) < 255);
 
-        uint cba = ApplyAlpha(color, (byte) alpha);
+        uint cba = ApplyAlpha(color, alpha);
         byte a = (byte) (255u - (cba >> 24));
         
         if (Avx512BW.IsSupported)
@@ -85,9 +83,8 @@ public static partial class CompositionOps
     }
 
 
-    internal static void CompositeSpanSourceOverOpaque(Span<uint> d, uint alpha, uint color)
+    internal static void CompositeSpanSourceOverOpaque(Span<uint> d, byte alpha, uint color)
     {
-        Debug.Assert(alpha <= 255);
         Debug.Assert((color >> 24) == 255);
 
         if (alpha == 255)
@@ -103,7 +100,7 @@ public static partial class CompositionOps
     }
 }
 
-public readonly struct SpanBlender : ISpanBlender
+public readonly struct SpanBlender : ISpanBlender<uint, byte>
 {
     public SpanBlender(uint color, FillRule fillRule)
     {
@@ -115,7 +112,7 @@ public readonly struct SpanBlender : ISpanBlender
     readonly FillRule FillRule;
 
 
-    public void CompositeSpan(Span<uint> d, uint alpha)
+    public void CompositeSpan(Span<uint> d, byte alpha)
     {
         if (Color >= 0xff000000 && alpha == 255)
         {
@@ -129,12 +126,12 @@ public readonly struct SpanBlender : ISpanBlender
         }
     }
 
-    public int ApplyFillRule(int value)
+    public byte ApplyFillRule(int value)
     {
         if (FillRule == FillRule.EvenOdd)
         {
-            return RasterizerUtils.AreaToAlphaEvenOdd(value);
+            return (byte) RasterizerUtils.AreaToAlphaEvenOdd(value);
         }
-        return RasterizerUtils.AreaToAlphaNonZero(value);
+        return (byte) RasterizerUtils.AreaToAlphaNonZero(value);
     }
 }
