@@ -18,7 +18,7 @@ public abstract class LineRasterizer
 
 public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
     where TColor : unmanaged
-    where TAlpha : unmanaged, IEquatable<TAlpha>
+    where TAlpha : unmanaged, IEqualityOperators<TAlpha, TAlpha, bool>
     where TBlender : ISpanBlender<TColor, TAlpha>
 {
     protected abstract TBlender CreateBlender(in Geometry geometry);
@@ -93,9 +93,9 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
                 if (spanEnd == edgeX)
                 {
                     // No gap between previous span and current pixel.
-                    if (alpha.Equals(default))
+                    if (alpha == default)
                     {
-                        if (!spanAlpha.Equals(default))
+                        if (spanAlpha != default)
                         {
                             blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
                         }
@@ -104,14 +104,14 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
                         spanEnd = spanX;
                         spanAlpha = default;
                     }
-                    else if (spanAlpha.Equals(alpha))
+                    else if (spanAlpha == alpha)
                     {
                         spanEnd = nextEdgeX;
                     }
                     else
                     {
                         // Alpha is not zero, but not equal to previous span alpha.
-                        if (!spanAlpha.Equals(default))
+                        if (spanAlpha != default)
                         {
                             blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
                         }
@@ -130,7 +130,7 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
                     {
                         // Empty gap.
                         // Fill span if there is one and reset current span.
-                        if (!spanAlpha.Equals(default))
+                        if (spanAlpha != default)
                         {
                             blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
                         }
@@ -146,9 +146,9 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
                         TAlpha gapAlpha = blender.ApplyFillRule(cover << 9);
 
                         // If alpha matches, extend current span.
-                        if (spanAlpha.Equals(gapAlpha))
+                        if (spanAlpha == gapAlpha)
                         {
-                            if (alpha.Equals(gapAlpha))
+                            if (alpha == gapAlpha)
                             {
                                 // Current pixel alpha matches as well.
                                 spanEnd = nextEdgeX;
@@ -165,7 +165,7 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
                         }
                         else
                         {
-                            if (!spanAlpha.Equals(default))
+                            if (spanAlpha != default)
                             {
                                 blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
                             }
@@ -184,7 +184,7 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
             }
         }
 
-        if (!spanAlpha.Equals(default))
+        if (spanAlpha != default)
         {
             // Composite current span.
             blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
