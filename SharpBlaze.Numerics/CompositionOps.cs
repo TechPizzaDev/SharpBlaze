@@ -126,12 +126,12 @@ public readonly struct SpanBlender : ISpanBlender<uint, byte>
         }
     }
 
-    public byte ApplyFillRule(int value)
+    public byte ApplyFillRule(int area)
     {
         if (FillRule == FillRule.EvenOdd)
         {
-            return (byte) RasterizerUtils.AreaToAlphaEvenOdd(value);
+            return (byte) RasterizerUtils.AreaToAlphaEvenOdd(area);
         }
-        return (byte) RasterizerUtils.AreaToAlphaNonZero(value);
+        return (byte) RasterizerUtils.AreaToAlphaNonZero(area);
     }
 }
