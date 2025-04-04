@@ -32,32 +32,6 @@ public unsafe partial struct Rasterizer<T>
         return (F24Dot8) (x) << 8;
     }
 
-    readonly partial struct RasterizableGeometry
-    {
-        public RasterizableGeometry(
-            int geometry,
-            TileBounds bounds,
-            BumpToken2D<byte> lines,
-            BumpToken<int> firstBlockLineCounts,
-            BumpToken2D<int> startCoverTable)
-        {
-            Geometry = geometry;
-            Bounds = bounds;
-            Lines = lines;
-            FirstBlockLineCounts = firstBlockLineCounts;
-            StartCoverTable = startCoverTable;
-        }
-
-        public readonly int Geometry;
-        public readonly TileBounds Bounds;
-        public readonly BumpToken2D<byte> Lines;
-        public readonly BumpToken<int> FirstBlockLineCounts;
-        public readonly BumpToken2D<int> StartCoverTable;
-    }
-
-
-    readonly record struct RasterizableItem(int Rasterizable, int LocalRowIndex);
-
     [Obsolete]
     public Rasterizer() { }
 
@@ -270,47 +244,6 @@ public unsafe partial struct Rasterizer<T>
 
             RasterizeRow(item, s->rasters, s->geometries, memory, s->image, s->rasterizer);
         });
-    }
-
-    partial struct RasterizableGeometry
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasLinesForRow(int rowIndex)
-        {
-            return Lines[rowIndex].HasValue;
-        }
-        
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T* GetLinesForRow<T>(int rowIndex)
-        {
-            BumpToken<byte> token = Lines[rowIndex];
-            if (token.HasValue && sizeof(T) > token.Length)
-            {
-                ThrowHelper.ThrowInvalidOperation();
-            }
-            return (T*) token.GetPointer();
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetFirstBlockLineCountForRow(int rowIndex)
-        {
-            return FirstBlockLineCounts.AsSpan()[rowIndex];
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ReadOnlySpan<int> GetCoversForRow(int rowIndex)
-        {
-            if (!StartCoverTable.HasValue)
-            {
-                // No table at all.
-                return default;
-            }
-
-            return StartCoverTable[rowIndex];
-        }
     }
 
     private static void IterateLinesX32Y16(
