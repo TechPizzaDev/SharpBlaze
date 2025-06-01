@@ -138,7 +138,7 @@ public static class V128Helper
             return n0.AsInt64().WithElement(1, n1.AsInt64().ToScalar()).AsInt32();
         }
 
-        // Cannot narrow to f32 directly or we lose precision, so convert to i64 first.
+        // Cannot narrow f64 to f32 due to precision loss, so convert to i64 first.
         Vector128<long> r0 = RoundToInt64(p0);
         Vector128<long> r1 = RoundToInt64(p1);
         return Vector128.Narrow(r0, r1);
@@ -157,19 +157,7 @@ public static class V128Helper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static (Vector128<double> Lower, Vector128<double> Upper) ConvertToDouble(Vector128<int> value)
     {
-        Vector128<double> lo, hi;
-        if (Sse2.IsSupported)
-        {
-            lo = Sse2.ConvertToVector128Double(value);
-            Vector128<float> tmp = value.AsSingle();
-            hi = Sse2.ConvertToVector128Double(Sse.MoveHighToLow(tmp, tmp).AsInt32());
-        }
-        else
-        {
-            lo = Vector128.ConvertToDouble(Vector128.WidenLower(value));
-            hi = Vector128.ConvertToDouble(Vector128.WidenUpper(value));
-        }
-        return (lo, hi);
+        return (ConvertToDoubleLower(value), ConvertToDoubleUpper(value));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

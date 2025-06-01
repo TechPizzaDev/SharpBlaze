@@ -42,7 +42,7 @@ public enum MatrixComplexity : byte
      * Matrix potentially contains a combination of scale, translation,
      * rotation and skew.
      */
-    Complex = 4
+    Complex = 4,
 }
 
 
@@ -246,8 +246,10 @@ public readonly partial struct Matrix
      * Contructs 3x2 matrix from given components.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Matrix(double m11, double m12, double m21,
-        double m22, double m31, double m32)
+    public Matrix(
+        double m11, double m12,
+        double m21, double m22,
+        double m31, double m32)
     {
         m[0] = Vector128.Create(m11, m12);
         m[1] = Vector128.Create(m21, m22);
