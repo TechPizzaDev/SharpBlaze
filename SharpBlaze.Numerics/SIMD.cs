@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SharpBlaze.Numerics;
@@ -26,148 +27,60 @@ public static class SIMD
         {
             case MatrixComplexity.Identity:
             {
-                ConvertIdentity(castDst, src, origin, size);
+                Vector128<double> s = Vector128.Create(256.0);
+                TransformScaleOnly(s, castDst, src, origin, size);
                 break;
             }
 
             case MatrixComplexity.TranslationOnly:
             {
-                ConvertTranslationOnly(matrix, castDst, src, origin, size);
+                Vector128<double> s = Vector128.Create(256.0);
+                Vector128<double> t = matrix.M3() * s;
+                TransformTranslationScale(s, t, castDst, src, origin, size);
                 break;
             }
 
             case MatrixComplexity.ScaleOnly:
             {
-                ConvertScaleOnly(matrix, castDst, src, origin, size);
+                Vector128<double> s = Vector128.Create(matrix.M11(), matrix.M22()) * 256.0;
+                TransformScaleOnly(s, castDst, src, origin, size);
                 break;
             }
 
             case MatrixComplexity.TranslationScale:
-            {
                 ConvertTranslationScale(matrix, castDst, src, origin, size);
                 break;
-            }
 
             case MatrixComplexity.Complex:
-            {
+            default:
                 ConvertComplex(matrix, castDst, src, origin, size);
                 break;
-            }
         }
     }
 
-    private static void ConvertIdentity(
+    private static void TransformScaleOnly(
+        Vector128<double> s,
         Span<int> dst,
         ReadOnlySpan<FloatPoint> src,
         F24Dot8Point origin,
         F24Dot8Point size)
     {
-        // Identity matrix, convert only.
-        if (Vector128.IsHardwareAccelerated)
+        Vector128<int> vOrigin = origin.ToVector128();
+        Vector128<int> vSize = size.ToVector128();
+
+        while (src.Length >= 2 && dst.Length >= 4)
         {
-            Vector128<int> vOrigin = origin.ToVector128();
-            Vector128<int> vSize = size.ToVector128();
-
-            while (src.Length >= 2 && dst.Length >= 4)
-            {
-                Vector128<double> src0 = src[0].AsVector128();
-                Vector128<double> src1 = src[1].AsVector128();
-
-                Vector128<int> val = F24Dot8PointX2.FromFloatToV128(src0, src1);
-                Clamp(val - vOrigin, Vector128<int>.Zero, vSize).CopyTo(dst);
-
-                src = src[2..];
-                dst = dst[4..];
-            }
+            Vector128<double> sum0 = src[0].AsVector128() * s;
+            Vector128<double> sum1 = src[1].AsVector128() * s;
+            ClampToInt32(sum0, sum1, vOrigin, vSize).CopyTo(dst);
+            src = src[2..];
+            dst = dst[4..];
         }
 
         while (src.Length >= 1 && dst.Length >= 2)
         {
-            dst[0] = Clamp(DoubleToF24Dot8(src[0].X) - origin.X, 0, size.X);
-            dst[1] = Clamp(DoubleToF24Dot8(src[0].Y) - origin.Y, 0, size.Y);
-
-            src = src[1..];
-            dst = dst[2..];
-        }
-    }
-
-    private static void ConvertTranslationOnly(
-        in Matrix matrix,
-        Span<int> dst,
-        ReadOnlySpan<FloatPoint> src,
-        F24Dot8Point origin,
-        F24Dot8Point size)
-    {
-        // Translation only matrix.
-        if (Vector128.IsHardwareAccelerated)
-        {
-            Vector128<double> t = matrix.M3();
-            Vector128<int> vOrigin = origin.ToVector128();
-            Vector128<int> vSize = size.ToVector128();
-
-            while (src.Length >= 2 && dst.Length >= 4)
-            {
-                Vector128<double> src0 = src[0].AsVector128();
-                Vector128<double> src1 = src[1].AsVector128();
-
-                Vector128<int> val = F24Dot8PointX2.FromFloatToV128(src0 + t, src1 + t);
-
-                Clamp(val - vOrigin, Vector128<int>.Zero, vSize).CopyTo(dst);
-
-                src = src[2..];
-                dst = dst[4..];
-            }
-        }
-
-        double tx = matrix.M31();
-        double ty = matrix.M32();
-
-        while (src.Length >= 1 && dst.Length >= 2)
-        {
-            dst[0] = Clamp(DoubleToF24Dot8(src[0].X + tx) - origin.X, 0, size.X);
-            dst[1] = Clamp(DoubleToF24Dot8(src[0].Y + ty) - origin.Y, 0, size.Y);
-
-            src = src[1..];
-            dst = dst[2..];
-        }
-    }
-
-    private static void ConvertScaleOnly(
-        in Matrix matrix,
-        Span<int> dst,
-        ReadOnlySpan<FloatPoint> src,
-        F24Dot8Point origin,
-        F24Dot8Point size)
-    {
-        // Scale only matrix.
-        double sx = matrix.M11() * 256.0;
-        double sy = matrix.M22() * 256.0;
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            Vector128<int> vOrigin = origin.ToVector128();
-            Vector128<int> vSize = size.ToVector128();
-            Vector128<double> s = Vector128.Create(sx, sy);
-
-            while (src.Length >= 2 && dst.Length >= 4)
-            {
-                Vector128<double> src0 = src[0].AsVector128();
-                Vector128<double> src1 = src[1].AsVector128();
-
-                Vector128<int> val = RoundToInt32(src0 * s, src1 * s);
-
-                Clamp(val - vOrigin, Vector128<int>.Zero, vSize).CopyTo(dst);
-
-                src = src[2..];
-                dst = dst[4..];
-            }
-        }
-
-        while (src.Length >= 1 && dst.Length >= 2)
-        {
-            dst[0] = Clamp(RoundToInt32(src[0].X * sx) - origin.X, 0, size.X);
-            dst[1] = Clamp(RoundToInt32(src[0].Y * sy) - origin.Y, 0, size.Y);
-
+            Vector128<double> sum = src[0].AsVector128() * s;
+            ClampToInt32(sum, vOrigin, vSize).CopyTo(dst);
             src = src[1..];
             dst = dst[2..];
         }
@@ -180,42 +93,37 @@ public static class SIMD
         F24Dot8Point origin,
         F24Dot8Point size)
     {
-        // Scale and translation matrix.
         Matrix m = matrix * Matrix.CreateScale(256.0);
+        Vector128<double> s = Vector128.Create(m.M11(), m.M22());
+        Vector128<double> t = m.M3();
+        
+        TransformTranslationScale(s, t, dst, src, origin, size);
+    }
 
-        if (Vector128.IsHardwareAccelerated)
+    private static void TransformTranslationScale(
+        Vector128<double> s,
+        Vector128<double> t,
+        Span<int> dst,
+        ReadOnlySpan<FloatPoint> src,
+        F24Dot8Point origin,
+        F24Dot8Point size)
+    {
+        Vector128<int> vOrigin = origin.ToVector128();
+        Vector128<int> vSize = size.ToVector128();
+
+        while (src.Length >= 2 && dst.Length >= 4)
         {
-            Vector128<double> s = Vector128.Create(m.M11(), m.M22());
-            Vector128<double> t = m.M3();
-            Vector128<int> vOrigin = origin.ToVector128();
-            Vector128<int> vSize = size.ToVector128();
-
-            while (src.Length >= 2 && dst.Length >= 4)
-            {
-                Vector128<double> src0 = src[0].AsVector128();
-                Vector128<double> src1 = src[1].AsVector128();
-
-                Vector128<int> val = RoundToInt32(
-                    MulAdd(src0, s, t),
-                    MulAdd(src1, s, t));
-
-                Clamp(val - vOrigin, Vector128<int>.Zero, vSize).CopyTo(dst);
-
-                src = src[2..];
-                dst = dst[4..];
-            }
+            Vector128<double> sum0 = MulAdd(src[0].AsVector128(), s, t);
+            Vector128<double> sum1 = MulAdd(src[1].AsVector128(), s, t);
+            ClampToInt32(sum0, sum1, vOrigin, vSize).CopyTo(dst);
+            src = src[2..];
+            dst = dst[4..];
         }
-
-        double tx = m.M31();
-        double ty = m.M32();
-        double sx = m.M11();
-        double sy = m.M22();
 
         while (src.Length >= 1 && dst.Length >= 2)
         {
-            dst[0] = Clamp(RoundToInt32((src[0].X * sx) + tx) - origin.X, 0, size.X);
-            dst[1] = Clamp(RoundToInt32((src[0].Y * sy) + ty) - origin.Y, 0, size.Y);
-
+            Vector128<double> sum = MulAdd(src[0].AsVector128(), s, t);
+            ClampToInt32(sum, vOrigin, vSize).CopyTo(dst);
             src = src[1..];
             dst = dst[2..];
         }
@@ -229,48 +137,48 @@ public static class SIMD
         F24Dot8Point size)
     {
         Matrix m = matrix * Matrix.CreateScale(256.0);
+        Vector128<double> m0 = m.M1();
+        Vector128<double> m1 = m.M2();
+        Vector128<double> m2 = m.M3();
 
-        if (Vector128.IsHardwareAccelerated)
+        Vector128<int> vOrigin = origin.ToVector128();
+        Vector128<int> vSize = size.ToVector128();
+
+        while (src.Length >= 2 && dst.Length >= 4)
         {
-            Vector128<double> f0 = Vector128.Create(m.M11(), m.M21());
-            Vector128<double> f1 = Vector128.Create(m.M12(), m.M22());
-            Vector128<double> t = m.M3();
-            Vector128<int> vOrigin = origin.ToVector128();
-            Vector128<int> vSize = size.ToVector128();
-
-            while (src.Length >= 2 && dst.Length >= 4)
-            {
-                Vector128<double> src0 = src[0].AsVector128();
-                Vector128<double> src1 = src[1].AsVector128();
-
-                Vector128<int> val = RoundToInt32(
-                    MulAdd(src0, f0, t),
-                    MulAdd(src1, f1, t));
-
-                Clamp(val - vOrigin, Vector128<int>.Zero, vSize).CopyTo(dst);
-
-                src = src[2..];
-                dst = dst[4..];
-            }
-        }
-
-        double m00 = m.M11();
-        double m01 = m.M12();
-        double m10 = m.M21();
-        double m11 = m.M22();
-        double m20 = m.M31();
-        double m21 = m.M32();
-
-        while (src.Length >= 1 && dst.Length >= 2)
-        {
-            double x = src[0].X;
-            double y = src[0].Y;
-
-            dst[0] = Clamp(RoundToInt32(m00 * x + m10 * y + m20) - origin.X, 0, size.X);
-            dst[1] = Clamp(RoundToInt32(m01 * x + m11 * y + m21) - origin.Y, 0, size.Y);
-
+            Vector128<double> sum0 = Transform(src[0].AsVector128(), m0, m1, m2);
+            Vector128<double> sum1 = Transform(src[1].AsVector128(), m0, m1, m2);
+            ClampToInt32(sum0, sum1, vOrigin, vSize).CopyTo(dst);
             src = src[1..];
             dst = dst[2..];
         }
+
+        while (src.Length >= 1 && dst.Length >= 2)
+        {
+            Vector128<double> sum = Transform(src[0].AsVector128(), m0, m1, m2);
+            ClampToInt32(sum, vOrigin, vSize).CopyTo(dst);
+            src = src[1..];
+            dst = dst[2..];
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<double> Transform(Vector128<double> p, Vector128<double> m0, Vector128<double> m1, Vector128<double> m2)
+    {
+        Vector128<double> pX = Vector128.Create(p.GetElement(0));
+        Vector128<double> pY = Vector128.Create(p.GetElement(1));
+        return MulAdd(m0, pX, MulAdd(m1, pY, m2));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<int> ClampToInt32(Vector128<double> sum0, Vector128<double> sum1, Vector128<int> origin, Vector128<int> size)
+    {
+        return Clamp(RoundToInt32(sum0, sum1) - origin, Vector128<int>.Zero, size);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector64<int> ClampToInt32(Vector128<double> sum, Vector128<int> origin, Vector128<int> size)
+    {
+        return Clamp(RoundToInt32(sum) - origin, Vector128<int>.Zero, size).GetLower();
     }
 }
