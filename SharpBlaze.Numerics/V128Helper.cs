@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
@@ -178,5 +179,17 @@ public static class V128Helper
             return Sse2.ConvertToVector128Double(Sse2.ShiftRightLogical128BitLane(value, 8));
         }
         return Vector128.ConvertToDouble(Vector128.WidenUpper(value));
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<double> Shuffle(Vector128<double> a, Vector128<double> b, [ConstantExpected] byte control)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.Shuffle(a, b, control);
+        }
+        return Vector128.Create(
+            a.GetElement(control & 0b01),
+            b.GetElement((control & 0b10) >> 1));
     }
 }

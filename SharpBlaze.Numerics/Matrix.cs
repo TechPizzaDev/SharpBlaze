@@ -20,15 +20,16 @@ public readonly partial struct Matrix
         double c = 0;
         double s = 0;
 
-        if (degrees == 90.0 || degrees == -270.0)
+        Vector128<double> dg = Vector128.Create(degrees);
+        if (Vector128.EqualsAny(dg, Vector128.Create(90.0, -270.0)))
         {
             s = 1;
         }
-        else if (degrees == 180.0 || degrees == -180.0)
+        else if (Vector128.EqualsAny(dg, Vector128.Create(180.0, -180.0)))
         {
             c = -1;
         }
-        else if (degrees == -90.0 || degrees == 270.0)
+        else if (Vector128.EqualsAny(dg, Vector128.Create(-90.0, 270.0)))
         {
             s = -1;
         }
@@ -64,17 +65,21 @@ public readonly partial struct Matrix
             return false;
         }
 
-        result = new Matrix(
-             m[1][1] / det,
-            -m[0][1] / det,
-            -m[1][0] / det,
-             m[0][0] / det,
-            (m[1][0] * m[2][1] - m[1][1] * m[2][0]) / det,
-            (m[0][1] * m[2][0] - m[0][0] * m[2][1]) / det);
+        Vector128<double> m0 = m[0];
+        Vector128<double> m1 = m[1];
+        Vector128<double> m2 = m[2];
 
+        Vector128<double> t1 = Shuffle(m1, m0, 0b10);
+        Vector128<double> t2 = Shuffle(m2, m2, 0b01);
+        Vector128<double> t3 = Shuffle(m1, m0, 0b01);
+        Vector128<double> r2 = t1 * t2 - t3 * m2;
+
+        Vector128<double> r0 = Shuffle(m1, m0, 0b11) ^ Vector128.Create(0, -0.0);
+        Vector128<double> r1 = Shuffle(m1, m0, 0b00) ^ Vector128.Create(-0.0, 0);
+
+        result = new Matrix(r0 / det, r1 / det, r2 / det);
         return true;
     }
-
 
     public readonly partial Matrix Inverse()
     {
@@ -90,24 +95,14 @@ public readonly partial struct Matrix
         Vector128<double> max = rect.Max;
 
         Vector128<double> topLeft = Map(min);
-        Vector128<double> topRight = Map(Vector128.Create(max.GetElement(0), min.GetElement(1)));
-        Vector128<double> botLeft = Map(Vector128.Create(min.GetElement(0), max.GetElement(1)));
+        Vector128<double> topRight = Map(Shuffle(max, min, 0b10));
+        Vector128<double> botLeft = Map(Shuffle(min, max, 0b10));
         Vector128<double> botRight = Map(max);
 
         Vector128<double> rMin = MinNative(topLeft, MinNative(topRight, MinNative(botLeft, botRight)));
         Vector128<double> rMax = MaxNative(topLeft, MaxNative(topRight, MaxNative(botLeft, botRight)));
 
         return new FloatRect(rMin, rMax);
-    }
-
-
-    public readonly partial bool IsIdentity()
-    {
-        // Look at diagonal elements first to return if scale is not 1.
-        return
-            Vector128.EqualsAll(m[0], Vector128.Create(1.0, 0)) &&
-            Vector128.EqualsAll(m[1], Vector128.Create(0, 1.0)) &&
-            Vector128.EqualsAll(m[2], Vector128<double>.Zero);
     }
 
 
@@ -129,15 +124,15 @@ public readonly partial struct Matrix
 
         Vector128<double> m00 = Vector128.Shuffle(left.m[0], Vector128.Create(0L));
         Vector128<double> m01 = Vector128.Shuffle(left.m[0], Vector128.Create(1L));
-        Vector128<double> r0 = m00 * o0 + m01 * o1;
+        Vector128<double> r0 = MulAdd(m00, o0, m01 * o1);
 
         Vector128<double> m10 = Vector128.Shuffle(left.m[1], Vector128.Create(0L));
         Vector128<double> m11 = Vector128.Shuffle(left.m[1], Vector128.Create(1L));
-        Vector128<double> r1 = m10 * o0 + m11 * o1;
+        Vector128<double> r1 = MulAdd(m10, o0, m11 * o1);
 
         Vector128<double> m20 = Vector128.Shuffle(left.m[2], Vector128.Create(0L));
         Vector128<double> m21 = Vector128.Shuffle(left.m[2], Vector128.Create(1L));
-        Vector128<double> r2 = m20 * o0 + m21 * o1 + o2;
+        Vector128<double> r2 = MulAdd(m20, o0, MulAdd(m21, o1, o2));
 
         return new Matrix(r0, r1, r2);
     }
@@ -146,6 +141,8 @@ public readonly partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial MatrixComplexity DetermineComplexity()
     {
+        // TODO: customizable fuzziness?
+        
         Vector128<double> test = Vector128.Create(1.0, 0);
         Vector128<double> m0 = FuzzyNotEqual(m[0], test);
         Vector128<double> m1 = FuzzyNotEqual(Vector128.Shuffle(m[1], Vector128.Create(1, 0)), test);
