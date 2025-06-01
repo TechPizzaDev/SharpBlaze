@@ -29,11 +29,11 @@ public static class BitOps
      * @param maxBitCount Maximum number of bits for which storage is needed. Must
      * be at least 1.
      */
-    public static int BitVectorsForMaxBitCount(int maxBitCount)
+    public static uint BitVectorsForMaxBitCount(uint maxBitCount)
     {
         Debug.Assert(maxBitCount != 0);
 
-        int x = Unsafe.SizeOf<BitVector>() * 8;
+        uint x = (uint) Unsafe.SizeOf<BitVector>() * 8;
 
         return (maxBitCount + x - 1) / x;
     }

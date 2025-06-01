@@ -17,8 +17,8 @@ public unsafe partial struct LineArrayTiled<T>
         Debug.Assert(rowCount > 0);
         Debug.Assert(columnCount > 0);
 
-        int bitVectorsPerRow = BitOps.BitVectorsForMaxBitCount((int) columnCount);
-        int bitVectorCount = bitVectorsPerRow * rowCount;
+        uint bitVectorsPerRow = BitOps.BitVectorsForMaxBitCount(columnCount);
+        int bitVectorCount = (int) (bitVectorsPerRow * rowCount);
 
         // TODO: use BumpToken2D here... unless we remove all LineArrayTiled code
         BitVector* bitVectors = memory.Frame.Alloc<BitVector>(bitVectorCount).GetPointer();
@@ -34,7 +34,7 @@ public unsafe partial struct LineArrayTiled<T>
 
         for (int i = 0; i < rowCount; i++)
         {
-            placement[i] = new LineArrayTiled<T>(bitVectors, bitVectorsPerRow, blocks, covers, counts);
+            placement[i] = new LineArrayTiled<T>(bitVectors, (int) bitVectorsPerRow, blocks, covers, counts);
 
             bitVectors += bitVectorsPerRow;
             blocks += columnCount;
