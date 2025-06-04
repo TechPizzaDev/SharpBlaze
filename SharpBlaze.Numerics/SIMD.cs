@@ -149,8 +149,8 @@ public static class SIMD
             Vector128<double> sum0 = Transform(src[0].AsVector128(), m0, m1, m2);
             Vector128<double> sum1 = Transform(src[1].AsVector128(), m0, m1, m2);
             ClampToInt32(sum0, sum1, vOrigin, vSize).CopyTo(dst);
-            src = src[1..];
-            dst = dst[2..];
+            src = src[2..];
+            dst = dst[4..];
         }
 
         while (src.Length >= 1 && dst.Length >= 2)
