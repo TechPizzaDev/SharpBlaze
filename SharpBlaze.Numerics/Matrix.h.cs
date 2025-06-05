@@ -104,14 +104,7 @@ public readonly partial struct Matrix
      * Linearly interpolates from matrix1 to matrix2, based on the third
      * parameter.
      */
-    public static partial Matrix Lerp(in Matrix matrix1, in Matrix matrix2,
-        double t);
-
-
-    /**
-     * Returns whether the matrix is the identity matrix.
-     */
-    public readonly partial bool IsIdentity();
+    public static partial Matrix Lerp(in Matrix a, in Matrix b, double t);
 
 
     /**
@@ -208,14 +201,9 @@ public readonly partial struct Matrix
     public readonly partial MatrixComplexity DetermineComplexity();
 
 
-    [InlineArray(3)]
-    private struct Rows
-    {
-        private Vector128<double> _e0;
-    }
-
-    private readonly Rows m;
-
+    private readonly Vector128<double> m0;
+    private readonly Vector128<double> m1;
+    private readonly Vector128<double> m2;
 
 
     /**
@@ -224,9 +212,9 @@ public readonly partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Matrix()
     {
-        m[0] = Vector128.Create(1.0, 0);
-        m[1] = Vector128.Create(0.0, 1);
-        m[2] = Vector128<double>.Zero;
+        m0 = Vector128.Create(1.0, 0);
+        m1 = Vector128.Create(0.0, 1);
+        m2 = Vector128<double>.Zero;
     }
 
 
@@ -234,11 +222,11 @@ public readonly partial struct Matrix
      * Contructs 3x2 matrix from given vectors.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Matrix(Vector128<double> m1, Vector128<double> m2, Vector128<double> m3)
+    public Matrix(Vector128<double> m0, Vector128<double> m1, Vector128<double> m2)
     {
-        m[0] = m1;
-        m[1] = m2;
-        m[2] = m3;
+        this.m0 = m0;
+        this.m1 = m1;
+        this.m2 = m2;
     }
 
 
@@ -251,9 +239,9 @@ public readonly partial struct Matrix
         double m21, double m22,
         double m31, double m32)
     {
-        m[0] = Vector128.Create(m11, m12);
-        m[1] = Vector128.Create(m21, m22);
-        m[2] = Vector128.Create(m31, m32);
+        m0 = Vector128.Create(m11, m12);
+        m1 = Vector128.Create(m21, m22);
+        m2 = Vector128.Create(m31, m32);
     }
 
 
@@ -262,19 +250,12 @@ public readonly partial struct Matrix
     {
         return CreateTranslation(translation.X, translation.Y);
     }
-    
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix CreateTranslation(Vector128<double> translation)
-    {
-        return new Matrix(Vector128.Create(1.0, 0), Vector128.Create(0.0, 1), translation);
-    }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial Matrix CreateTranslation(double x, double y)
     {
-        return new Matrix(1, 0, 0, 1, x, y);
+        return new Matrix(1.0, 0, 0.0, 1, x, y);
     }
 
 
@@ -295,7 +276,7 @@ public readonly partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial Matrix CreateScale(double scale)
     {
-        return new Matrix(scale, 0, 0, scale, 0, 0);
+        return CreateScale(scale, scale);
     }
 
 
@@ -317,100 +298,92 @@ public readonly partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial double GetDeterminant()
     {
-        Vector128<double> m0 = m[0];
-        Vector128<double> m1 = Vector128.Shuffle(m[1], Vector128.Create(1, 0));
-        Vector128<double> d = m0 * m1;
-        return d[0] - d[1];
+        Vector128<double> t1 = Vector128.Shuffle(m1, Vector128.Create(1, 0));
+        Vector128<double> d = m0 * t1;
+        return d.GetElement(0) - d.GetElement(1);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial FloatPoint Map(FloatPoint point)
     {
-        return new FloatPoint(
-            m[0] * Vector128.Create(point.X) + 
-            m[1] * Vector128.Create(point.Y) + 
-            m[2]);
+        return new(Map(point.AsVector128()));
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector128<double> Map(Vector128<double> point)
+    private readonly Vector128<double> Map(Vector128<double> point)
     {
-        return
-            m[0] * Vector128.Create(point.GetElement(0)) + 
-            m[1] * Vector128.Create(point.GetElement(1)) + 
-            m[2];
+        return m0 * point.GetElement(0) + m1 * point.GetElement(1) + m2;
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial FloatPoint Map(double x, double y)
     {
-        return Map(new FloatPoint(x, y));
+        return new(Map(Vector128.Create(x, y)));
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector128<double> M1()
     {
-        return m[0];
+        return m0;
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial double M11()
     {
-        return m[0][0];
+        return m0[0];
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial double M12()
     {
-        return m[0][1];
+        return m0[1];
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector128<double> M2()
     {
-        return m[1];
+        return m1;
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial double M21()
     {
-        return m[1][0];
+        return m1[0];
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial double M22()
     {
-        return m[1][1];
+        return m1[1];
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector128<double> M3()
     {
-        return m[2];
+        return m2;
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial double M31()
     {
-        return m[2][0];
+        return m2[0];
     }
-
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial double M32()
     {
-        return m[2][1];
+        return m2[1];
     }
 
 
@@ -430,7 +403,6 @@ public readonly partial struct Matrix
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly partial FloatPoint GetTranslation()
     {
-        return new FloatPoint(m[2]);
+        return new(m2);
     }
-
 }
