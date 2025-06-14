@@ -36,8 +36,8 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
         ReadOnlySpan<F24Dot8> coversStart = raster.GetCoversForRow(localRowIndex);
 
         int height = rowView.Height;
-        ReadOnlySpan2D<BitVector> bitVectorView = bitVectorTable.Cut(bitVectorTable.Width, height);
-        ReadOnlySpan2D<CoverArea> coverAreaView = coverAreaTable.Cut(coverAreaTable.Width, height);
+        Span2D<BitVector> bitVectorView = bitVectorTable.Cut(bitVectorTable.Width, height);
+        Span2D<CoverArea> coverAreaView = coverAreaTable.Cut(coverAreaTable.Width, height);
 
         TBlender blender = CreateBlender(geometry);
 
