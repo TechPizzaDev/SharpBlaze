@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
@@ -15,7 +16,7 @@ public struct ClipBounds
         Debug.Assert(maxy > 0);
 
         Max = new FloatPoint(maxx, maxy);
-        FMax = new F24Dot8Point(maxx << 8, maxy << 8);
+        FMax = new F24Dot8Point(maxx.ToF24D8(), maxy.ToF24D8());
     }
 
     public readonly FloatPoint Max;

@@ -24,5 +24,5 @@ public interface ISpanBlender<TColor, TAlpha>
     /// <returns>
     /// The alpha value calculated from the area.
     /// </returns>
-    TAlpha ApplyFillRule(int area);
+    TAlpha ApplyFillRule(F24Dot8 area);
 }

@@ -148,21 +148,21 @@ public struct F24Dot8PointX4
 
 public static class LinearizerUtils
 {
-    public static void UpdateCoverTable_Down(Span<int> covers, F24Dot8 y0, F24Dot8 y1)
+    public static void UpdateCoverTable_Down(Span<F24Dot8> covers, F24Dot8 y0, F24Dot8 y1)
     {
         Debug.Assert(y0 < y1);
 
         // Integer parts for top and bottom.
-        int rowIndex0 = y0 >> 8;
-        int rowIndex1 = (y1 - 1) >> 8;
+        int rowIndex0 = y0.ToI32();
+        int rowIndex1 = (y1 - F24Dot8.Epsilon).ToI32();
 
         Debug.Assert(rowIndex0 >= 0);
         //ASSERT(rowIndex0 < T::TileH);
         Debug.Assert(rowIndex1 >= 0);
         //ASSERT(rowIndex1 < T::TileH);
 
-        int fy0 = y0 - (rowIndex0 << 8);
-        int fy1 = y1 - (rowIndex1 << 8);
+        F24Dot8 fy0 = y0 - rowIndex0.ToF24D8();
+        F24Dot8 fy1 = y1 - rowIndex1.ToF24D8();
 
         if (rowIndex0 == rowIndex1)
         {
@@ -174,7 +174,7 @@ public static class LinearizerUtils
 
             for (int i = rowIndex0; i < rowIndex1; i++)
             {
-                covers[i] -= 256;
+                covers[i] -= F24Dot8.One;
             }
 
             covers[rowIndex1] -= fy1;
@@ -182,21 +182,21 @@ public static class LinearizerUtils
     }
 
 
-    public static void UpdateCoverTable_Up(Span<int> covers, F24Dot8 y0, F24Dot8 y1)
+    public static void UpdateCoverTable_Up(Span<F24Dot8> covers, F24Dot8 y0, F24Dot8 y1)
     {
         Debug.Assert(y0 > y1);
 
         // Integer parts for top and bottom.
-        int rowIndex0 = (y0 - 1) >> 8;
-        int rowIndex1 = y1 >> 8;
+        int rowIndex0 = (y0 - F24Dot8.Epsilon).ToI32();
+        int rowIndex1 = y1.ToI32();
 
         Debug.Assert(rowIndex0 >= 0);
         //ASSERT(rowIndex0 < T::TileH);
         Debug.Assert(rowIndex1 >= 0);
         //ASSERT(rowIndex1 < T::TileH);
 
-        int fy0 = y0 - (rowIndex0 << 8);
-        int fy1 = y1 - (rowIndex1 << 8);
+        F24Dot8 fy0 = y0 - rowIndex0.ToF24D8();
+        F24Dot8 fy1 = y1 - rowIndex1.ToF24D8();
 
         if (rowIndex0 == rowIndex1)
         {
@@ -208,16 +208,16 @@ public static class LinearizerUtils
 
             for (int i = rowIndex0 - 1; i > rowIndex1; i--)
             {
-                covers[i] += 256;
+                covers[i] += F24Dot8.One;
             }
 
-            covers[rowIndex1] += 256 - fy1;
+            covers[rowIndex1] += F24Dot8.One - fy1;
         }
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void UpdateCoverTable(Span<int> covers, F24Dot8 y0, F24Dot8 y1)
+    public static void UpdateCoverTable(Span<F24Dot8> covers, F24Dot8 y0, F24Dot8 y1)
     {
         if (y0 < y1)
         {

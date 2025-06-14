@@ -26,8 +26,8 @@ public unsafe partial struct LineArrayTiled<T>
         LineArrayTiledBlock** blocks =
             memory.Task.Alloc2D<LineArrayTiledBlock>(0, (int) columnCount * rowCount).GetPointer();
 
-        int** covers =
-            memory.Task.Alloc2D<int>(0, (int) columnCount * rowCount).GetPointer();
+        F24Dot8** covers =
+            memory.Task.Alloc2D<F24Dot8>(0, (int) columnCount * rowCount).GetPointer();
 
         int* counts =
             memory.Task.Alloc<int>((int) columnCount * rowCount).GetPointer();
@@ -56,7 +56,7 @@ public unsafe partial struct LineArrayTiled<T>
     }
 
 
-    public int* GetCoversForColumn(TileIndex columnIndex)
+    public F24Dot8* GetCoversForColumn(TileIndex columnIndex)
     {
         return mCovers[columnIndex];
     }
@@ -214,7 +214,7 @@ public unsafe partial struct LineArrayTiled<T>
         Debug.Assert(p0y <= p1y);
 
         TileIndex columnIndex0 = T.F24Dot8ToTileColumnIndex(p0x);
-        TileIndex columnIndex1 = T.F24Dot8ToTileColumnIndex(p1x - 1);
+        TileIndex columnIndex1 = T.F24Dot8ToTileColumnIndex(p1x - F24Dot8.Epsilon);
 
         Debug.Assert(columnIndex0 <= columnIndex1);
 
@@ -291,7 +291,7 @@ public unsafe partial struct LineArrayTiled<T>
         Debug.Assert(p0y >= p1y);
 
         TileIndex columnIndex0 = T.F24Dot8ToTileColumnIndex(p0x);
-        TileIndex columnIndex1 = T.F24Dot8ToTileColumnIndex(p1x - 1);
+        TileIndex columnIndex1 = T.F24Dot8ToTileColumnIndex(p1x - F24Dot8.Epsilon);
 
         Debug.Assert(columnIndex0 <= columnIndex1);
 
@@ -367,7 +367,7 @@ public unsafe partial struct LineArrayTiled<T>
         Debug.Assert(p1y <= T.TileHF24Dot8);
         Debug.Assert(p0y <= p1y);
 
-        TileIndex columnIndex0 = T.F24Dot8ToTileColumnIndex(p0x - 1);
+        TileIndex columnIndex0 = T.F24Dot8ToTileColumnIndex(p0x - F24Dot8.Epsilon);
         TileIndex columnIndex1 = T.F24Dot8ToTileColumnIndex(p1x);
 
         Debug.Assert(columnIndex1 <= columnIndex0);
@@ -445,7 +445,7 @@ public unsafe partial struct LineArrayTiled<T>
         Debug.Assert(p1y <= T.TileHF24Dot8);
         Debug.Assert(p0y >= p1y);
 
-        TileIndex columnIndex0 = T.F24Dot8ToTileColumnIndex(p0x - 1);
+        TileIndex columnIndex0 = T.F24Dot8ToTileColumnIndex(p0x - F24Dot8.Epsilon);
         TileIndex columnIndex1 = T.F24Dot8ToTileColumnIndex(p1x);
 
         Debug.Assert(columnIndex1 <= columnIndex0);
@@ -536,9 +536,9 @@ public unsafe partial struct LineArrayTiled<T>
         {
             // First time line is inserted into this column.
             LineArrayTiledBlock* b = memory.FrameNewTiledBlock(null);
-            int* covers = memory.Frame.Alloc<int>(T.TileH).GetPointer();
+            F24Dot8* covers = memory.Frame.Alloc<F24Dot8>(T.TileH).GetPointer();
 
-            LinearizerUtils.UpdateCoverTable(new Span<int>(covers, T.TileH), y0, y1);
+            LinearizerUtils.UpdateCoverTable(new Span<F24Dot8>(covers, T.TileH), y0, y1);
 
             b->P0P1[0] = F8Dot8.Pack(x0, y0, x1, y1);
 
@@ -565,7 +565,7 @@ public unsafe partial struct LineArrayTiled<T>
             // for block.
             int countInCurrentBlock = ((count - 1) & Mask) + 1;
 
-            Span<int> covers = new(mCovers[columnIndex], T.TileH);
+            Span<F24Dot8> covers = new(mCovers[columnIndex], T.TileH);
             
             if (countInCurrentBlock < LineArrayTiledBlock.LinesPerBlock)
             {

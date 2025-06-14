@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
@@ -32,20 +33,22 @@ public unsafe struct LineArrayTiledBlock
 public unsafe partial struct LineArrayTiled<T> : ILineArray<LineArrayTiled<T>>
     where T : ITileDescriptor<T>
 {
-    private static int AdjustmentMask
+    private static F24Dot8 AdjustmentMask
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (F24Dot8.F24Dot8_1 * T.TileW) - 1;
+        get => T.TileW.ToF24D8() - F24Dot8.Epsilon;
     }
 
-    private static int FindTileColumnAdjustment(F24Dot8 value)
+    private static F24Dot8 FindTileColumnAdjustment(F24Dot8 value)
     {
+        F24Dot8 e = F24Dot8.Epsilon;
+        
         // Will be set to 0 is value is zero or less. Otherwise it will be 1.
-        int lte0 = ~((value - 1) >> 31) & 1;
+        F24Dot8 lte0 = ~((value - e) >> 31) & e;
 
         // Will be set to 1 if value is divisible by tile width (in 24.8
         // format) without a reminder. Otherwise it will be 0.
-        int db = (((value & AdjustmentMask) - 1) >> 31) & 1;
+        F24Dot8 db = (((value & AdjustmentMask) - e) >> 31) & e;
 
         // Return 1 if both bits (more than zero and disisible by 256) are set.
         return lte0 & db;
@@ -55,7 +58,7 @@ public unsafe partial struct LineArrayTiled<T> : ILineArray<LineArrayTiled<T>>
         BitVector* bitVectors,
         int bitVectorCount,
         LineArrayTiledBlock** blocks,
-        int** covers,
+        F24Dot8** covers,
         int* counts)
     {
         mBitVectors = bitVectors;
@@ -78,7 +81,7 @@ public unsafe partial struct LineArrayTiled<T> : ILineArray<LineArrayTiled<T>>
     // One cover array for each tile column. Not zero-filled at the beginning,
     // individual cover arrays allocated and zero-filled once the first line
     // is inserted into particular column.
-    private int** mCovers = null;
+    private F24Dot8** mCovers = null;
 
     // One count for each tile column. Not zero-filled at the beginning,
     // individual counts initialized to one once the first line is inserted

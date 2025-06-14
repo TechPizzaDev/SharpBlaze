@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
@@ -26,7 +27,7 @@ public interface ITileDescriptor<T>
     static virtual F24Dot8 TileWF24Dot8
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new(T.TileW << 8);
+        get => T.TileW.ToF24D8();
     }
 
     /// <summary>
@@ -35,18 +36,18 @@ public interface ITileDescriptor<T>
     static virtual F24Dot8 TileHF24Dot8
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new(T.TileH << 8);
+        get => T.TileH.ToF24D8();
     }
 
     /// <summary>
     /// Converts X value expressed as 24.8 fixed point number to horizontal tile index.
     /// </summary>
-    static virtual TileIndex F24Dot8ToTileColumnIndex(F24Dot8 x) => (uint) x / (uint) T.TileWF24Dot8;
+    static virtual TileIndex F24Dot8ToTileColumnIndex(F24Dot8 x) => (uint) x.ToBits() / (uint) T.TileWF24Dot8.ToBits();
 
     /// <summary>
     /// Converts Y value expressed as 24.8 fixed point number to vertical tile index.
     /// </summary>
-    static virtual TileIndex F24Dot8ToTileRowIndex(F24Dot8 y) => (uint) y / (uint) T.TileHF24Dot8;
+    static virtual TileIndex F24Dot8ToTileRowIndex(F24Dot8 y) => (uint) y.ToBits() / (uint) T.TileHF24Dot8.ToBits();
 
     /// <summary>
     /// Converts X value to horizontal tile index.
@@ -72,17 +73,17 @@ public interface ITileDescriptor<T>
     /// Returns given vertical tile index to position in 24.8 format.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static virtual F24Dot8 TileColumnIndexToF24Dot8(TileIndex x) => new(x * (uint) T.TileWF24Dot8);
+    static virtual F24Dot8 TileColumnIndexToF24Dot8(TileIndex x) => F24Dot8.FromBits(x * (uint) T.TileWF24Dot8.ToBits());
 
     /// <summary>
     /// Returns given horizontal tile index to position in 24.8 format.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static virtual F24Dot8 TileRowIndexToF24Dot8(TileIndex y) => new(y * (uint) T.TileHF24Dot8);
+    static virtual F24Dot8 TileRowIndexToF24Dot8(TileIndex y) => F24Dot8.FromBits(y * (uint) T.TileHF24Dot8.ToBits());
 
-    static abstract bool CoverArrayContainsOnlyZeroes(ReadOnlySpan<int> t);
+    static abstract bool CoverArrayContainsOnlyZeroes(ReadOnlySpan<F24Dot8> t);
 
-    static abstract void FillStartCovers(Span<int> p, int value);
+    static abstract void FillStartCovers(Span<F24Dot8> p, int value);
 
-    static abstract void AccumulateStartCovers(Span<int> p, int value);
+    static abstract void AccumulateStartCovers(Span<F24Dot8> p, int value);
 }

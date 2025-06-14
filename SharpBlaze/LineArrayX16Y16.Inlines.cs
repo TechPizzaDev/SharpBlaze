@@ -102,6 +102,7 @@ public unsafe partial struct LineArrayX16Y16
         GrowAndAppendLine(memory, p0p1);
     }
     
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void GrowAndAppendLine(ThreadMemory memory, F8Dot8x4 p0p1)
     {
         LineArrayX16Y16Block* b = memory.FrameNewX16Y16Block(mCurrent);
@@ -115,7 +116,7 @@ public unsafe partial struct LineArrayX16Y16
     }
 
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void AppendLine(ThreadMemory memory, F24Dot8 x0, F24Dot8 y0, F24Dot8 x1, F24Dot8 y1)
     {
         if (y0 != y1)

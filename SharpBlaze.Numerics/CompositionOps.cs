@@ -126,7 +126,7 @@ public readonly struct SpanBlender : ISpanBlender<uint, byte>
         }
     }
 
-    public byte ApplyFillRule(int area)
+    public byte ApplyFillRule(F24Dot8 area)
     {
         if (FillRule == FillRule.EvenOdd)
         {

@@ -28,7 +28,7 @@ public static class Utils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static F24Dot8 Clamp(F24Dot8 val, F24Dot8 min, F24Dot8 max)
     {
-        return new(ScalarHelper.Clamp(val._value, min._value, max._value));
+        return F24Dot8.FromBits(ScalarHelper.Clamp(val._value, min._value, max._value));
     }
 
 

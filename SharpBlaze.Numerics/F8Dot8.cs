@@ -14,11 +14,11 @@ public readonly partial struct F8Dot8
 
     internal F8Dot8(short value) => _value = value;
 
-    public static implicit operator short(F8Dot8 value) => value._value;
+    public short ToBits() => _value;
 
-    public static implicit operator F24Dot8(F8Dot8 value) => new(value._value);
+    public static implicit operator F24Dot8(F8Dot8 value) => F24Dot8.FromBits(value._value);
 
-    public static explicit operator F8Dot8(short value) => new(value);
+    public static F8Dot8 FromBits(short value) => Unsafe.BitCast<short, F8Dot8>(value);
 
     public override string ToString()
     {
@@ -83,8 +83,8 @@ public readonly partial struct F8Dot8
     public static F8Dot8x2 Pack(F24Dot8 a, F24Dot8 b)
     {
         // Values must be small enough.
-        Debug.Assert((a & 0xffff0000) == 0);
-        Debug.Assert((b & 0xffff0000) == 0);
+        Debug.Assert((a.ToBits() & 0xffff0000) == 0);
+        Debug.Assert((b.ToBits() & 0xffff0000) == 0);
 
         return (F8Dot8x2) (uint) (a._value | (b._value << 16));
     }
@@ -94,10 +94,10 @@ public readonly partial struct F8Dot8
     public static F8Dot8x4 Pack(F24Dot8 a, F24Dot8 b, F24Dot8 c, F24Dot8 d)
     {
         // Values must be small enough.
-        Debug.Assert((a & 0xffff0000) == 0);
-        Debug.Assert((b & 0xffff0000) == 0);
-        Debug.Assert((c & 0xffff0000) == 0);
-        Debug.Assert((d & 0xffff0000) == 0);
+        Debug.Assert((a.ToBits() & 0xffff0000) == 0);
+        Debug.Assert((b.ToBits() & 0xffff0000) == 0);
+        Debug.Assert((c.ToBits() & 0xffff0000) == 0);
+        Debug.Assert((d.ToBits() & 0xffff0000) == 0);
 
         uint lo = (uint) a._value | ((uint) b._value << 16);
         ulong hi = ((ulong) c._value << 32) | ((ulong) d._value << 48);

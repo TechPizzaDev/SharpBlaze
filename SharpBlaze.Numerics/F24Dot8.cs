@@ -5,6 +5,8 @@ using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
+using static Unsafe;
+
 /**
  * 24.8 fixed point number.
  */
@@ -13,28 +15,29 @@ public readonly struct F24Dot8 : IEquatable<F24Dot8>
 {
     internal readonly int _value;
 
-    public F24Dot8(int value) => _value = value;
+    public static F24Dot8 Zero => default;
     
-    public F24Dot8(uint value) => _value = (int) value;
+    public static F24Dot8 Epsilon => BitCast<int, F24Dot8>(1);
 
     /**
      * Value equivalent to one in 24.8 fixed point format.
      */
-    public static F24Dot8 F24Dot8_1 => new(1 << 8);
+    public static F24Dot8 One => BitCast<int, F24Dot8>(1 << 8);
 
+    public static F24Dot8 FromBits(int value) => BitCast<int, F24Dot8>(value);
 
-    /**
-     * Value equivalent to two in 24.8 fixed point format.
-     */
-    public static F24Dot8 F24Dot8_2 => new(2 << 8);
+    public static F24Dot8 FromBits(uint value) => BitCast<uint, F24Dot8>(value);
 
+    public int ToBits() => _value;
+
+    public int ToI32() => _value >> 8;
 
     /**
      * Converts double to 24.8 fixed point number. Does not check if a double is
      * small enough to be represented as 24.8 number.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F24Dot8 DoubleToF24Dot8(double v) => new(ScalarHelper.RoundToInt32(v * 256.0));
+    public static F24Dot8 FromF64(double v) => BitCast<int, F24Dot8>(ScalarHelper.RoundToInt32(v * 256.0));
 
 
     /**
@@ -44,36 +47,45 @@ public readonly struct F24Dot8 : IEquatable<F24Dot8>
     public static F24Dot8 Abs(F24Dot8 v)
     {
         int mask = v._value >> 31;
-        return new F24Dot8((v._value + mask) ^ mask);
+        return BitCast<int, F24Dot8>((v._value + mask) ^ mask);
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static (F24Dot8 Q, F24Dot8 R) DivRem(F24Dot8 a, F24Dot8 b)
     {
         (int q, int r) = Math.DivRem(a._value, b._value);
-        return (new F24Dot8(q), new F24Dot8(r));
+        return (BitCast<int, F24Dot8>(q), BitCast<int, F24Dot8>(r));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F24Dot8 operator +(F24Dot8 a, F24Dot8 b) => new(a._value + b._value);
+    public static F24Dot8 operator +(F24Dot8 a, F24Dot8 b) => BitCast<int, F24Dot8>(a._value + b._value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F24Dot8 operator -(F24Dot8 a, F24Dot8 b) => new(a._value - b._value);
+    public static F24Dot8 operator ++(F24Dot8 a) => BitCast<int, F24Dot8>(a._value + 1);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F24Dot8 operator *(F24Dot8 a, F24Dot8 b) => new(a._value * b._value);
+    public static F24Dot8 operator -(F24Dot8 a, F24Dot8 b) => BitCast<int, F24Dot8>(a._value - b._value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F24Dot8 operator /(F24Dot8 a, F24Dot8 b) => new(a._value / b._value);
+    public static F24Dot8 operator ~(F24Dot8 a) => BitCast<int, F24Dot8>(~a._value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F24Dot8 operator %(F24Dot8 a, F24Dot8 b) => new(a._value % b._value);
+    public static F24Dot8 operator *(F24Dot8 a, F24Dot8 b) => BitCast<int, F24Dot8>(a._value * b._value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8 operator /(F24Dot8 a, F24Dot8 b) => BitCast<int, F24Dot8>(a._value / b._value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8 operator %(F24Dot8 a, F24Dot8 b) => BitCast<int, F24Dot8>(a._value % b._value);
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F24Dot8 operator <<(F24Dot8 a, int b) => new(a._value << b);
+    public static F24Dot8 operator &(F24Dot8 a, F24Dot8 b) => BitCast<int, F24Dot8>(a._value & b._value);
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static F24Dot8 operator <<(F24Dot8 a, int b) => BitCast<int, F24Dot8>(a._value << b);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static F24Dot8 operator >>(F24Dot8 a, int b) => new(a._value >> b);
+    public static F24Dot8 operator >>(F24Dot8 a, int b) => BitCast<int, F24Dot8>(a._value >> b);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(F24Dot8 a, F24Dot8 b) => a._value == b._value;
@@ -98,18 +110,6 @@ public readonly struct F24Dot8 : IEquatable<F24Dot8>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator >=(F24Dot8 a, int b) => a._value >= b;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator int(F24Dot8 value) => value._value;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static explicit operator uint(F24Dot8 value) => (uint) value._value;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator F24Dot8(int value) => new(value);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static explicit operator F24Dot8(uint value) => new((int) value);
 
     public bool Equals(F24Dot8 other) => _value == other._value;
 

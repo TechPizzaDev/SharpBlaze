@@ -1,17 +1,7 @@
-﻿
-using System.Runtime.CompilerServices;
-
-namespace SharpBlaze;
+﻿namespace SharpBlaze;
 
 public struct CoverArea
 {
-    public int Delta;
-    public int Area;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public CoverArea(int delta, int area)
-    {
-        Delta = delta;
-        Area = area;
-    }
+    public F24Dot8 Delta;
+    public F24Dot8 Area;
 }

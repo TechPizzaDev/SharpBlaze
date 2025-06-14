@@ -1,4 +1,6 @@
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
@@ -15,30 +17,36 @@ public struct TileDescriptor_8x32 : ITileDescriptor<TileDescriptor_8x32>
     public static int TileH => 32;
 
     /// <inheritdoc />
-    public static bool CoverArrayContainsOnlyZeroes(ReadOnlySpan<int> t)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool CoverArrayContainsOnlyZeroes(ReadOnlySpan<F24Dot8> t)
     {
         // Combine all 32 values.
-        Vector512<int> v = Vector512.Create(t) | Vector512.Create(t[16..]);
+        ReadOnlySpan<int> bits = MemoryMarshal.Cast<F24Dot8, int>(t);
+        Vector512<int> v = Vector512.Create(bits) | Vector512.Create(bits[16..]);
 
         // Zero means there are no non-zero values there.
         return Vector512.EqualsAll(v, Vector512<int>.Zero);
     }
 
     /// <inheritdoc />
-    public static void FillStartCovers(Span<int> p, int value)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void FillStartCovers(Span<F24Dot8> p, int value)
     {
         Vector512<int> v = Vector512.Create(value);
-        v.CopyTo(p);
-        v.CopyTo(p[16..]);
+        Span<int> bits = MemoryMarshal.Cast<F24Dot8, int>(p);
+        v.CopyTo(bits);
+        v.CopyTo(bits[16..]);
     }
 
     /// <inheritdoc />
-    public static void AccumulateStartCovers(Span<int> p, int value)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void AccumulateStartCovers(Span<F24Dot8> p, int value)
     {
         Vector512<int> v = Vector512.Create(value);
         
-        (v + Vector512.Create<int>(p)).CopyTo(p);
-        p = p[16..];
-        (v + Vector512.Create<int>(p)).CopyTo(p);
+        Span<int> bits = MemoryMarshal.Cast<F24Dot8, int>(p); 
+        (v + Vector512.Create<int>(bits)).CopyTo(bits);
+        bits = bits[16..];
+        (v + Vector512.Create<int>(bits)).CopyTo(bits);
     }
 }

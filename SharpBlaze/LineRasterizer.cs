@@ -9,9 +9,10 @@ namespace SharpBlaze;
 public abstract class LineRasterizer
 {
     internal abstract void Rasterize(
+        int localRowIndex,
+        in RasterizableGeometry raster,
         in Geometry geometry,
         Span2D<byte> rowView,
-        ReadOnlySpan<int> coversStart,
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable);
 }
@@ -24,12 +25,16 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
     protected abstract TBlender CreateBlender(in Geometry geometry);
     
     internal override sealed void Rasterize(
+        int localRowIndex,
+        in RasterizableGeometry raster,
         in Geometry geometry,
         Span2D<byte> rowView,
-        ReadOnlySpan<int> coversStart,
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable)
     {
+        // Pointer to backdrop.
+        ReadOnlySpan<F24Dot8> coversStart = raster.GetCoversForRow(localRowIndex);
+
         int height = rowView.Height;
         ReadOnlySpan2D<BitVector> bitVectorView = bitVectorTable.Cut(bitVectorTable.Width, height);
         ReadOnlySpan2D<CoverArea> coverAreaView = coverAreaTable.Cut(coverAreaTable.Width, height);
@@ -39,7 +44,7 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
         for (int y = 0; y < height; y++)
         {
             Span<byte> row = rowView[y];
-            int startCover = y < coversStart.Length ? coversStart[y] : 0;
+            F24Dot8 startCover = y < coversStart.Length ? coversStart[y] : F24Dot8.Zero;
 
             RenderOneLine(
                 row,
@@ -55,13 +60,13 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
         Span<byte> row,
         ReadOnlySpan<BitVector> bitVectors,
         ReadOnlySpan<CoverArea> coverAreas,
-        int startCover,
+        F24Dot8 startCover,
         TBlender blender)
     {
         Span<TColor> d = MemoryMarshal.Cast<byte, TColor>(row);
 
         // Cover accumulation.
-        int cover = startCover;
+        F24Dot8 cover = startCover;
 
         // Span state.
         int spanX = 0;
@@ -85,7 +90,7 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
                 int nextEdgeX = edgeX + 1;
 
                 // Signed area for pixel at bit index.
-                int area = coverAreas[index].Area + (cover << 9);
+                F24Dot8 area = coverAreas[index].Area + (cover << 9);
 
                 // Area converted to alpha according to fill rule.
                 TAlpha alpha = blender.ApplyFillRule(area);
@@ -126,7 +131,7 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
                     Debug.Assert(spanEnd < edgeX);
 
                     // There is a gap between last filled pixel and the new one.
-                    if (cover == 0)
+                    if (cover == F24Dot8.Zero)
                     {
                         // Empty gap.
                         // Fill span if there is one and reset current span.
@@ -190,7 +195,7 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
             blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
         }
 
-        if (cover != 0 && spanEnd < d.Length)
+        if (cover != F24Dot8.Zero && spanEnd < d.Length)
         {
             // Composite anything that goes to the edge of destination image.
             TAlpha alpha = blender.ApplyFillRule(cover << 9);

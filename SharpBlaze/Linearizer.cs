@@ -71,7 +71,7 @@ public ref partial struct Linearizer<T, L>
      * geometry to the left of destination image, will contain null in the
      * returned table.
      */
-    public readonly partial BumpToken2D<int> GetStartCoverTable();
+    public readonly partial BumpToken2D<F24Dot8> GetStartCoverTable();
 
 
     /**
@@ -295,7 +295,7 @@ public ref partial struct Linearizer<T, L>
     // Keeps pointers to start cover arrays for each row of tiles. Allocated
     // in task memory and zero-filled when the first start cover array is
     // requested. Each entry is then allocated on demand in frame memory.
-    private BumpToken2D<int> mStartCoverTable;
+    private BumpToken2D<F24Dot8> mStartCoverTable;
 
     private readonly Span<L> mLA;
 
@@ -339,7 +339,7 @@ public ref partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly partial BumpToken2D<int> GetStartCoverTable()
+    public readonly partial BumpToken2D<F24Dot8> GetStartCoverTable()
     {
         return mStartCoverTable;
     }
@@ -694,13 +694,13 @@ public ref partial struct Linearizer<T, L>
         Add:
         Unsafe.SkipInit(out F24Dot8PointX2 linePoints);
         
-        F24Dot8PointX2.ClampFromFloat(a, b, default, clip.FMax, linePoints);
+        F24Dot8PointX2.ClampFromFloat(a.AsVector128(), b.AsVector128(), default, clip.FMax, linePoints);
         
         AddContainedLineF24Dot8(memory, linePoints[0], linePoints[1]);
     }
 
 
-    static F24Dot8 MaximumDelta => 2048 << 8;
+    static F24Dot8 MaximumDelta => 2048.ToF24D8();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private partial void AddContainedLineF24Dot8(ThreadMemory memory, F24Dot8Point p0, F24Dot8Point p1)
@@ -759,7 +759,7 @@ public ref partial struct Linearizer<T, L>
         {
             // Line is going down ↓
             TileIndex rowIndex0 = T.F24Dot8ToTileRowIndex(p0.Y);
-            TileIndex rowIndex1 = T.F24Dot8ToTileRowIndex(p1.Y - 1);
+            TileIndex rowIndex1 = T.F24Dot8ToTileRowIndex(p1.Y - FromBits(1));
 
             Debug.Assert(rowIndex0 <= rowIndex1);
 
@@ -792,7 +792,7 @@ public ref partial struct Linearizer<T, L>
 
             Debug.Assert(p0.Y > p1.Y);
 
-            TileIndex rowIndex0 = T.F24Dot8ToTileRowIndex(p0.Y - 1);
+            TileIndex rowIndex0 = T.F24Dot8ToTileRowIndex(p0.Y - FromBits(1));
             TileIndex rowIndex1 = T.F24Dot8ToTileRowIndex(p1.Y);
 
             Debug.Assert(rowIndex1 <= rowIndex0);
@@ -1073,6 +1073,7 @@ public ref partial struct Linearizer<T, L>
     {
         p = p[..3];
         
+#if DEBUG
         Vector128<double> p0 = p[0].AsVector128();
         Vector128<double> p1 = p[1].AsVector128();
         Vector128<double> p2 = p[2].AsVector128();
@@ -1084,7 +1085,8 @@ public ref partial struct Linearizer<T, L>
         // Assuming curve is monotonic.
         Debug.Assert(Vector128.LessThanOrEqualAll(p1, MaxNative(p0, p2)));
         Debug.Assert(Vector128.GreaterThanOrEqualAll(p1, MinNative(p0, p2)));
-
+#endif
+        
         Span<FloatPoint> tmp = stackalloc FloatPoint[5];
         Span<F24Dot8Point> q = stackalloc F24Dot8Point[3];
         
@@ -1134,7 +1136,7 @@ public ref partial struct Linearizer<T, L>
 
                     F24Dot8PointX3.ClampFromFloat(tmp[..3], default, clip.FMax, q);
 
-                    F24Dot8 c = Clamp(DoubleToF24Dot8(tmp[4].Y), 0, clip.FMax.Y);
+                    F24Dot8 c = Clamp(FromF64(tmp[4].Y), Zero, clip.FMax.Y);
 
                     AddContainedQuadraticF24Dot8(memory, q);
 
@@ -1191,7 +1193,7 @@ public ref partial struct Linearizer<T, L>
                     // need the part on the left side of bounding box.
                     CutQuadraticAt(p, tmp, t);
 
-                    F24Dot8 a = Clamp(DoubleToF24Dot8(tmp[0].Y), 0, clip.FMax.Y);
+                    F24Dot8 a = Clamp(FromF64(tmp[0].Y), Zero, clip.FMax.Y);
 
                     F24Dot8PointX3.ClampFromFloat(tmp[2..], default, clip.FMax, q);
 
@@ -1237,7 +1239,7 @@ public ref partial struct Linearizer<T, L>
     {
         q = q[..3];
         
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < q.Length; i++)
         {
             AssertInBounds(q[i]);
         }
@@ -1392,7 +1394,7 @@ public ref partial struct Linearizer<T, L>
     {
         p = p[..4];
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < p.Length; i++)
         {
             Debug.Assert(p[i].IsFinite());
         }
@@ -1607,8 +1609,8 @@ public ref partial struct Linearizer<T, L>
 
                 AddPotentiallyUncontainedCubicF24Dot8(memory, clip.FMax, c);
 
-                F24Dot8 y0 = Clamp(c[3].Y, 0, clip.FMax.Y);
-                F24Dot8 y1 = Clamp(DoubleToF24Dot8(tmp[6].Y), 0, clip.FMax.Y);
+                F24Dot8 y0 = Clamp(c[3].Y, Zero, clip.FMax.Y);
+                F24Dot8 y1 = Clamp(FromF64(tmp[6].Y), Zero, clip.FMax.Y);
 
                 UpdateStartCovers(memory, y0, y1);
                 return;
@@ -1670,8 +1672,8 @@ public ref partial struct Linearizer<T, L>
                 // be on the left and the second one will be inside.
                 F24Dot8PointX4.FromFloat(tmp.Slice(3, 4), c);
 
-                F24Dot8 y0 = Clamp(DoubleToF24Dot8(tmp[0].Y), 0, clip.FMax.Y);
-                F24Dot8 y1 = Clamp(c[0].Y, 0, clip.FMax.Y);
+                F24Dot8 y0 = Clamp(FromF64(tmp[0].Y), Zero, clip.FMax.Y);
+                F24Dot8 y1 = Clamp(c[0].Y, Zero, clip.FMax.Y);
 
                 UpdateStartCovers(memory, y0, y1);
 
@@ -1693,10 +1695,8 @@ public ref partial struct Linearizer<T, L>
     private void AddVerticallyContainedMonotonicCubic_VerticalLine(
         ThreadMemory memory, ClipBounds clip, scoped ReadOnlySpan<FloatPoint> p)
     {
-        double px = p[3].X;
-
         // Vertical line.
-        if (px <= 0)
+        if (p[3].X <= 0)
         {
             // Vertical line on the left.
             
@@ -1772,7 +1772,7 @@ public ref partial struct Linearizer<T, L>
             Abs(c[1].Y - c[2].Y) +
             Abs(c[2].Y - c[3].Y);
 
-        if (dx + dy < F24Dot8_1)
+        if (dx + dy < One)
         {
             Span<F24Dot8Point> pc = stackalloc F24Dot8Point[4];
             
@@ -1796,7 +1796,9 @@ public ref partial struct Linearizer<T, L>
     [SkipLocalsInit]
     private partial void AddContainedCubicF24Dot8(ThreadMemory memory, scoped ReadOnlySpan<F24Dot8Point> c)
     {
-        for (int i = 0; i < 4; i++)
+        c = c[..4];
+        
+        for (int i = 0; i < c.Length; i++)
         {
             AssertInBounds(c[i]);
         }
@@ -1871,13 +1873,13 @@ public ref partial struct Linearizer<T, L>
 
                 F24Dot8 nx = cx + delta;
 
-                mLA[(int) idy].AppendLineDownR_V(memory, cx, 0, nx, T.TileHF24Dot8);
+                mLA[(int) idy].AppendLineDownR_V(memory, cx, Zero, nx, T.TileHF24Dot8);
 
                 cx = nx;
             }
         }
 
-        mLA[(int) rowIndex1].AppendLineDownR_V(memory, cx, 0, p1.X, fy1);
+        mLA[(int) rowIndex1].AppendLineDownR_V(memory, cx, Zero, p1.X, fy1);
     }
 
 
@@ -1898,7 +1900,7 @@ public ref partial struct Linearizer<T, L>
 
         F24Dot8 cx = p0.X + delta;
 
-        mLA[(int) rowIndex0].AppendLineUpR_V(memory, p0.X, fy0, cx, 0);
+        mLA[(int) rowIndex0].AppendLineUpR_V(memory, p0.X, fy0, cx, Zero);
 
         TileIndex idy = rowIndex0 - 1;
 
@@ -1924,7 +1926,7 @@ public ref partial struct Linearizer<T, L>
 
                 F24Dot8 nx = cx + delta;
 
-                mLA[(int) idy].AppendLineUpR_V(memory, cx, T.TileHF24Dot8, nx, 0);
+                mLA[(int) idy].AppendLineUpR_V(memory, cx, T.TileHF24Dot8, nx, Zero);
 
                 cx = nx;
             }
@@ -1977,13 +1979,13 @@ public ref partial struct Linearizer<T, L>
 
                 F24Dot8 nx = cx - delta;
 
-                mLA[(int) idy].AppendLineDownL_V(memory, cx, 0, nx, T.TileHF24Dot8);
+                mLA[(int) idy].AppendLineDownL_V(memory, cx, Zero, nx, T.TileHF24Dot8);
 
                 cx = nx;
             }
         }
 
-        mLA[(int) rowIndex1].AppendLineDownL_V(memory, cx, 0, p1.X, fy1);
+        mLA[(int) rowIndex1].AppendLineDownL_V(memory, cx, Zero, p1.X, fy1);
     }
 
 
@@ -2004,7 +2006,7 @@ public ref partial struct Linearizer<T, L>
 
         F24Dot8 cx = p0.X - delta;
 
-        mLA[(int) rowIndex0].AppendLineUpL_V(memory, p0.X, fy0, cx, 0);
+        mLA[(int) rowIndex0].AppendLineUpL_V(memory, p0.X, fy0, cx, Zero);
 
         TileIndex idy = rowIndex0 - 1;
 
@@ -2030,7 +2032,7 @@ public ref partial struct Linearizer<T, L>
 
                 F24Dot8 nx = cx - delta;
 
-                mLA[(int) idy].AppendLineUpL_V(memory, cx, T.TileHF24Dot8, nx, 0);
+                mLA[(int) idy].AppendLineUpL_V(memory, cx, T.TileHF24Dot8, nx, Zero);
 
                 cx = nx;
             }
@@ -2046,7 +2048,7 @@ public ref partial struct Linearizer<T, L>
         Debug.Assert(y0 < y1);
 
         TileIndex rowIndex0 = T.F24Dot8ToTileRowIndex(y0);
-        TileIndex rowIndex1 = T.F24Dot8ToTileRowIndex(y1 - 1);
+        TileIndex rowIndex1 = T.F24Dot8ToTileRowIndex(y1 - FromBits(1));
         F24Dot8 fy0 = y0 - T.TileRowIndexToF24Dot8(rowIndex0);
         F24Dot8 fy1 = y1 - T.TileRowIndexToF24Dot8(rowIndex1);
 
@@ -2060,10 +2062,10 @@ public ref partial struct Linearizer<T, L>
 
             for (TileIndex i = rowIndex0 + 1; i < rowIndex1; i++)
             {
-                AppendVerticalLine(memory, i, x, 0, T.TileHF24Dot8);
+                AppendVerticalLine(memory, i, x, Zero, T.TileHF24Dot8);
             }
 
-            AppendVerticalLine(memory, rowIndex1, x, 0, fy1);
+            AppendVerticalLine(memory, rowIndex1, x, Zero, fy1);
         }
     }
 
@@ -2073,7 +2075,7 @@ public ref partial struct Linearizer<T, L>
     {
         Debug.Assert(y0 > y1);
 
-        TileIndex rowIndex0 = T.F24Dot8ToTileRowIndex(y0 - 1);
+        TileIndex rowIndex0 = T.F24Dot8ToTileRowIndex(y0 - FromBits(1));
         TileIndex rowIndex1 = T.F24Dot8ToTileRowIndex(y1);
         F24Dot8 fy0 = y0 - T.TileRowIndexToF24Dot8(rowIndex0);
         F24Dot8 fy1 = y1 - T.TileRowIndexToF24Dot8(rowIndex1);
@@ -2084,11 +2086,11 @@ public ref partial struct Linearizer<T, L>
         }
         else
         {
-            AppendVerticalLine(memory, rowIndex0, x, fy0, 0);
+            AppendVerticalLine(memory, rowIndex0, x, fy0, default);
 
             for (TileIndex i = rowIndex0 - 1; i > rowIndex1; i--)
             {
-                AppendVerticalLine(memory, i, x, T.TileHF24Dot8, 0);
+                AppendVerticalLine(memory, i, x, T.TileHF24Dot8, default);
             }
 
             AppendVerticalLine(memory, rowIndex1, x, T.TileHF24Dot8, fy1);
@@ -2097,13 +2099,13 @@ public ref partial struct Linearizer<T, L>
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Span<int> GetStartCoversForRowAtIndex(ThreadMemory memory, int index)
+    private Span<F24Dot8> GetStartCoversForRowAtIndex(ThreadMemory memory, int index)
     {
-        BumpToken<int> p = mStartCoverTable[index];
+        BumpToken<F24Dot8> p = mStartCoverTable[index];
 
         if (!p.HasValue)
         {
-            p = memory.Frame.Alloc<int>(T.TileH);
+            p = memory.Frame.Alloc<F24Dot8>(T.TileH);
             p.AsSpan().Clear();
             mStartCoverTable[index] = p;
         }
@@ -2115,9 +2117,9 @@ public ref partial struct Linearizer<T, L>
     private void UpdateStartCovers_Max(ThreadMemory memory, double y0, double y1, F24Dot8 max)
     {
         Vector128<int> p = FloatPoint.ToF24Dot8(
-            Vector128.Create(y0, y1), default, Vector128.Create((int) max));
+            Vector128.Create(y0, y1), default, Vector128.Create(max.ToBits()));
         
-        UpdateStartCovers(memory, p.GetElement(0), p.GetElement(1));
+        UpdateStartCovers(memory, FromBits(p.GetElement(0)), FromBits(p.GetElement(1)));
     }
     
 
@@ -2135,7 +2137,7 @@ public ref partial struct Linearizer<T, L>
         if (!mStartCoverTable.HasValue)
         {
             // Allocate pointers to row masks.
-            mStartCoverTable = memory.Frame.Alloc2D<int>(T.TileH, (int) mBounds.RowCount);
+            mStartCoverTable = memory.Frame.Alloc2D<F24Dot8>(T.TileH, (int) mBounds.RowCount);
         }
 
         if (y0 < y1)
@@ -2153,11 +2155,11 @@ public ref partial struct Linearizer<T, L>
     {
         // Line is going down.
         TileIndex rowIndex0 = T.F24Dot8ToTileRowIndex(y0);
-        TileIndex rowIndex1 = T.F24Dot8ToTileRowIndex(y1 - 1);
+        TileIndex rowIndex1 = T.F24Dot8ToTileRowIndex(y1 - FromBits(1));
         F24Dot8 fy0 = y0 - T.TileRowIndexToF24Dot8(rowIndex0);
         F24Dot8 fy1 = y1 - T.TileRowIndexToF24Dot8(rowIndex1);
 
-        Span<int> cmFirst = GetStartCoversForRowAtIndex(memory, (int) rowIndex0);
+        Span<F24Dot8> cmFirst = GetStartCoversForRowAtIndex(memory, (int) rowIndex0);
 
         if (rowIndex0 == rowIndex1)
         {
@@ -2172,9 +2174,9 @@ public ref partial struct Linearizer<T, L>
                 UpdateStartCoversFull(memory, (int) i, FullPixelCoverNegative);
             }
 
-            Span<int> cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
+            Span<F24Dot8> cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
 
-            UpdateCoverTable_Down(cmLast, 0, fy1);
+            UpdateCoverTable_Down(cmLast, Zero, fy1);
         }
     }
 
@@ -2182,12 +2184,12 @@ public ref partial struct Linearizer<T, L>
     private void UpdateStartCovers_Up(ThreadMemory memory, F24Dot8 y0, F24Dot8 y1)
     {
         // Line is going up.
-        TileIndex rowIndex0 = T.F24Dot8ToTileRowIndex(y0 - 1);
+        TileIndex rowIndex0 = T.F24Dot8ToTileRowIndex(y0 - FromBits(1));
         TileIndex rowIndex1 = T.F24Dot8ToTileRowIndex(y1);
         F24Dot8 fy0 = y0 - T.TileRowIndexToF24Dot8(rowIndex0);
         F24Dot8 fy1 = y1 - T.TileRowIndexToF24Dot8(rowIndex1);
 
-        Span<int> cmFirst = GetStartCoversForRowAtIndex(memory, (int) rowIndex0);
+        Span<F24Dot8> cmFirst = GetStartCoversForRowAtIndex(memory, (int) rowIndex0);
 
         if (rowIndex0 == rowIndex1)
         {
@@ -2195,14 +2197,14 @@ public ref partial struct Linearizer<T, L>
         }
         else
         {
-            UpdateCoverTable_Up(cmFirst, fy0, 0);
+            UpdateCoverTable_Up(cmFirst, fy0, Zero);
 
             for (TileIndex i = rowIndex0 - 1; i > rowIndex1; i--)
             {
                 UpdateStartCoversFull(memory, (int) i, FullPixelCoverPositive);
             }
 
-            Span<int> cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
+            Span<F24Dot8> cmLast = GetStartCoversForRowAtIndex(memory, (int) rowIndex1);
 
             UpdateCoverTable_Up(cmLast, T.TileHF24Dot8, fy1);
         }
@@ -2212,7 +2214,7 @@ public ref partial struct Linearizer<T, L>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void UpdateStartCoversFull(ThreadMemory memory, int index, int value)
     {
-        BumpToken<int> p = mStartCoverTable[index];
+        BumpToken<F24Dot8> p = mStartCoverTable[index];
 
         if (p.HasValue)
         {
@@ -2222,7 +2224,7 @@ public ref partial struct Linearizer<T, L>
         else
         {
             // Store first.
-            p = memory.Frame.Alloc<int>(T.TileH);
+            p = memory.Frame.Alloc<F24Dot8>(T.TileH);
 
             T.FillStartCovers(p.AsSpan(), value);
 

@@ -10,7 +10,7 @@ internal unsafe readonly struct RasterizableGeometry
         TileBounds bounds,
         BumpToken2D<byte> lines,
         BumpToken<int> firstBlockLineCounts,
-        BumpToken2D<int> startCoverTable)
+        BumpToken2D<F24Dot8> startCoverTable)
     {
         Geometry = geometry;
         Bounds = bounds;
@@ -23,7 +23,7 @@ internal unsafe readonly struct RasterizableGeometry
     public readonly TileBounds Bounds;
     public readonly BumpToken2D<byte> Lines;
     public readonly BumpToken<int> FirstBlockLineCounts;
-    public readonly BumpToken2D<int> StartCoverTable;
+    public readonly BumpToken2D<F24Dot8> StartCoverTable;
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool HasLinesForRow(int rowIndex)
@@ -52,7 +52,7 @@ internal unsafe readonly struct RasterizableGeometry
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<int> GetCoversForRow(int rowIndex)
+    public ReadOnlySpan<F24Dot8> GetCoversForRow(int rowIndex)
     {
         if (!StartCoverTable.HasValue)
         {
