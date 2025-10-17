@@ -58,7 +58,7 @@ public static class V128Helper
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<double> RoundToEven(Vector128<double> value)
+    public static Vector128<double> Round(Vector128<double> value)
     {
 #if NET9_0_OR_GREATER
         return Vector128.Round(value);
@@ -93,7 +93,7 @@ public static class V128Helper
 #if NET9_0_OR_GREATER
         return Vector128.ConvertToInt64Native(Vector128.Round(value));
 #else
-        return Vector128.ConvertToInt64(RoundToEven(value));
+        return Vector128.ConvertToInt64(Round(value));
 #endif
     }
 
@@ -104,6 +104,16 @@ public static class V128Helper
         return Vector128.CopySign(value, sign);
 #else
         return Vector128.ConditionalSelect(Vector128.Create(-0.0), sign, value);
+#endif
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<double> CopySign(Vector256<double> value, Vector256<double> sign)
+    {
+#if NET9_0_OR_GREATER
+        return Vector256.CopySign(value, sign);
+#else
+        return Vector256.ConditionalSelect(Vector256.Create(-0.0), sign, value);
 #endif
     }
 
@@ -150,6 +160,16 @@ public static class V128Helper
     {
 #if NET9_0_OR_GREATER
         return Vector128.MultiplyAddEstimate(a, b, c);
+#else
+        return a * b + c;
+#endif
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<double> MulAdd(Vector256<double> a, Vector256<double> b, Vector256<double> c)
+    {
+#if NET9_0_OR_GREATER
+        return Vector256.MultiplyAddEstimate(a, b, c);
 #else
         return a * b + c;
 #endif

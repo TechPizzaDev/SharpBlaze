@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
 
@@ -37,15 +39,15 @@ public class Main
 
     public void Rasterize()
     {
-        IntSize imageSize = mImage.UpdateSize(new IntSize(
-            (int) WindowWidth, (int) WindowHeight
-        ));
+        IntSize windowSize = new((int) WindowWidth, (int) WindowHeight);
+        mImage.UpdateSize(windowSize, Unsafe.SizeOf<Vector4>());
 
         long raster_start = Stopwatch.GetTimestamp();
 
         Matrix matrix = mViewData.GetMatrix();
 
-        mImage.ClearImage();
+        mImage.GetImageData().GetSpan2D<Vector4>().Fill(new Vector4(1f));
+
         mImage.DrawImage(mVectorImage, matrix, executor);
 
         long raster_end = Stopwatch.GetTimestamp();
@@ -75,13 +77,13 @@ public class Main
         }
         avgTime /= span.Length;
         double stDev = Math.Sqrt(sqSum / span.Length - avgTime * avgTime);
-        
+
         span.Sort();
         double median = span[span.Length / 2];
 
         return (
             TimeSpan.FromMicroseconds(avgTime),
-            TimeSpan.FromMicroseconds(stDev), 
+            TimeSpan.FromMicroseconds(stDev),
             TimeSpan.FromMicroseconds(median));
     }
 

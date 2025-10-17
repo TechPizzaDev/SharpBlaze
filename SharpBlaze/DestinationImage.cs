@@ -1,33 +1,35 @@
 using System;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
-
 
 /**
  * A helper class for managing an image to draw on.
  */
-public unsafe class DestinationImage<T>
+public unsafe class DestinationImage<T> : IDisposable
     where T : unmanaged, ITileDescriptor<T>
 {
     public DestinationImage()
     {
     }
 
-    private byte* mImageData = null;
-    private IntSize mImageSize;
-    private int mBytesPerRow = 0;
-    private int mImageDataSize = 0;
-
-
-    ~DestinationImage()
+    private ImageData mImageData;
+    private ulong mImageDataSize;
+    
+    public void Dispose()
     {
-        NativeMemory.Free(mImageData);
+        if (mImageData.Data != null)
+        {
+            NativeMemory.Free(mImageData.Data);
+            mImageData = default;
+        }
     }
 
 
-    public IntSize UpdateSize(IntSize size)
+    public IntSize UpdateSize(IntSize size, int pixelSize)
     {
         Debug.Assert(size.Width > 0);
         Debug.Assert(size.Height > 0);
@@ -36,36 +38,30 @@ public unsafe class DestinationImage<T>
         TileIndex w = Linearizer.CalculateColumnCount<T>(size.Width) * (TileIndex) T.TileW;
 
         // Calculate how many bytes are required for the image.
-        int bytes = checked((int) (w * 4 * (uint) size.Height));
-
+        ulong bytes = w * (ulong) pixelSize * (ulong) size.Height;
+        void* data = mImageData.Data;
+        
         if (mImageDataSize < bytes)
         {
-            const int ImageSizeRounding = 1024 * 32;
-            const int ImageSizeRoundingMask = ImageSizeRounding - 1;
+            const ulong ImageSizeRounding = 1024 * 32;
+            const ulong ImageSizeRoundingMask = ImageSizeRounding - 1;
 
-            int m = bytes + ImageSizeRoundingMask;
+            ulong m = bytes + ImageSizeRoundingMask;
+            ulong bytesRounded = m & ~ImageSizeRoundingMask;
 
-            int bytesRounded = m & ~ImageSizeRoundingMask;
-
-            NativeMemory.Free(mImageData);
-
-            mImageData = (byte*) (NativeMemory.Alloc((nuint) bytesRounded));
+            data = NativeMemory.Realloc(data, checked((nuint) bytesRounded));
             mImageDataSize = bytesRounded;
         }
 
-        mImageSize.Width = (int) w;
-        mImageSize.Height = size.Height;
-        mBytesPerRow = (int) (w * 4);
-
-        return mImageSize;
+        mImageData = new ImageData(
+            data, 
+            (int) w,
+            size.Height, 
+            checked((nint) w * pixelSize),
+            pixelSize);
+        
+        return new IntSize(mImageData.Width, mImageData.Height);
     }
-
-
-    public void ClearImage()
-    {
-        NativeMemory.Clear(mImageData, (nuint) (mImageSize.Width * 4 * mImageSize.Height));
-    }
-
 
     public void DrawImage(VectorImage image, in Matrix matrix, Executor executor)
     {
@@ -75,9 +71,7 @@ public unsafe class DestinationImage<T>
             return;
         }
 
-        ImageData d = new(mImageData, mImageSize.Width, mImageSize.Height, mBytesPerRow);
-
-        Rasterizer<T>.Rasterize(geometries.Span, matrix, executor, d, new SpanRasterizer());
+        Rasterizer<T>.Rasterize(geometries.Span, matrix, executor, mImageData, new LinearRasterizer());
         
         GC.KeepAlive(image);
 
@@ -94,32 +88,75 @@ public unsafe class DestinationImage<T>
     }
 
 
-    public IntSize GetImageSize()
+    sealed class LinearRasterizer : LineRasterizer<Vector4, float, LinearRasterizer.Blender>
     {
-        return mImageSize;
+        protected override Blender CreateBlender(in Geometry geometry)
+        {
+            Vector4 color = new Vector4(
+                geometry.Color & 0xff,
+                (geometry.Color >> 8) & 0xff,
+                (geometry.Color >> 16) & 0xff,
+                geometry.Color >> 24) / 255.0f;
+
+            return new Blender(color, geometry.Rule);
+        }
+
+
+        public readonly struct Blender : ISpanBlender<Vector4, float>
+        {
+            public Blender(Vector4 color, FillRule fillRule)
+            {
+                Color = color;
+                FillRule = fillRule;
+
+                IsSolid = Vector128.GreaterThanOrEqualAll(
+                    Color.AsVector128(),
+                    Vector128.Create(0, 0, 0, 1f));
+            }
+
+            readonly Vector4 Color;
+            readonly FillRule FillRule;
+            readonly bool IsSolid;
+
+
+            public void CompositeSpan(Span<Vector4> d, float alpha)
+            {
+                if (d.Length >= 4 && alpha == 1.0f && IsSolid)
+                {
+                    d.Fill(Color);
+                }
+                else
+                {
+                    CompositeTransparentSpan(d, alpha);
+                }
+            }
+
+
+            private void CompositeTransparentSpan(Span<Vector4> d, float alpha)
+            {
+                Vector4 color = Color * alpha;
+                Vector4 a = new(1.0f - color.W);
+
+                for (int i = 0; i < d.Length; i++)
+                {
+                    d[i] = color + d[i] * a;
+                }
+            }
+
+            public float ApplyFillRule(F24Dot8 area)
+            {
+                float a = area.ToBits() * (1f / (512f * 256f));
+                return FillRule switch
+                {
+                    FillRule.EvenOdd => float.Abs(a - 2.0f * float.Round(0.5f * a)),
+                    _ => float.Min(float.Abs(a), 1.0f),
+                };
+            }
+        }
     }
 
-
-    public int GetImageWidth()
-    {
-        return mImageSize.Width;
-    }
-
-
-    public int GetImageHeight()
-    {
-        return mImageSize.Height;
-    }
-
-
-    public byte* GetImageData()
+    public ImageData GetImageData()
     {
         return mImageData;
-    }
-
-
-    public int GetBytesPerRow()
-    {
-        return mBytesPerRow;
     }
 }

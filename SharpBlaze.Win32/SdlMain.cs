@@ -1,5 +1,7 @@
 using System;
-using Silk.NET.Maths;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using Silk.NET.SDL;
 
 namespace SharpBlaze.Win32;
@@ -95,24 +97,36 @@ public unsafe class SdlMain : Main, IDisposable
 
             sdl.LockSurface(drawSurface);
             {
-                int srcPitch = mImage.GetBytesPerRow();
-                int srcHeight = mImage.GetImageHeight();
-                Span<byte> data = new(mImage.GetImageData(), srcHeight * srcPitch);
+                ImageData image = mImage.GetImageData();
+                Span2D<byte> source = image.GetSpan2D<byte>();
 
-                int dstPitch = drawSurface->Pitch;
-                Span<byte> target = new(drawSurface->Pixels, drawSurface->H * dstPitch);
+                Span2D<uint> target = new(
+                    drawSurface->Pixels,
+                    drawSurface->W,
+                    drawSurface->H,
+                    drawSurface->Pitch);
 
-                if (srcPitch == dstPitch)
+                // TODO: Respect endianness?
+
+                if (source.Stride == target.Stride)
                 {
-                    data.CopyTo(target);
+                    source.CopyTo(target.Cast<byte>());
                 }
                 else
                 {
-                    for (int y = 0; y < srcHeight; y++)
+                    for (int y = 0; y < source.Height; y++)
                     {
-                        Span<byte> src = data.Slice(y * srcPitch, srcPitch);
-                        Span<byte> dst = target.Slice(y * dstPitch, dstPitch);
-                        src.CopyTo(dst);
+                        Span<float> src = MemoryMarshal.Cast<byte, float>(source[y]);
+                        Span<uint> dst = target[y];
+
+                        if (Avx512F.IsSupported)
+                        {
+                            ConvertAvx512F(src, dst);
+                        }
+                        else
+                        {
+                            ConvertV128(src, dst);
+                        }
                     }
                 }
             }
@@ -123,6 +137,55 @@ public unsafe class SdlMain : Main, IDisposable
             sdl.UpdateWindowSurface(window);
         }
         while (true);
+    }
+
+    private static void ConvertAvx512F(ReadOnlySpan<float> src, Span<uint> dst)
+    {
+        while (src.Length >= Vector512<float>.Count)
+        {
+            Vector512<uint> u32 = Avx512F.ConvertToVector512UInt32(Vector512.Create(src) * 255f);
+            Vector128<byte> rgba8 = Avx512F.ConvertToVector128ByteWithSaturation(u32);
+            rgba8.AsUInt32().CopyTo(dst);
+
+            src = src[Vector512<float>.Count..];
+            dst = dst[4..];
+        }
+        ConvertScalar(src, dst);
+    }
+
+    private static void ConvertV128(ReadOnlySpan<float> src, Span<uint> dst)
+    {
+        while (src.Length >= Vector128<float>.Count * 4)
+        {
+            Vector128<uint> u32_0 = Vector128.ConvertToUInt32(Vector128.Create(src[..4]) * 255f);
+            Vector128<uint> u32_1 = Vector128.ConvertToUInt32(Vector128.Create(src[4..8]) * 255f);
+            Vector128<uint> u32_2 = Vector128.ConvertToUInt32(Vector128.Create(src[8..12]) * 255f);
+            Vector128<uint> u32_3 = Vector128.ConvertToUInt32(Vector128.Create(src[12..16]) * 255f);
+
+            Vector128<ushort> u16_0 = Vector128.Narrow(u32_0, u32_1).AsUInt16();
+            Vector128<ushort> u16_1 = Vector128.Narrow(u32_2, u32_3).AsUInt16();
+
+            Vector128<byte> rgba8 = Vector128.Narrow(u16_0, u16_1);
+            rgba8.AsUInt32().CopyTo(dst);
+
+            src = src[(Vector128<float>.Count * 4)..];
+            dst = dst[4..];
+        }
+        ConvertScalar(src, dst);
+    }
+
+    private static void ConvertScalar(ReadOnlySpan<float> src, Span<uint> dst)
+    {
+        while (src.Length >= Vector128<float>.Count)
+        {
+            Vector128<uint> u32 = Vector128.ConvertToUInt32(Vector128.Create(src) * 255f);
+            Vector128<ushort> u16 = Vector128.Narrow(u32, u32).AsUInt16();
+            Vector128<byte> u8 = Vector128.Narrow(u16, u16);
+            dst[0] = u8.AsUInt32().ToScalar();
+
+            src = src[Vector128<float>.Count..];
+            dst = dst[1..];
+        }
     }
 
     public void Dispose()

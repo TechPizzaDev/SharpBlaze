@@ -1,8 +1,6 @@
 using System;
 using System.Diagnostics;
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
@@ -46,7 +44,7 @@ public unsafe partial struct Rasterizer<T>
         Debug.Assert(image.Data != null);
         Debug.Assert(image.Width > 0);
         Debug.Assert(image.Height > 0);
-        Debug.Assert(image.BytesPerRow >= (image.Width * 4));
+        Debug.Assert(image.Stride >= image.Width * image.BytesPerPixel);
 
         StepState1 state1 = Step1(threads, image, geometries, matrix);
         StepState2 state2 = Step2(threads, state1);
@@ -1383,28 +1381,22 @@ public unsafe partial struct Rasterizer<T>
         in Geometry geometry,
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable,
-        int columnCount,
-        ImageData image,
+        in ImageData image,
         LineRasterizer lineRasterizer)
     {
-        // A maximum number of horizontal tiles.
-        int horizontalCount = (int)raster.Bounds.ColumnCount;
-        Debug.Assert(horizontalCount <= columnCount);
+        TileBounds bounds = raster.Bounds;
 
-        int rowWidth = horizontalCount * T.TileW;
-        int bitVectorsPerRow = BitVectorsForMaxBitCount(rowWidth);
+        uint rowWidth = bounds.ColumnCount * (uint) T.TileW;
+        uint bitVectorsPerRow = BitVectorsForMaxBitCount(rowWidth);
 
         // Limit views to proper dimensions.
-        Span2D<BitVector> bitVectorIter = bitVectorTable.Cut(bitVectorsPerRow);
-        Span2D<CoverArea> coverAreaIter = coverAreaTable.Cut(rowWidth);
+        Span2D<BitVector> bitVectorIter = bitVectorTable.Cut((int) bitVectorsPerRow);
+        Span2D<CoverArea> coverAreaIter = coverAreaTable.Cut((int) rowWidth);
 
         // Erase bit vector table.
-        for (int i = 0; i < bitVectorIter.Height; i++)
-        {
-            bitVectorIter[i].Clear();
-        }
+        bitVectorIter.Clear();
 
-        if (IsNarrow(raster.Bounds))
+        if (IsNarrow(bounds))
         {
             IterateLinesX16Y16(localRowIndex, in raster, bitVectorIter, coverAreaIter);
         }
@@ -1413,34 +1405,31 @@ public unsafe partial struct Rasterizer<T>
             IterateLinesX32Y16(localRowIndex, in raster, bitVectorIter, coverAreaIter);
         }
 
-        int x = (int) raster.Bounds.X * T.TileW;
+        // X position, measured in pixels.
+        int pX0 = (int) bounds.X * T.TileW;
 
-        Debug.Assert((x & (T.TileW - 1)) == 0, "X must be aligned on tile boundary.");
+        Debug.Assert((pX0 & (T.TileW - 1)) == 0, "X must be aligned on tile boundary.");
 
-        Debug.Assert(rowWidth <= image.Width - x, "Row overruns image width.");
+        Debug.Assert(rowWidth <= image.Width - pX0, "Row overruns image width.");
 
         // Y position, measured in tiles.
-        int miny = (int) (raster.Bounds.Y + localRowIndex);
+        int y = (int) (bounds.Y + localRowIndex);
 
-        // Y position, measure in pixels.
-        int py = miny * T.TileH;
+        // Y position, measured in pixels.
+        int pY0 = y * T.TileH;
 
         // Maximum y position, measured in pixels.
-        int maxpy = py + T.TileH;
+        int pY1 = pY0 + T.TileH;
 
-        // Calculate maximum height. This can only get less than 8 when rendering
+        // Calculate maximum height. This can only get less than TileH when rendering
         // the last row of the image and image height is not multiple of row height.
-        int height = Math.Min(maxpy, image.Height) - py;
+        int viewHeight = Math.Min(pY1, image.Height) - pY0;
 
-        int rowStride = image.BytesPerRow;
-        int rowByteWidth = Math.Min(rowWidth, image.Width - x) * sizeof(uint);
+        int viewByteWidth = Math.Min((int) rowWidth, image.Width - pX0) * image.BytesPerPixel;
 
-        Span<byte> imageData = new(image.Data, image.Height * rowStride);
-        Span2D<byte> rowView = new(
-            imageData[(py * rowStride + x * sizeof(uint))..],
-            rowByteWidth,
-            height,
-            rowStride);
+        Span2D<byte> rowView = image
+            .GetSpan2D<byte>()
+            .Slice(pX0 * image.BytesPerPixel, pY0, viewByteWidth, viewHeight);
             
         lineRasterizer.Rasterize(localRowIndex, raster, geometry, rowView, bitVectorIter, coverAreaIter);
     }
@@ -1454,14 +1443,14 @@ public unsafe partial struct Rasterizer<T>
         ReadOnlySpan<RasterizableGeometry> rasterizables,
         ReadOnlySpan<Geometry> geometries,
         ThreadMemory memory,
-        ImageData image,
+        in ImageData image,
         LineRasterizer lineRasterizer)
     {
         // How many columns can fit into image.
-        int columnCount = (int) CalculateColumnCount<T>(image.Width);
+        uint columnCount = CalculateColumnCount<T>(image.Width);
 
         // Create bit vector arrays.
-        int bitVectorsPerRow = BitVectorsForMaxBitCount(columnCount * T.TileW);
+        int bitVectorsPerRow = (int) BitVectorsForMaxBitCount(columnCount * (uint) T.TileW);
         int bitVectorCount = bitVectorsPerRow * T.TileH;
 
         Span2D<BitVector> bitVectors = new(
@@ -1470,7 +1459,7 @@ public unsafe partial struct Rasterizer<T>
             T.TileH);
 
         // Create cover/area table.
-        int coverAreaPerRow = columnCount * T.TileW;
+        int coverAreaPerRow = (int) columnCount * T.TileW;
         int coverAreaCount = coverAreaPerRow * T.TileH;
 
         Span2D<CoverArea> coverArea = new(
@@ -1488,14 +1477,15 @@ public unsafe partial struct Rasterizer<T>
                 ref readonly RasterizableGeometry raster = ref rasterizables[item.Rasterizable];
                 ref readonly Geometry geometry = ref geometries[raster.Geometry];
                 
+                Debug.Assert(raster.Bounds.ColumnCount <= columnCount);
+                
                 RasterizeOneItem(
                     item.LocalRowIndex,
                     in raster,
                     in geometry,
                     bitVectors,
                     coverArea,
-                    columnCount,
-                    image,
+                    in image,
                     lineRasterizer);
             }
 

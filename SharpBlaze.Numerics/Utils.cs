@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using SharpBlaze.Numerics;
@@ -39,23 +38,21 @@ public static class Utils
      * If t is something else, returns value linearly interpolated between A and B.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T InterpolateLinear<T, V>(T A, T B, V t)
-        where T : INumber<T>
-        where V : INumber<V>
+    public static double InterpolateLinear(double a, double b, double t)
     {
-        Debug.Assert(t >= V.Zero);
-        Debug.Assert(t <= V.One);
+        Debug.Assert(t >= 0.0);
+        Debug.Assert(t <= 1.0);
 
-        return ScalarHelper.MulAdd(B - A, T.CreateTruncating(t), A);
+        return ScalarHelper.MulAdd(b - a, t, a);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<double> InterpolateLinear(Vector128<double> A, Vector128<double> B, Vector128<double> t)
+    public static Vector128<double> InterpolateLinear(Vector128<double> a, Vector128<double> b, Vector128<double> t)
     {
         Debug.Assert(Vector128.GreaterThanOrEqualAll(t, Vector128.Create(0.0)));
         Debug.Assert(Vector128.LessThanOrEqualAll(t, Vector128.Create(1.0)));
 
-        return V128Helper.MulAdd(B - A, t, A);
+        return V128Helper.MulAdd(b - a, t, a);
     }
 
 

@@ -16,4 +16,10 @@ internal static class ThrowHelper
     {
         throw new ArgumentOutOfRangeException();
     }
+    
+    [DoesNotReturn]
+    public static void ThrowDestinationTooShort()
+    {
+        throw new ArgumentException("Destination is too short.");
+    }
 }

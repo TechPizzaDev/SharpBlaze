@@ -100,22 +100,24 @@ public unsafe class Win32Main : Main
 
                 HDC hdcMem = CreateCompatibleDC(hdc);
 
+                ImageData imageData = image.GetImageData();
+
                 BITMAPINFO info = new();
                 info.bmiHeader.biSize = (uint) sizeof(BITMAPINFOHEADER);
-                info.bmiHeader.biWidth = image.GetImageWidth();
-                info.bmiHeader.biHeight = -image.GetImageHeight();
+                info.bmiHeader.biWidth = imageData.Width;
+                info.bmiHeader.biHeight = -imageData.Height;
                 info.bmiHeader.biPlanes = 1;
                 info.bmiHeader.biBitCount = 32;
                 info.bmiHeader.biCompression = BI.BI_RGB;
 
-                int byteCount = image.GetBytesPerRow() * image.GetImageHeight();
-                byte* pixelStart = image.GetImageData();
-                SwapRedAndBlue(new Span<byte>(pixelStart, byteCount));
-                SetDIBits(hdcMem, main.g_hBitmap, 0, (uint) image.GetImageHeight(), pixelStart, &info, DIB_RGB_COLORS);
+                nuint byteCount = (nuint) imageData.Stride * (uint) imageData.Height;
+                void* pixelStart = imageData.Data;
+                SwapRedAndBlue(new Span<uint>(pixelStart, (int) (byteCount / sizeof(uint))));
+                SetDIBits(hdcMem, main.g_hBitmap, 0, (uint) imageData.Height, pixelStart, &info, DIB_RGB_COLORS);
 
-                BITMAP bm;
                 HGDIOBJ hbmOld = SelectObject(hdcMem, main.g_hBitmap);
 
+                BITMAP bm;
                 GetObject(main.g_hBitmap, sizeof(BITMAP), &bm);
 
                 BitBlt(hdc, 0, 0, bm.bmWidth, bm.bmHeight, hdcMem, 0, 0, SRCCOPY);
@@ -172,31 +174,30 @@ public unsafe class Win32Main : Main
         return 0;
     }
 
-    private static void SwapRedAndBlue(Span<byte> data)
+    private static void SwapRedAndBlue(Span<uint> data)
     {
         if (Vector128.IsHardwareAccelerated)
         {
-            while (data.Length >= Vector128<byte>.Count)
-            {
-                Vector128<byte> rgba = Vector128.Create<byte>(data);
-                Vector128<byte> bgra = Vector128.Shuffle(
-                    rgba,
-                    Vector128.Create((byte) 2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15));
+            Vector128<byte> indices = BitConverter.IsLittleEndian
+                ? Vector128.Create((byte) 2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15)
+                : Vector128.Create((byte) 3, 0, 1, 2, 7, 4, 5, 6, 11, 8, 9, 10, 15, 12, 13, 14);
 
-                bgra.CopyTo(data);
-                data = data[Vector128<byte>.Count..];
+            while (data.Length >= Vector128<uint>.Count)
+            {
+                Vector128<byte> rgba = Vector128.Create<uint>(data).AsByte();
+                Vector128<byte> bgra = Vector128.Shuffle(rgba, indices);
+
+                bgra.AsUInt32().CopyTo(data);
+                data = data[Vector128<uint>.Count..];
             }
         }
 
-        while (data.Length >= 4)
+        for (int i = 0; i < data.Length; i++)
         {
-            byte r = data[2];
-            byte b = data[0];
-
-            data[0] = r;
-            data[2] = b;
-
-            data = data[4..];
+            uint rgba = data[i];
+            uint d_r0b0 = uint.RotateLeft(rgba & 0x00ff00ff, 16);
+            uint d_0g0a = rgba & 0xff00ff00;
+            data[i] = d_r0b0 | d_0g0a;
         }
     }
 }

@@ -2,14 +2,12 @@ using System.Diagnostics;
 
 namespace SharpBlaze;
 
-
 /**
  * A simple struct which keeps a pointer to image data and associated
  * properties. It does not allocate or free any memory.
  */
-public unsafe struct ImageData
+public unsafe readonly struct ImageData
 {
-
     /**
      * Construct image data.
      *
@@ -21,25 +19,35 @@ public unsafe struct ImageData
      *
      * @param height Height in pixels. Must be at least 1.
      *
-     * @param bytesPerRow Byte stride. Must be at least width × bpp.
+     * @param stride Byte stride. Must be at least width × bpp.
      */
-    public ImageData(byte* d, int width, int height, int bytesPerRow)
+    public ImageData(void* data, int width, int height, nint stride, int bytesPerPixel)
     {
-        Data = d;
+        Data = data;
         Width = width;
         Height = height;
-        BytesPerRow = bytesPerRow;
+        Stride = stride;
+        BytesPerPixel = bytesPerPixel;
 
         Debug.Assert(width > 0);
         Debug.Assert(height > 0);
 
         // Do not assume any specific bpp, but assume it is at least 1 byte
         // per pixel.
-        Debug.Assert(bytesPerRow >= width);
+        Debug.Assert(stride >= (nint) width * bytesPerPixel);
     }
 
-    public byte* Data = null;
-    public readonly int Width = 0;
-    public readonly int Height = 0;
-    public readonly int BytesPerRow = 0;
+    public readonly void* Data;
+    public readonly int Width;
+    public readonly int Height;
+    public readonly nint Stride;
+    public readonly int BytesPerPixel;
+
+    public Span2D<T> GetSpan2D<T>()
+        where T : unmanaged
+    {
+        ulong width = (uint) Width * (ulong) (uint) BytesPerPixel / (ulong) sizeof(T);
+        
+        return new Span2D<T>((T*) Data, checked((int) width), Height, Stride);
+    }
 }

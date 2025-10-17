@@ -70,8 +70,9 @@ public class VectorImageBuilder
 
             Range tagRange = new(prevTagOffset, tagOffset);
             Range pointRange = new(prevPointOffset, pointOffset);
-            if (TryCreateGeo(fillRule, color, tagRange, pointRange, ref fullBounds, out geometries[geometryCount]))
+            if (TryCreateGeo(fillRule, color, tagRange, pointRange, out geometries[geometryCount]))
             {
+                fullBounds = IntRect.Union(fullBounds, geometries[geometryCount].PathBounds);
                 geometryCount++;
             }
 
@@ -86,16 +87,16 @@ public class VectorImageBuilder
 
     private bool TryCreateGeo(
         FillRule fillRule, uint color,
-        Range tagRange, Range pointRange, ref IntRect fullBounds, out Geometry geometry)
+        Range tagRange, Range pointRange, out Geometry geometry)
     {
-        PathTag[] tags = CollectionsMarshal.AsSpan(_tags)[tagRange].ToArray();
-        ReadOnlySpan<FloatPoint> pointSpan = CollectionsMarshal.AsSpan(_points)[pointRange];
+        Span<PathTag> tags = CollectionsMarshal.AsSpan(_tags)[tagRange];
+        Span<FloatPoint> pointSpan = CollectionsMarshal.AsSpan(_points)[pointRange];
 
         if (tags.Length == 0)
         {
             Debug.Assert(pointSpan.Length == 0);
 
-            Unsafe.SkipInit(out geometry);
+            geometry = default;
             return false;
         }
 
@@ -104,13 +105,12 @@ public class VectorImageBuilder
 
         geometry = new Geometry(
             pBounds,
-            tags,
+            tags.ToArray(),
             points, 
             Matrix.Identity,
             color,
             fillRule);
 
-        fullBounds = IntRect.Union(fullBounds, pBounds);
         return true;
     }
 
@@ -129,6 +129,6 @@ public class VectorImageBuilder
             dst[i] = new FloatPoint(p);
         }
 
-        return new FloatRect(new FloatPoint(min), new FloatPoint(max));
+        return new FloatRect(min, max);
     }
 }
