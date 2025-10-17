@@ -1,13 +1,16 @@
+using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
 
-public readonly struct F24Dot8Point 
+public readonly struct F24Dot8Point
 {
     public readonly F24Dot8 X;
     public readonly F24Dot8 Y;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public F24Dot8Point(F24Dot8 x, F24Dot8 y)
     {
         X = x;
@@ -17,21 +20,19 @@ public readonly struct F24Dot8Point
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector128<int> ToVector128()
     {
-        return Vector128.Create((uint)X._value | ((ulong)Y._value << 32)).AsInt32();
+        return Vector128.Create(Unsafe.BitCast<F24Dot8Point, long>(this)).AsInt32();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector256<int> ToVector256()
     {
-        return Vector256.Create((uint)X._value | ((ulong)Y._value << 32)).AsInt32();
+        return Vector256.Create(Unsafe.BitCast<F24Dot8Point, long>(this)).AsInt32();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public F24Dot8Point Clamp(F24Dot8Point min, F24Dot8Point max)
+    public static Vector128<int> ReadAsVector128(ReadOnlySpan<F24Dot8Point> span)
     {
-        return new F24Dot8Point(
-            Utils.Clamp(X, min.X, max.X),
-            Utils.Clamp(Y, min.Y, max.Y));
+        return MemoryMarshal.Read<Vector128<int>>(MemoryMarshal.AsBytes(span));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

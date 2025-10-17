@@ -871,7 +871,6 @@ public ref partial struct Linearizer<T, L>
             {
                 // Curve is completely inside.
                 Span<F24Dot8Point> q = stackalloc F24Dot8Point[3];
-                
                 F24Dot8PointX3.ClampFromFloat(p, default, clip.FMax, q);
 
                 AddContainedQuadraticF24Dot8(memory, q);
@@ -882,9 +881,9 @@ public ref partial struct Linearizer<T, L>
         // Remaining option is that primitive potentially intersects clipping bounds.
         // First is to monotonize curve and attempt to clip it.
 
-        uint xyMask = QuadraticControlPointBetweenEndPoints(p).ExtractMostSignificantBits();
+        Vector128<ulong> xyMask = QuadraticControlPointBetweenEndPoints(p).AsUInt64();
         
-        if (xyMask == 0b11)
+        if (xyMask == Vector128<ulong>.AllBitsSet)
         {
             // Already monotonic in both directions. Quite common case, especially
             // with quadratics, return early.
@@ -892,7 +891,7 @@ public ref partial struct Linearizer<T, L>
             return;
         }
 
-        if ((xyMask & 0b10) != 0)
+        if (xyMask.GetElement(1) != 0)
         {
             // Here we know it has control points outside of end point range
             // in X direction.
@@ -909,7 +908,6 @@ public ref partial struct Linearizer<T, L>
         ClipBounds clip, scoped ReadOnlySpan<FloatPoint> p)
     {
         Span<FloatPoint> monoX = stackalloc FloatPoint[5];
-        
         int nX = CutQuadraticAtXExtrema(p, monoX);
 
         for (int j = 0; j < nX; j++)
@@ -924,7 +922,6 @@ public ref partial struct Linearizer<T, L>
     {
         Span<FloatPoint> monoX = stackalloc FloatPoint[5];
         Span<FloatPoint> monoY = stackalloc FloatPoint[5];
-        
         int nY = CutQuadraticAtYExtrema(p, monoY);
             
         for (int i = 0; i < nY; i++)
@@ -1313,8 +1310,7 @@ public ref partial struct Linearizer<T, L>
             if (maxx <= clip.Max.X && pmin.GetElement(0) >= 0)
             {
                 Span<F24Dot8Point> c = stackalloc F24Dot8Point[4];
-                
-                F24Dot8PointX4.ClampFromFloat(p, default, clip.FMax, c);
+                F24Dot8PointX4.ClampFromFloat(p0, p1, p2, p3, clip.FMax.ToVector128(), c);
 
                 AddContainedCubicF24Dot8(memory, c);
                 return;
@@ -1322,19 +1318,18 @@ public ref partial struct Linearizer<T, L>
         }
 
         // Remaining option is that primitive potentially intersects clipping bounds.
-        //
         // Actual clipper expects monotonic cubics, so monotonize input.
 
-        uint xyMask = CubicControlPointsBetweenEndPoints(p).ExtractMostSignificantBits();
+        Vector128<ulong> xyMask = CubicControlPointsBetweenEndPoints(p).AsUInt64();
         
-        if (xyMask == 0b11)
+        if (xyMask == Vector128<ulong>.AllBitsSet)
         {
             // Already monotonic in both directions. Quite common case, return early.
             AddUncontainedMonotonicCubic(memory, clip, p);
             return;
         }
 
-        if ((xyMask & 0b10) != 0)
+        if (xyMask.GetElement(1) != 0)
         {
             // Here we know it has control points outside of end point range
             // in X direction.
@@ -1364,7 +1359,6 @@ public ref partial struct Linearizer<T, L>
     {
         Span<FloatPoint> monoX = stackalloc FloatPoint[10];
         Span<FloatPoint> monoY = stackalloc FloatPoint[10];
-        
         int nY = CutCubicAtYExtrema(p, monoY);
 
         for (int i = 0; i < nY; i++)
@@ -1437,7 +1431,6 @@ public ref partial struct Linearizer<T, L>
     {
         Span<FloatPoint> tmp = stackalloc FloatPoint[7];
         Span<FloatPoint> pts = stackalloc FloatPoint[4];
-        
         p[..4].CopyTo(pts);
         
         double sy = pts[0].Y;
@@ -1619,7 +1612,7 @@ public ref partial struct Linearizer<T, L>
 
         // At this point we have entire curve inside bounding box.
         {
-            F24Dot8PointX4.ClampFromFloat(p, default, clip.FMax, c);
+            F24Dot8PointX4.ClampFromFloat(p, clip.FMax.ToVector128(), c);
 
             AddContainedCubicF24Dot8(memory, c);
         }
@@ -1684,7 +1677,7 @@ public ref partial struct Linearizer<T, L>
 
         // At this point we have entire curve inside bounding box.
         {
-            F24Dot8PointX4.ClampFromFloat(p, default, clip.FMax, c);
+            F24Dot8PointX4.ClampFromFloat(p, clip.FMax.ToVector128(), c);
 
             AddContainedCubicF24Dot8(memory, c);
         }
@@ -1706,7 +1699,7 @@ public ref partial struct Linearizer<T, L>
         {
             // Vertical line inside clip rect.
             Span<F24Dot8Point> c = stackalloc F24Dot8Point[4];
-            F24Dot8PointX4.ClampFromFloat(p, default, clip.FMax, c);
+            F24Dot8PointX4.ClampFromFloat(p, clip.FMax.ToVector128(), c);
 
             AddContainedCubicF24Dot8(memory, c);
         }

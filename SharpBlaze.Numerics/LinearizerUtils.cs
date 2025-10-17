@@ -25,11 +25,11 @@ public struct F24Dot8PointX2
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ClampFromFloat(
-        FloatPoint p0, FloatPoint p1,
+        Vector128<double> p0, Vector128<double> p1,
         F24Dot8Point min, F24Dot8Point max,
         Span<F24Dot8Point> result)
     {
-        Vector128<int> p01 = FromFloatToV128(p0.AsVector128(), p1.AsVector128());
+        Vector128<int> p01 = FromFloatToV128(p0, p1);
         
         Vector128<int> vMin = min.ToVector128();
         Vector128<int> vMax = max.ToVector128();
@@ -110,6 +110,21 @@ public struct F24Dot8PointX4
         p23.CopyTo(dst[4..]);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ClampFromFloat(
+        Vector128<double> p0, 
+        Vector128<double> p1, 
+        Vector128<double> p2, 
+        Vector128<double> p3, 
+        Vector128<int> max,
+        Span<F24Dot8Point> result)
+    {
+        (Vector128<int> p01, Vector128<int> p23) = FromFloatToV128(p0, p1, p2, p3);
+        p01 = Clamp(p01, Vector128<int>.Zero, max);
+        p23 = Clamp(p23, Vector128<int>.Zero, max);
+        FromV128(p01, p23, result);
+    }
+    
     public static void FromFloat(ReadOnlySpan<FloatPoint> p, Span<F24Dot8Point> result)
     {
         p = p[..4];
@@ -125,8 +140,7 @@ public struct F24Dot8PointX4
 
     public static void ClampFromFloat(
         ReadOnlySpan<FloatPoint> p,
-        F24Dot8Point min,
-        F24Dot8Point max,
+        Vector128<int> max,
         Span<F24Dot8Point> result)
     {
         p = p[..4];
@@ -137,10 +151,8 @@ public struct F24Dot8PointX4
             p[2].AsVector128(),
             p[3].AsVector128());
 
-        Vector128<int> vMin = min.ToVector128();
-        Vector128<int> vMax = max.ToVector128();
-        p01 = Clamp(p01, vMin, vMax);
-        p23 = Clamp(p23, vMin, vMax);
+        p01 = Clamp(p01, Vector128<int>.Zero, max);
+        p23 = Clamp(p23, Vector128<int>.Zero, max);
 
         FromV128(p01, p23, result);
     }
@@ -302,7 +314,6 @@ public static class LinearizerUtils
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool CutMonotonicQuadraticAtX(ReadOnlySpan<FloatPoint> q, double x, out double t)
     {
         q = q[..3];
@@ -311,7 +322,6 @@ public static class LinearizerUtils
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool CutMonotonicQuadraticAtY(ReadOnlySpan<FloatPoint> q, double y, out double t)
     {
         q = q[..3];
@@ -324,7 +334,7 @@ public static class LinearizerUtils
     {
         const double Tolerance = 1e-7;
 
-        Unsafe.SkipInit(out t);
+        t = 0;
 
         double p0 = pts[0];
         double p3 = pts[3];
@@ -354,7 +364,6 @@ public static class LinearizerUtils
         }
         else
         {
-            t = 0;
             return true;
         }
 
@@ -453,20 +462,18 @@ public static class LinearizerUtils
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsCubicFlatEnough(ReadOnlySpan<F24Dot8Point> c)
     {
         c = c[..4];
 
-        F24Dot8 tolerance = F24Dot8.F24Dot8_1 >> 1;
-        F24Dot8 c2 = new(2);
-        F24Dot8 c3 = new(3);
+        F24Dot8 tolerance = F24Dot8.One >> 1;
         
-        F24Dot8Point p0 = c[0];
-        F24Dot8Point p3 = c[3];
-        return
-            F24Dot8.Abs(c2 * p0.X - c3 * c[1].X + p3.X) <= tolerance &&
-            F24Dot8.Abs(c2 * p0.Y - c3 * c[1].Y + p3.Y) <= tolerance &&
-            F24Dot8.Abs(p0.X - c3 * c[2].X + c2 * p3.X) <= tolerance &&
-            F24Dot8.Abs(p0.Y - c3 * c[2].Y + c2 * p3.Y) <= tolerance;
+        Vector128<int> p0 = c[0].ToVector128();
+        Vector128<int> p12 = F24Dot8Point.ReadAsVector128(c.Slice(1, 2));
+        Vector128<int> p3 = c[3].ToVector128();
+
+        Vector128<int> sum = Vector128.Create(2, 2, 1, 1) * p0 - 3 * p12 + Vector128.Create(1, 1, 2, 2) * p3;
+        return Vector128.LessThanOrEqualAll(Vector128.Abs(sum), Vector128.Create(tolerance._value));
     }
 }

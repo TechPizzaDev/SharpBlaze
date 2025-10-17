@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
@@ -38,7 +39,7 @@ public static partial class CurveUtils
         if (delta > 0.0)
         {
             double d = Math.Sqrt(delta);
-            double q = -0.5 * (b + (b < 0.0 ? -d : d));
+            double q = -0.5 * (b + FlipSign(d, b));
             double rv0 = q / a;
             double rv1 = c / q;
 
@@ -51,32 +52,24 @@ public static partial class CurveUtils
             double r1 = ScalarHelper.MaxNative(rv0, rv1);
 
             int n = AcceptRoot(out roots[0], r0);
-
             n += AcceptRoot(out roots[n], r1);
 
             return n;
         }
 
-        if (a != 0)
-        {
-            return AcceptRoot(out roots[0], -0.5 * b / a);
-        }
-
-        return 0;
+        return AcceptRoot(out roots[0], -0.5 * b / a);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int AcceptRootWithin(out double t, double root)
     {
-        Unsafe.SkipInit(out t);
+        t = root;
 
-        if (root <= DBL_EPSILON || root >= (1.0 - DBL_EPSILON))
+        if (root <= DBL_EPSILON | root >= (1.0 - DBL_EPSILON))
         {
             return 0;
         }
-
-        t = root;
 
         return 1;
     }
@@ -96,7 +89,7 @@ public static partial class CurveUtils
         if (delta > 0.0)
         {
             double d = Math.Sqrt(delta);
-            double q = -0.5 * (b + (b < 0.0 ? -d : d));
+            double q = -0.5 * (b + FlipSign(d, b));
             double rv0 = q / a;
             double rv1 = c / q;
 
@@ -105,22 +98,16 @@ public static partial class CurveUtils
                 return AcceptRootWithin(out roots[0], rv0);
             }
 
-            double r0 = rv0 <= rv1 ? rv0 : rv1;
-            double r1 = rv0 <= rv1 ? rv1 : rv0;
-
+            double r0 = ScalarHelper.MinNative(rv0, rv1);
+            double r1 = ScalarHelper.MaxNative(rv0, rv1);
+            
             int n = AcceptRootWithin(out roots[0], r0);
-
             n += AcceptRootWithin(out roots[n], r1);
 
             return n;
         }
 
-        if (a != 0)
-        {
-            return AcceptRootWithin(out roots[0], -0.5 * b / a);
-        }
-
-        return 0;
+        return AcceptRootWithin(out roots[0], -0.5 * b / a);
     }
 
 
@@ -140,14 +127,11 @@ public static partial class CurveUtils
 
         Debug.Assert(double.IsFinite(tv));
 
-        if (tv <= 1e-15 || tv >= (1.0 - 1e-15))
-        {
-            return false;
-        }
-
+        const double epsilon = 1e-15;
+        
         t = tv;
-
-        return true;
+        
+        return tv >= epsilon & tv <= (1.0 - epsilon);
     }
 
 
@@ -172,15 +156,13 @@ public static partial class CurveUtils
         if (n == 1)
         {
             // One root, two output curves.
-
             Debug.Assert(t[0] > 0.0);
             Debug.Assert(t[0] < 1.0);
 
             CutCubicAt(src, dst, t[0]);
-            
+
             // Make sure curve tangents at extrema are horizontal.
             double y = dst[3].Y;
-
             dst[2].Y = y;
             dst[4].Y = y;
 
@@ -223,10 +205,7 @@ public static partial class CurveUtils
 
         Debug.Assert(n == 0);
 
-        dst[0] = src[0];
-        dst[1] = src[1];
-        dst[2] = src[2];
-        dst[3] = src[3];
+        src[..4].CopyTo(dst);
 
         return 1;
     }
@@ -242,7 +221,6 @@ public static partial class CurveUtils
         if (n == 1)
         {
             // One root, two output curves.
-
             Debug.Assert(t[0] > 0.0);
             Debug.Assert(t[0] < 1.0);
 
@@ -250,7 +228,6 @@ public static partial class CurveUtils
 
             // Make sure curve tangents at extrema are horizontal.
             double x = dst[3].X;
-
             dst[2].X = x;
             dst[4].X = x;
 
@@ -293,44 +270,46 @@ public static partial class CurveUtils
 
         Debug.Assert(n == 0);
 
-        dst[0] = src[0];
-        dst[1] = src[1];
-        dst[2] = src[2];
-        dst[3] = src[3];
+        src[..4].CopyTo(dst);
 
         return 1;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static double FlipSign(double x, double y)
+    {
+        Vector128<double> sign = Vector128.CreateScalarUnsafe(y) & Vector128.CreateScalarUnsafe(-0.0);
+        return (Vector128.CreateScalarUnsafe(x) ^ sign).ToScalar();
+    }
 
-    static bool IsQuadraticMonotonic(double a, double b, double c)
+    private static bool IsQuadraticMonotonic(double a, double b, double c)
     {
         double ab = a - b;
-        double bc = b - c;
-
-        if (ab < 0)
-        {
-            bc = -bc;
-        }
-
+        double bc = FlipSign(b - c, ab);
         return ab != 0 && bc >= 0;
     }
 
 
-    public static partial int CutQuadraticAtYExtrema(
-        ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst)
+    private static double SelectQuadraticEdge(double a, double b, double c)
+    {
+        double ab = Math.Abs(a - b);
+        double bc = Math.Abs(b - c);
+        return ab < bc ? a : c;
+    }
+
+
+    public static partial int CutQuadraticAtYExtrema(ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst)
     {
         src = src[..3];
         dst = dst[..5];
-        
+
         double a = src[0].Y;
         double b = src[1].Y;
         double c = src[2].Y;
 
         if (IsQuadraticMonotonic(a, b, c))
         {
-            dst[0] = src[0];
-            dst[1] = src[1];
-            dst[2] = src[2];
+            src.CopyTo(dst);
 
             return 1;
         }
@@ -340,44 +319,34 @@ public static partial class CurveUtils
             CutQuadraticAt(src, dst, t);
 
             double y = dst[2].Y;
-
             dst[1].Y = y;
             dst[3].Y = y;
 
             return 2;
         }
 
-        dst[0] = new FloatPoint(
-            src[0].X,
-            a
-        );
+        double m = SelectQuadraticEdge(a, b, c);
 
-        dst[1] = new FloatPoint(
-            src[1].X,
-            Math.Abs(a - b) < Math.Abs(b - c) ? a : c
-        );
-
-        dst[2] = new FloatPoint(
-            src[2].X,
-            c
-        );
+        dst[0] = src[0];
+        dst[1] = new FloatPoint(src[1].X, m);
+        dst[2] = src[2];
 
         return 1;
     }
 
 
-    public static partial int CutQuadraticAtXExtrema(
-        ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst)
+    public static partial int CutQuadraticAtXExtrema(ReadOnlySpan<FloatPoint> src, Span<FloatPoint> dst)
     {
+        src = src[..3];
+        dst = dst[..5];
+        
         double a = src[0].X;
         double b = src[1].X;
         double c = src[2].X;
 
         if (IsQuadraticMonotonic(a, b, c))
         {
-            dst[0] = src[0];
-            dst[1] = src[1];
-            dst[2] = src[2];
+            src.CopyTo(dst);
 
             return 1;
         }
@@ -387,27 +356,17 @@ public static partial class CurveUtils
             CutQuadraticAt(src, dst, t);
 
             double x = dst[2].X;
-
             dst[1].X = x;
             dst[3].X = x;
 
             return 2;
         }
 
-        dst[0] = new FloatPoint(
-            a,
-            src[0].Y
-        );
+        double m = SelectQuadraticEdge(a, b, c);
 
-        dst[1] = new FloatPoint(
-            Math.Abs(a - b) < Math.Abs(b - c) ? a : c,
-            src[1].Y
-        );
-
-        dst[2] = new FloatPoint(
-            c,
-            src[2].Y
-        );
+        dst[0] = src[0];
+        dst[1] = new FloatPoint(m, src[1].Y);
+        dst[2] = src[2];
 
         return 1;
     }
