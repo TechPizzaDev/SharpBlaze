@@ -68,14 +68,14 @@ public readonly struct IntRect
         Vector128<int> mix;
         if (Vector64.IsHardwareAccelerated)
         {
-            Vector64<int> min = Vector64.Min(vA.GetLower(), vB.GetLower());
-            Vector64<int> max = Vector64.Max(vA.GetUpper(), vB.GetUpper());
+            Vector64<int> max = Vector64.Max(vA.GetLower(), vB.GetLower());
+            Vector64<int> min = Vector64.Min(vA.GetUpper(), vB.GetUpper());
             mix = Vector128.Create(max, min);
         }
         else
         {
-            Vector128<int> min = Vector128.Min(vA, vB);
             Vector128<int> max = Vector128.Max(vA, vB);
+            Vector128<int> min = Vector128.Min(vA, vB);
             mix = Vector128.ConditionalSelect(Vector128.Create(~0, ~0, 0, 0), max, min);
         }
         return new IntRect(mix);
@@ -129,7 +129,6 @@ public readonly struct IntRect
 
         Vector128<int> left = Vector128.Shuffle(v, Vector128.Create(0, 1, 0, 1));
         Vector128<int> right = Vector128.Shuffle(v, Vector128.Create(2, 3, 2, 3));
-        
         return Vector128.LessThanAll(left, right);
     }
     
