@@ -43,11 +43,13 @@ public unsafe readonly struct ImageData
     public readonly nint Stride;
     public readonly int BytesPerPixel;
 
+    public IntRect Bounds => new(0, 0, Width, Height);
+
     public Span2D<T> GetSpan2D<T>()
         where T : unmanaged
     {
         ulong width = (uint) Width * (ulong) (uint) BytesPerPixel / (ulong) sizeof(T);
-        
+
         return new Span2D<T>((T*) Data, checked((int) width), Height, Stride);
     }
 }

@@ -40,14 +40,14 @@ public static partial class CompositionOps
         return Vector256.Create(s) + ApplyAlpha_Avx512BW(d, a);
     }
 
-    internal static void CompositeSpanSourceOver(Span<uint> d, byte alpha, uint color)
+    public static void CompositeSpanSourceOver(Span<uint> d, byte alpha, uint color)
     {
         // For opaque colors, use opaque span composition version.
         Debug.Assert(alpha != 255 || (color >> 24) < 255);
 
         uint cba = ApplyAlpha(color, alpha);
         byte a = (byte) (255u - (cba >> 24));
-        
+
         if (Avx512BW.IsSupported)
         {
             while (d.Length >= Vector256<uint>.Count)
@@ -80,58 +80,5 @@ public static partial class CompositionOps
                 d[x] = BlendSourceOver(dd, cba, a);
             }
         }
-    }
-
-
-    internal static void CompositeSpanSourceOverOpaque(Span<uint> d, byte alpha, uint color)
-    {
-        Debug.Assert((color >> 24) == 255);
-
-        if (alpha == 255)
-        {
-            // Solid span, write only.
-            d.Fill(color);
-        }
-        else
-        {
-            // Transparent span.
-            CompositeSpanSourceOver(d, alpha, color);
-        }
-    }
-}
-
-public readonly struct SpanBlender : ISpanBlender<uint, byte>
-{
-    public SpanBlender(uint color, FillRule fillRule)
-    {
-        Color = color;
-        FillRule = fillRule;
-    }
-
-    readonly uint Color = 0;
-    readonly FillRule FillRule;
-
-
-    public void CompositeSpan(Span<uint> d, byte alpha)
-    {
-        if (Color >= 0xff000000 && alpha == 255)
-        {
-            // Solid span, write only.
-            d.Fill(Color);
-        }
-        else
-        {
-            // Transparent span.
-            CompositionOps.CompositeSpanSourceOver(d, alpha, Color);
-        }
-    }
-
-    public byte ApplyFillRule(F24Dot8 area)
-    {
-        if (FillRule == FillRule.EvenOdd)
-        {
-            return (byte) RasterizerUtils.AreaToAlphaEvenOdd(area);
-        }
-        return (byte) RasterizerUtils.AreaToAlphaNonZero(area);
     }
 }

@@ -37,18 +37,11 @@ public unsafe partial struct Rasterizer<T>
         ReadOnlySpan<Geometry> geometries,
         in Matrix matrix,
         Executor threads,
-        ImageData image,
         LineRasterizer lineRasterizer)
     {
-        Debug.Assert(geometries.Length > 0);
-        Debug.Assert(image.Data != null);
-        Debug.Assert(image.Width > 0);
-        Debug.Assert(image.Height > 0);
-        Debug.Assert(image.Stride >= image.Width * image.BytesPerPixel);
-
-        StepState1 state1 = Step1(threads, image, geometries, matrix);
+        StepState1 state1 = Step1(threads, lineRasterizer.Bounds, geometries, matrix);
         StepState2 state2 = Step2(threads, state1);
-        Step3(threads, image, geometries, lineRasterizer, state2);
+        Step3(threads, lineRasterizer, state2);
     }
 
     private ref struct StepState1
@@ -66,18 +59,16 @@ public unsafe partial struct Rasterizer<T>
     /// </summary>
     private static StepState1 Step1(
         Executor threads,
-        in ImageData image,
+        IntRect imageBounds,
         ReadOnlySpan<Geometry> geometries,
         in Matrix transform)
     {
-        Span<bool> validRasters = 
+        Span<bool> validRasters =
             threads.MainMemory.Frame.Alloc<bool>(geometries.Length).AsSpan();
-        
-        // Allocate memory for RasterizableGeometry instances.
-        Span<RasterizableGeometry> rasters = 
-            threads.MainMemory.Frame.Alloc<RasterizableGeometry>(geometries.Length).AsSpan();
 
-        IntRect imageBounds = new(0, 0, image.Width, image.Height);
+        // Allocate memory for RasterizableGeometry instances.
+        Span<RasterizableGeometry> rasters =
+            threads.MainMemory.Frame.Alloc<RasterizableGeometry>(geometries.Length).AsSpan();
 
         StepState1 state1 = new()
         {
@@ -92,7 +83,7 @@ public unsafe partial struct Rasterizer<T>
             StepState1* s = (StepState1*) state;
 
             ref readonly Geometry geometry = ref s->geometries[index];
-            
+
             bool hasRaster = CreateRasterizable(
                 out s->rasters[index],
                 in geometry,
@@ -106,7 +97,7 @@ public unsafe partial struct Rasterizer<T>
 
         // Linearizer may decide that some paths do not contribute to the final
         // image. In these situations CreateRasterizable will return null.
-        
+
         return state1;
     }
 
@@ -158,14 +149,14 @@ public unsafe partial struct Rasterizer<T>
                 s->rowLists[(int) i] = new RowItemList<RasterizableItem>();
             }
 
-            ReadOnlySpan<bool> validRasters = s->validRasters; 
+            ReadOnlySpan<bool> validRasters = s->validRasters;
             for (int i = 0; i < validRasters.Length; i++)
             {
                 if (!validRasters[i])
                 {
                     continue;
                 }
-                
+
                 ref readonly RasterizableGeometry rasterizable = ref s->rasters[i];
                 TileBounds b = rasterizable.Bounds;
 
@@ -210,9 +201,7 @@ public unsafe partial struct Rasterizer<T>
     private ref struct StepState3
     {
         public required ReadOnlySpan<RowItemList<RasterizableItem>> rowLists;
-        public required ImageData image;
         public required ReadOnlySpan<RasterizableGeometry> rasters;
-        public required ReadOnlySpan<Geometry> geometries;
         public required LineRasterizer rasterizer;
     }
 
@@ -220,18 +209,14 @@ public unsafe partial struct Rasterizer<T>
     /// Rasterize all intervals.
     /// </summary>
     private static void Step3(
-        Executor threads, 
-        in ImageData image,
-        ReadOnlySpan<Geometry> geometries, 
+        Executor threads,
         LineRasterizer lineRasterizer,
         in StepState2 state2)
     {
         StepState3 state3 = new()
         {
             rowLists = state2.rowLists,
-            image = image,
             rasters = state2.rasters,
-            geometries = geometries,
             rasterizer = lineRasterizer,
         };
         threads.For(0, (int) state2.rowCount, &state3, static (rowIndex, state, memory) =>
@@ -240,12 +225,12 @@ public unsafe partial struct Rasterizer<T>
 
             ref readonly RowItemList<RasterizableItem> item = ref s->rowLists[rowIndex];
 
-            RasterizeRow(item, s->rasters, s->geometries, memory, s->image, s->rasterizer);
+            RasterizeRow(item, s->rasters, memory, s->rasterizer);
         });
     }
 
     private static void IterateLinesX32Y16(
-        int localRowIndex, 
+        int localRowIndex,
         in RasterizableGeometry raster,
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable)
@@ -272,7 +257,7 @@ public unsafe partial struct Rasterizer<T>
 
 
     private static void IterateLinesX16Y16(
-        int localRowIndex, 
+        int localRowIndex,
         in RasterizableGeometry raster,
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable)
@@ -353,7 +338,7 @@ public unsafe partial struct Rasterizer<T>
             // Geometry bounds do not intersect with destination image.
             return false;
         }
-        
+
         // Determine if path is completely within destination image bounds. If
         // geometry bounds fit within destination image, a shortcut can be made
         // when generating lines.
@@ -434,9 +419,9 @@ public unsafe partial struct Rasterizer<T>
                 }
             }
         }
-        
+
         placement = new RasterizableGeometry(
-            geometryIndex, 
+            geometryIndex,
             bounds,
             lineBlocks,
             firstLineBlockCounts,
@@ -620,7 +605,7 @@ public unsafe partial struct Rasterizer<T>
 
             F24Dot8 p = One * dy;
             (F24Dot8 lift, F24Dot8 rem) = DivRem(p, dx);
-            
+
             Span<CoverArea> coverSpan = coverArea[..(int) columnIndex1];
             for (PixelIndex i = idx; i < (uint) coverSpan.Length; i++)
             {
@@ -1378,13 +1363,12 @@ public unsafe partial struct Rasterizer<T>
     private static void RasterizeOneItem(
         int localRowIndex,
         in RasterizableGeometry raster,
-        in Geometry geometry,
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable,
-        in ImageData image,
         LineRasterizer lineRasterizer)
     {
         TileBounds bounds = raster.Bounds;
+        IntRect imageBounds = lineRasterizer.Bounds;
 
         uint rowWidth = bounds.ColumnCount * (uint) T.TileW;
         uint bitVectorsPerRow = BitVectorsForMaxBitCount(rowWidth);
@@ -1410,7 +1394,7 @@ public unsafe partial struct Rasterizer<T>
 
         Debug.Assert((pX0 & (T.TileW - 1)) == 0, "X must be aligned on tile boundary.");
 
-        Debug.Assert(rowWidth <= image.Width - pX0, "Row overruns image width.");
+        Debug.Assert(rowWidth <= imageBounds.Width - pX0, "Row overruns image width.");
 
         // Y position, measured in tiles.
         int y = (int) (bounds.Y + localRowIndex);
@@ -1423,15 +1407,19 @@ public unsafe partial struct Rasterizer<T>
 
         // Calculate maximum height. This can only get less than TileH when rendering
         // the last row of the image and image height is not multiple of row height.
-        int viewHeight = Math.Min(pY1, image.Height) - pY0;
+        int viewHeight = Math.Min(pY1, imageBounds.Height) - pY0;
+        
+        int viewWidth = Math.Min((int) rowWidth, imageBounds.Width - pX0);
 
-        int viewByteWidth = Math.Min((int) rowWidth, image.Width - pX0) * image.BytesPerPixel;
+        IntRect targetRect = new(pX0, pY0, viewWidth, viewHeight);
 
-        Span2D<byte> rowView = image
-            .GetSpan2D<byte>()
-            .Slice(pX0 * image.BytesPerPixel, pY0, viewByteWidth, viewHeight);
-            
-        lineRasterizer.Rasterize(localRowIndex, raster, geometry, rowView, bitVectorIter, coverAreaIter);
+        // Pointer to backdrop.
+        ReadOnlySpan<F24Dot8> coversStart = raster.GetCoversForRow(localRowIndex);
+
+        Span2D<BitVector> bitVectorView = bitVectorIter.Cut(bitVectorIter.Width, viewHeight);
+        Span2D<CoverArea> coverAreaView = coverAreaIter.Cut(coverAreaIter.Width, viewHeight);
+
+        lineRasterizer.Rasterize(raster.Geometry, targetRect, coversStart, bitVectorView, coverAreaView);
     }
 
 
@@ -1441,13 +1429,11 @@ public unsafe partial struct Rasterizer<T>
     private static void RasterizeRow(
         in RowItemList<RasterizableItem> rowList,
         ReadOnlySpan<RasterizableGeometry> rasterizables,
-        ReadOnlySpan<Geometry> geometries,
         ThreadMemory memory,
-        in ImageData image,
         LineRasterizer lineRasterizer)
     {
         // How many columns can fit into image.
-        uint columnCount = CalculateColumnCount<T>(image.Width);
+        uint columnCount = CalculateColumnCount<T>(lineRasterizer.Bounds.Width);
 
         // Create bit vector arrays.
         int bitVectorsPerRow = (int) BitVectorsForMaxBitCount(columnCount * (uint) T.TileW);
@@ -1475,17 +1461,14 @@ public unsafe partial struct Rasterizer<T>
             foreach (RasterizableItem item in b->AsSpan())
             {
                 ref readonly RasterizableGeometry raster = ref rasterizables[item.Rasterizable];
-                ref readonly Geometry geometry = ref geometries[raster.Geometry];
-                
+
                 Debug.Assert(raster.Bounds.ColumnCount <= columnCount);
-                
+
                 RasterizeOneItem(
                     item.LocalRowIndex,
                     in raster,
-                    in geometry,
                     bitVectors,
                     coverArea,
-                    in image,
                     lineRasterizer);
             }
 
@@ -1498,7 +1481,7 @@ public unsafe partial struct Rasterizer<T>
     {
         Debug.Assert(x0 >= 0);
         Debug.Assert(x0 <= One);
-        
+
         Debug.Assert(x1 >= 0);
         Debug.Assert(x1 <= One);
     }
@@ -1508,7 +1491,7 @@ public unsafe partial struct Rasterizer<T>
     {
         Debug.Assert(y0 >= 0);
         Debug.Assert(y0 <= T.TileHF24Dot8);
-        
+
         Debug.Assert(y1 >= 0);
         Debug.Assert(y1 <= T.TileHF24Dot8);
     }

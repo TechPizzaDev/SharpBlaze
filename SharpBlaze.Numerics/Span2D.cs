@@ -47,6 +47,10 @@ public readonly ref struct Span2D<T>
         _stride = stride;
     }
 
+    public Span2D(ref T data) : this(ref data, 1, 1, Unsafe.SizeOf<T>())
+    {
+    }
+
     public Span2D(Span<T> data, int width, int height, nint stride)
     {
         if ((uint) width > (nuint) stride)
@@ -80,7 +84,11 @@ public readonly ref struct Span2D<T>
     }
 
     public Span2D(Span<T> data, int width, int height) :
-        this(data, width, height, (nint) width * Unsafe.SizeOf<T>())
+        this(data, width, height, checked((nint) width * Unsafe.SizeOf<T>()))
+    {
+    }
+
+    public Span2D(Span<T> data) : this(data, data.Length, 1)
     {
     }
 
@@ -155,7 +163,7 @@ public readonly ref struct Span2D<T>
         return new(ref data, width, height, _stride);
     }
 
-    
+
     public void CopyTo(Span2D<T> destination)
     {
         Marshal2D.Invoke(this, destination, new CopyOp<T>());
@@ -166,12 +174,11 @@ public readonly ref struct Span2D<T>
         Marshal2D.Invoke(this, this, new ClearOp<T>());
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Fill(T value)
     {
         Marshal2D.Invoke(this, this, new FillOp<T>(value));
     }
-    
+
     public Span2D<U> Cast<U>()
     {
         ulong width = (uint) _width * (ulong) Unsafe.SizeOf<T>() / (ulong) Unsafe.SizeOf<U>();
