@@ -6,8 +6,6 @@ using SharpBlaze.Numerics;
 
 namespace SharpBlaze;
 
-using static V128Helper;
-
 public static partial class SIMD
 {
     public static void FloatPointsToF24Dot8Points(
@@ -78,7 +76,7 @@ public static partial class SIMD
     readonly struct TranslateScaleTransform(Vector128<double> s, Vector128<double> t) : ISimdOp<double, double>
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector128<double> Invoke(Vector128<double> a) => MulAdd(a, s, t);
+        public Vector128<double> Invoke(Vector128<double> a) => V128Helper.MulAdd(a, s, t);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector256<double> Invoke(Vector256<double> a) => V256Helper.MulAdd(a, V256Helper.Create(s), V256Helper.Create(t));
@@ -97,7 +95,7 @@ public static partial class SIMD
             Vector128<double> m1 = mat.M1();
             Vector128<double> m2 = mat.M2();
             Vector128<double> m3 = mat.M3();
-            return MulAdd(m1, pX, MulAdd(m2, pY, m3));
+            return V128Helper.MulAdd(m1, pX, V128Helper.MulAdd(m2, pY, m3));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -128,22 +126,22 @@ public static partial class SIMD
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector64<int> Invoke(Vector128<double> a)
         {
-            Vector128<int> i = RoundToInt32(a) - origin.ToVector128();
-            return Clamp(i, Vector128<int>.Zero, size.ToVector128()).GetLower();
+            Vector128<int> i = V128Helper.RoundToInt32(a) - origin.ToVector128();
+            return V128Helper.Clamp(i, Vector128<int>.Zero, size.ToVector128()).GetLower();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector128<int> Invoke(Vector128<double> a, Vector128<double> b)
         {
-            Vector128<int> i = RoundToInt32(a, b) - origin.ToVector128();
-            return Clamp(i, Vector128<int>.Zero, size.ToVector128());
+            Vector128<int> i = V128Helper.RoundToInt32(a, b) - origin.ToVector128();
+            return V128Helper.Clamp(i, Vector128<int>.Zero, size.ToVector128());
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector128<int> Invoke(Vector256<double> a)
         {
             Vector128<int> i = V256Helper.RoundToInt32(a) - origin.ToVector128();
-            return Clamp(i, Vector128<int>.Zero, size.ToVector128());
+            return V128Helper.Clamp(i, Vector128<int>.Zero, size.ToVector128());
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
