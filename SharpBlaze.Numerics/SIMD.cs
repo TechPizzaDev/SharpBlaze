@@ -8,27 +8,26 @@ namespace SharpBlaze;
 
 using static V128Helper;
 
-public static class SIMD
+public static partial class SIMD
 {
     public static void FloatPointsToF24Dot8Points(
         in Matrix matrix,
-        Span<F24Dot8Point> dst,
-        ReadOnlySpan<FloatPoint> src,
+        Span<F24Dot8Point> destination,
+        ReadOnlySpan<FloatPoint> source,
         F24Dot8Point origin,
         F24Dot8Point size)
     {
-        MatrixComplexity complexity = matrix.DetermineComplexity();
-        Span<int> castDst = MemoryMarshal.Cast<F24Dot8Point, int>(dst);
+        Span<int> dst = MemoryMarshal.Cast<F24Dot8Point, int>(destination);
+        ReadOnlySpan<double> src = MemoryMarshal.Cast<FloatPoint, double>(source);
 
-        Vector128<int> vOrigin = origin.ToVector128();
-        Vector128<int> vSize = size.ToVector128();
-        
+        ConvertClampReduction clamper = new(origin, size);
+        MatrixComplexity complexity = matrix.DetermineComplexity();
         switch (complexity)
         {
             case MatrixComplexity.Identity:
             {
                 Vector128<double> s = Vector128.Create(256.0);
-                TransformScaleOnly(s, castDst, src, vOrigin, vSize);
+                Invoke<ScaleTransform, ConvertClampReduction, double>(src, dst, new(s), clamper);
                 break;
             }
 
@@ -36,146 +35,122 @@ public static class SIMD
             {
                 Vector128<double> s = Vector128.Create(256.0);
                 Vector128<double> t = matrix.M3() * s;
-                TransformTranslationScale(s, t, castDst, src, vOrigin, vSize);
+                Invoke<TranslateScaleTransform, ConvertClampReduction, double>(src, dst, new(s, t), clamper);
                 break;
             }
+
 
             case MatrixComplexity.ScaleOnly:
             {
                 Vector128<double> s = Vector128.Create(matrix.M11(), matrix.M22()) * 256.0;
-                TransformScaleOnly(s, castDst, src, vOrigin, vSize);
+                Invoke<ScaleTransform, ConvertClampReduction, double>(src, dst, new(s), clamper);
                 break;
             }
 
             case MatrixComplexity.TranslationScale:
-                ConvertTranslationScale(matrix, castDst, src, vOrigin, vSize);
+            {
+                Matrix m = matrix * Matrix.CreateScale(256.0);
+                Vector128<double> s = Vector128.Create(m.M11(), m.M22());
+                Vector128<double> t = m.M3();
+                Invoke<TranslateScaleTransform, ConvertClampReduction, double>(src, dst, new(s, t), clamper);
                 break;
+            }
 
             case MatrixComplexity.Complex:
             default:
-                ConvertComplex(matrix, castDst, src, vOrigin, vSize);
+                Invoke<ComplexTransform, ConvertClampReduction, double>(src, dst, new(matrix), clamper);
                 break;
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static void TransformScaleOnly(
-        Vector128<double> s,
-        Span<int> dst,
-        ReadOnlySpan<FloatPoint> src,
-        Vector128<int> origin,
-        Vector128<int> size)
+    readonly struct ScaleTransform(Vector128<double> s) : ISimdOp<double, double>
     {
-        while (src.Length >= 2 && dst.Length >= 4)
-        {
-            Vector128<double> sum0 = src[0].AsVector128() * s;
-            Vector128<double> sum1 = src[1].AsVector128() * s;
-            ClampToInt32(sum0, sum1, origin, size).CopyTo(dst);
-            src = src[2..];
-            dst = dst[4..];
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<double> Invoke(Vector128<double> a) => a * s;
 
-        while (src.Length >= 1 && dst.Length >= 2)
-        {
-            Vector128<double> sum = src[0].AsVector128() * s;
-            ClampToInt32(sum, origin, size).CopyTo(dst);
-            src = src[1..];
-            dst = dst[2..];
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<double> Invoke(Vector256<double> a) => a * V256Helper.Create(s);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<double> Invoke(Vector512<double> a) => a * V512Helper.Create(s);
     }
 
-    private static void ConvertTranslationScale(
-        in Matrix matrix,
-        Span<int> dst,
-        ReadOnlySpan<FloatPoint> src,
-        Vector128<int> origin,
-        Vector128<int> size)
+    readonly struct TranslateScaleTransform(Vector128<double> s, Vector128<double> t) : ISimdOp<double, double>
     {
-        Matrix m = matrix * Matrix.CreateScale(256.0);
-        Vector128<double> s = Vector128.Create(m.M11(), m.M22());
-        Vector128<double> t = m.M3();
-        
-        TransformTranslationScale(s, t, dst, src, origin, size);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<double> Invoke(Vector128<double> a) => MulAdd(a, s, t);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<double> Invoke(Vector256<double> a) => V256Helper.MulAdd(a, V256Helper.Create(s), V256Helper.Create(t));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<double> Invoke(Vector512<double> a) => V512Helper.MulAdd(a, V512Helper.Create(s), V512Helper.Create(t));
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static void TransformTranslationScale(
-        Vector128<double> s,
-        Vector128<double> t,
-        Span<int> dst,
-        ReadOnlySpan<FloatPoint> src,
-        Vector128<int> origin,
-        Vector128<int> size)
+    readonly struct ComplexTransform(Matrix mat) : ISimdOp<double, double>
     {
-        while (src.Length >= 2 && dst.Length >= 4)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<double> Invoke(Vector128<double> a)
         {
-            Vector128<double> sum0 = MulAdd(src[0].AsVector128(), s, t);
-            Vector128<double> sum1 = MulAdd(src[1].AsVector128(), s, t);
-            ClampToInt32(sum0, sum1, origin, size).CopyTo(dst);
-            src = src[2..];
-            dst = dst[4..];
+            Vector128<double> pX = Vector128.Create(a.GetElement(0));
+            Vector128<double> pY = Vector128.Create(a.GetElement(1));
+            Vector128<double> m1 = mat.M1();
+            Vector128<double> m2 = mat.M2();
+            Vector128<double> m3 = mat.M3();
+            return MulAdd(m1, pX, MulAdd(m2, pY, m3));
         }
 
-        while (src.Length >= 1 && dst.Length >= 2)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<double> Invoke(Vector256<double> a)
         {
-            Vector128<double> sum = MulAdd(src[0].AsVector128(), s, t);
-            ClampToInt32(sum, origin, size).CopyTo(dst);
-            src = src[1..];
-            dst = dst[2..];
+            Vector256<double> pX = Vector256.Create(a.GetElement(0));
+            Vector256<double> pY = Vector256.Create(a.GetElement(1));
+            Vector256<double> m1 = V256Helper.Create(mat.M1());
+            Vector256<double> m2 = V256Helper.Create(mat.M2());
+            Vector256<double> m3 = V256Helper.Create(mat.M3());
+            return V256Helper.MulAdd(m1, pX, V256Helper.MulAdd(m2, pY, m3));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector512<double> Invoke(Vector512<double> a)
+        {
+            Vector512<double> pX = Vector512.Create(a.GetElement(0));
+            Vector512<double> pY = Vector512.Create(a.GetElement(1));
+            Vector512<double> m1 = V512Helper.Create(mat.M1());
+            Vector512<double> m2 = V512Helper.Create(mat.M2());
+            Vector512<double> m3 = V512Helper.Create(mat.M3());
+            return V512Helper.MulAdd(m1, pX, V512Helper.MulAdd(m2, pY, m3));
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static void ConvertComplex(
-        in Matrix matrix,
-        Span<int> dst,
-        ReadOnlySpan<FloatPoint> src,
-        Vector128<int> origin,
-        Vector128<int> size)
+    readonly struct ConvertClampReduction(F24Dot8Point origin, F24Dot8Point size) : ISimdReduce<int, double>
     {
-        Matrix m = matrix * Matrix.CreateScale(256.0);
-        Vector128<double> m0 = m.M1();
-        Vector128<double> m1 = m.M2();
-        Vector128<double> m2 = m.M3();
-
-        while (src.Length >= 2 && dst.Length >= 4)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector64<int> Invoke(Vector128<double> a)
         {
-            Vector128<double> sum0 = Transform(src[0].AsVector128(), m0, m1, m2);
-            Vector128<double> sum1 = Transform(src[1].AsVector128(), m0, m1, m2);
-            ClampToInt32(sum0, sum1, origin, size).CopyTo(dst);
-            src = src[2..];
-            dst = dst[4..];
+            Vector128<int> i = RoundToInt32(a) - origin.ToVector128();
+            return Clamp(i, Vector128<int>.Zero, size.ToVector128()).GetLower();
         }
 
-        while (src.Length >= 1 && dst.Length >= 2)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<int> Invoke(Vector128<double> a, Vector128<double> b)
         {
-            Vector128<double> sum = Transform(src[0].AsVector128(), m0, m1, m2);
-            ClampToInt32(sum, origin, size).CopyTo(dst);
-            src = src[1..];
-            dst = dst[2..];
+            Vector128<int> i = RoundToInt32(a, b) - origin.ToVector128();
+            return Clamp(i, Vector128<int>.Zero, size.ToVector128());
         }
-    }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<double> Transform(
-        Vector128<double> p, Vector128<double> m0, Vector128<double> m1, Vector128<double> m2)
-    {
-        Vector128<double> pX = Vector128.Create(p.GetElement(0));
-        Vector128<double> pY = Vector128.Create(p.GetElement(1));
-        return MulAdd(m0, pX, MulAdd(m1, pY, m2));
-    }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector128<int> Invoke(Vector256<double> a)
+        {
+            Vector128<int> i = V256Helper.RoundToInt32(a) - origin.ToVector128();
+            return Clamp(i, Vector128<int>.Zero, size.ToVector128());
+        }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<int> ClampToInt32(
-        Vector128<double> sum0, Vector128<double> sum1, Vector128<int> origin, Vector128<int> size)
-    {
-        return Clamp(RoundToInt32(sum0, sum1) - origin, Vector128<int>.Zero, size);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector64<int> ClampToInt32(
-        Vector128<double> sum, Vector128<int> origin, Vector128<int> size)
-    {
-        return Clamp(RoundToInt32(sum) - origin, Vector128<int>.Zero, size).GetLower();
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Vector256<int> Invoke(Vector512<double> a)
+        {
+            Vector256<int> i = V512Helper.RoundToInt32(a) - origin.ToVector256();
+            return V256Helper.Clamp(i, Vector256<int>.Zero, size.ToVector256());
+        }
     }
 }

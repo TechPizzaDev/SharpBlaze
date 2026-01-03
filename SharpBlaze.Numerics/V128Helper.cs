@@ -48,12 +48,12 @@ public static class V128Helper
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<T> Clamp<T>(Vector128<T> val, Vector128<T> min, Vector128<T> max)
+    public static Vector128<T> Clamp<T>(Vector128<T> value, Vector128<T> min, Vector128<T> max)
     {
 #if NET9_0_OR_GREATER
-        return Vector128.Clamp(val, min, max);
+        return Vector128.ClampNative(value, min, max);
 #else
-        return Vector128.Min(Vector128.Max(val, min), max);
+        return Vector128.Min(Vector128.Max(value, min), max);
 #endif
     }
 
@@ -160,16 +160,6 @@ public static class V128Helper
     {
 #if NET9_0_OR_GREATER
         return Vector128.MultiplyAddEstimate(a, b, c);
-#else
-        return a * b + c;
-#endif
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<double> MulAdd(Vector256<double> a, Vector256<double> b, Vector256<double> c)
-    {
-#if NET9_0_OR_GREATER
-        return Vector256.MultiplyAddEstimate(a, b, c);
 #else
         return a * b + c;
 #endif
