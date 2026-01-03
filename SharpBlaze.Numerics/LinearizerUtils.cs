@@ -478,7 +478,11 @@ public static class LinearizerUtils
         Vector128<int> p12 = F24Dot8Point.ReadAsVector128(c.Slice(1, 2));
         Vector128<int> p3 = c[3].ToVector128();
 
-        Vector128<int> sum = Vector128.Create(2, 2, 1, 1) * p0 - 3 * p12 + Vector128.Create(1, 1, 2, 2) * p3;
+        // Masked int-add is a lot cheaper than int-mul factors.
+        Vector128<int> t0 = p0 + (p0 & Vector128.Create(~0, ~0, 0, 0));
+        Vector128<int> t1 = p12 + p12 + p12;
+        Vector128<int> t2 = p3 + (p3 & Vector128.Create(0, 0, ~0, ~0));
+        Vector128<int> sum = t0 - t1 + t2;
         return Vector128.LessThanOrEqualAll(Vector128.Abs(sum), Vector128.Create(tolerance._value));
     }
 }
