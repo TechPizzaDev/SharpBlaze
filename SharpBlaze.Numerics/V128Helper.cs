@@ -15,7 +15,7 @@ public static class V128Helper
     public static bool IsFiniteAll(Vector128<double> value)
     {
         Vector128<ulong> bits = value.AsUInt64();
-        Vector128<ulong> top = ~bits & Vector128.Create(PositiveInfinityBits);
+        Vector128<ulong> top = Vector128.AndNot(Vector128.Create(PositiveInfinityBits), bits);
         return !Vector128.EqualsAll(top, Vector128<ulong>.Zero);
     }
 
@@ -208,8 +208,39 @@ public static class V128Helper
         {
             return Sse2.Shuffle(a, b, control);
         }
+
         return Vector128.Create(
             a.GetElement(control & 0b01),
             b.GetElement((control & 0b10) >> 1));
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<long> UnpackLow(Vector128<long> left, Vector128<long> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.UnpackLow(left, right);
+        }
+        else if (AdvSimd.Arm64.IsSupported)
+        {
+            return AdvSimd.Arm64.ZipLow(left, right);
+        }
+
+        return Vector128.Create(left.GetElement(0), right.GetElement(0));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<long> UnpackHigh(Vector128<long> left, Vector128<long> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.UnpackHigh(left, right);
+        }
+        else if (AdvSimd.Arm64.IsSupported)
+        {
+            return AdvSimd.Arm64.ZipHigh(left, right);
+        }
+
+        return Vector128.Create(left.GetElement(1), right.GetElement(1));
     }
 }

@@ -282,20 +282,25 @@ public static class LinearizerUtils
         s = s[..4];
         r = r[..7];
 
-        F24Dot8Point m0 = (s[0] + s[1]) >> 1;
-        F24Dot8Point m1 = (s[1] + s[2]) >> 1;
-        F24Dot8Point m2 = (s[2] + s[3]) >> 1;
-        F24Dot8Point m3 = (m0 + m1) >> 1;
-        F24Dot8Point m4 = (m1 + m2) >> 1;
-        F24Dot8Point m5 = (m3 + m4) >> 1;
+        Vector128<int> s01 = F24Dot8Point.ReadAsVector128(s);
+        Vector128<int> s12 = F24Dot8Point.ReadAsVector128(s.Slice(1, 2));
+        Vector128<int> s23 = F24Dot8Point.ReadAsVector128(s.Slice(2, 2));
+
+        Vector128<int> m01 = (s01 + s12) >> 1;
+        Vector128<int> m12 = (s12 + s23) >> 1;
+        Vector128<int> m34 = (m01 + m12) >> 1;
+
+        Vector128<int> m44 = Vector128.Shuffle(m34, Vector128.Create(2, 3, 2, 3));
+        Vector128<int> m54 = (m34 + m44) >> 1;
+
+        Vector128<long> s0m0 = UnpackLow(s01.AsInt64(), m01.AsInt64());
+        Vector128<long> m2s3 = UnpackHigh(m12.AsInt64(), s23.AsInt64());
         
-        r[0] = s[0];
-        r[1] = m0;
-        r[2] = m3;
-        r[3] = m5;
-        r[4] = m4;
-        r[5] = m2;
-        r[6] = s[3];
+        Span<long> l = MemoryMarshal.Cast<F24Dot8Point, long>(r);
+        s0m0.CopyTo(l);
+        m34.AsInt64().CopyTo(l[2..4]);
+        m54.AsInt64().CopyTo(l[3..5]);
+        m2s3.CopyTo(l[5..7]);
     }
 
 

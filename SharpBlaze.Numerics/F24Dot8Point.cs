@@ -47,7 +47,7 @@ public readonly struct F24Dot8Point
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<int> ReadAsVector128(ReadOnlySpan<F24Dot8Point> span)
     {
-        return MemoryMarshal.Read<Vector128<int>>(MemoryMarshal.AsBytes(span));
+        return Vector128.Create(MemoryMarshal.Cast<F24Dot8Point, int>(span));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
