@@ -2,9 +2,9 @@
 
 namespace SharpBlaze;
 
-public interface ISpanBlender<TColor, TAlpha>
+public interface ISpanBlender<TAlpha> : IDisposable
 {
-    void CompositeSpan(Span<TColor> d, TAlpha alpha);
+    void CompositeSpan(int x0, int x1, int y, TAlpha alpha);
 
     /// <summary>
     /// Maps the coverage area of a pixel into an alpha value. 

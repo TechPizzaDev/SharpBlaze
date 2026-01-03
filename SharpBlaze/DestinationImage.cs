@@ -18,7 +18,7 @@ public unsafe class DestinationImage<T> : IDisposable
 
     private ImageData mImageData;
     private ulong mImageDataSize;
-    
+
     public void Dispose()
     {
         if (mImageData.Data != null)
@@ -29,7 +29,7 @@ public unsafe class DestinationImage<T> : IDisposable
     }
 
 
-    public IntSize UpdateSize(IntSize size, int pixelSize)
+    public bool UpdateSize(IntSize size, int pixelSize)
     {
         Debug.Assert(size.Width > 0);
         Debug.Assert(size.Height > 0);
@@ -40,7 +40,8 @@ public unsafe class DestinationImage<T> : IDisposable
         // Calculate how many bytes are required for the image.
         ulong bytes = w * (ulong) pixelSize * (ulong) size.Height;
         void* data = mImageData.Data;
-        
+
+        bool resized = false;
         if (mImageDataSize < bytes)
         {
             const ulong ImageSizeRounding = 1024 * 32;
@@ -51,16 +52,17 @@ public unsafe class DestinationImage<T> : IDisposable
 
             data = NativeMemory.Realloc(data, checked((nuint) bytesRounded));
             mImageDataSize = bytesRounded;
+            resized = true;
         }
 
         mImageData = new ImageData(
-            data, 
+            data,
             (int) w,
-            size.Height, 
+            size.Height,
             checked((nint) w * pixelSize),
             pixelSize);
-        
-        return new IntSize(mImageData.Width, mImageData.Height);
+
+        return resized;
     }
 
     public void DrawImage(VectorImage image, in Matrix matrix, Executor executor)
@@ -71,41 +73,55 @@ public unsafe class DestinationImage<T> : IDisposable
             return;
         }
 
-        Rasterizer<T>.Rasterize(geometries.Span, matrix, executor, mImageData, new LinearRasterizer());
-        
+        Rasterizer<T>.Rasterize(
+            geometries.Span,
+            matrix,
+            executor,
+            new LinearRasterizer(geometries, mImageData));
+
         GC.KeepAlive(image);
 
         // Free all the memory allocated by threads.
         executor.ResetFrameMemory();
     }
 
-    sealed class SpanRasterizer : LineRasterizer<uint, byte, SpanBlender>
+    sealed class SpanRasterizer(ReadOnlyMemory<Geometry> geometries, ImageData image) : LineRasterizer<byte, SpanBlender>
     {
-        protected override SpanBlender CreateBlender(in Geometry geometry)
+        public override IntRect Bounds => image.Bounds;
+
+        protected override SpanBlender CreateBlender(int geometryIndex, IntRect targetRect)
         {
-            return new SpanBlender(geometry.Color, geometry.Rule);
+            ref readonly Geometry geometry = ref geometries.Span[geometryIndex];
+
+            return new SpanBlender(image, geometry.Color, geometry.Rule);
         }
     }
 
 
-    sealed class LinearRasterizer : LineRasterizer<Vector4, float, LinearRasterizer.Blender>
+    sealed class LinearRasterizer(ReadOnlyMemory<Geometry> geometries, ImageData image) : LineRasterizer<float, LinearRasterizer.Blender>
     {
-        protected override Blender CreateBlender(in Geometry geometry)
-        {
-            Vector4 color = new Vector4(
-                geometry.Color & 0xff,
-                (geometry.Color >> 8) & 0xff,
-                (geometry.Color >> 16) & 0xff,
-                geometry.Color >> 24) / 255.0f;
+        public override IntRect Bounds => image.Bounds;
 
-            return new Blender(color, geometry.Rule);
+        protected override Blender CreateBlender(int geometryIndex, IntRect targetRect)
+        {
+            ref readonly Geometry geometry = ref geometries.Span[geometryIndex];
+
+            uint c = geometry.Color;
+            Vector4 color = new Vector4(
+                c & 0xff,
+                (c >> 8) & 0xff,
+                (c >> 16) & 0xff,
+                c >> 24) / 255.0f;
+
+            return new Blender(image, color, geometry.Rule);
         }
 
 
-        public readonly struct Blender : ISpanBlender<Vector4, float>
+        public readonly struct Blender : ISpanBlender<float>
         {
-            public Blender(Vector4 color, FillRule fillRule)
+            public Blender(in ImageData image, Vector4 color, FillRule fillRule)
             {
+                Image = image;
                 Color = color;
                 FillRule = fillRule;
 
@@ -114,13 +130,15 @@ public unsafe class DestinationImage<T> : IDisposable
                     Vector128.Create(0, 0, 0, 1f));
             }
 
+            readonly ImageData Image;
             readonly Vector4 Color;
             readonly FillRule FillRule;
             readonly bool IsSolid;
 
-
-            public void CompositeSpan(Span<Vector4> d, float alpha)
+            public void CompositeSpan(int x0, int x1, int y, float alpha)
             {
+                Span<Vector4> d = Image.GetSpan2D<Vector4>()[y][x0..x1];
+
                 if (d.Length >= 4 && alpha == 1.0f && IsSolid)
                 {
                     d.Fill(Color);
@@ -151,6 +169,10 @@ public unsafe class DestinationImage<T> : IDisposable
                     FillRule.EvenOdd => float.Abs(a - 2.0f * float.Round(0.5f * a)),
                     _ => float.Min(float.Abs(a), 1.0f),
                 };
+            }
+
+            public void Dispose()
+            {
             }
         }
     }

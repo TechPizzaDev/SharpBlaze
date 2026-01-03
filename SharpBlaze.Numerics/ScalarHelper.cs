@@ -11,6 +11,9 @@ public static class ScalarHelper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double MinNative(double a, double b)
     {
+#if NET10_0_OR_GREATER
+        return double.MinNative(a, b);
+#else
         if (Sse2.IsSupported)
         {
             return Sse2.MinScalar(
@@ -19,11 +22,15 @@ public static class ScalarHelper
             ).ToScalar();
         }
         return Math.Min(a, b);
+#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double MaxNative(double a, double b)
     {
+#if NET10_0_OR_GREATER
+        return double.MaxNative(a, b);
+#else
         if (Sse2.IsSupported)
         {
             return Sse2.MaxScalar(
@@ -32,6 +39,7 @@ public static class ScalarHelper
             ).ToScalar();
         }
         return Math.Max(a, b);
+#endif
     }
 
     /**
@@ -41,7 +49,9 @@ public static class ScalarHelper
     public static T Clamp<T>(T val, T min, T max)
         where T : INumber<T>
     {
-#if NET9_0_OR_GREATER
+#if NET10_0_OR_GREATER
+        return T.ClampNative(val, min, max);
+#elif NET9_0_OR_GREATER
         return T.Clamp(val, min, max);
 #else
         return T.Min(T.Max(val, min), max);
@@ -54,7 +64,11 @@ public static class ScalarHelper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double ClampNative(double val, double min, double max)
     {
+#if NET10_0_OR_GREATER
+        return double.ClampNative(val, min, max);
+#else
         return MinNative(MaxNative(val, min), max);
+#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -64,7 +78,7 @@ public static class ScalarHelper
         {
             return Sse2.ConvertToInt32(Vector128.CreateScalarUnsafe(v));
         }
-
+        
         double r = Math.Round(v);
 #if NET9_0_OR_GREATER
         return double.ConvertToIntegerNative<int>(r);

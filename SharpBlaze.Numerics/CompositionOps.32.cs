@@ -27,25 +27,24 @@ public static partial class CompositionOps
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<uint> ApplyAlpha(Vector128<uint> x, byte a)
+    private static Vector128<uint> ApplyAlpha(Vector128<uint> x, Vector128<ushort> a)
     {
-        Vector128<ushort> factor = Vector128.Create((ushort) a);
         Vector128<ushort> offset = Vector128.Create(HalfOffset).AsUInt16();
 
-        Vector128<ushort> a0 = Vector128.WidenLower(x.AsByte()) * factor;
+        Vector128<ushort> a0 = Vector128.WidenLower(x.AsByte()) * a;
         Vector128<ushort> a1 = (a0 + (a0 >> 8) + offset) >> 8;
 
-        Vector128<ushort> b0 = Vector128.WidenUpper(x.AsByte()) * factor;
+        Vector128<ushort> b0 = Vector128.WidenUpper(x.AsByte()) * a;
         Vector128<ushort> b1 = (b0 + (b0 >> 8) + offset) >> 8;
 
         return Vector128.Narrow(a1, b1).AsUInt32();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<uint> ApplyAlpha_Avx2(Vector128<uint> x, byte a)
+    private static Vector128<uint> ApplyAlpha_Avx2(Vector128<uint> x, Vector256<ushort> a)
     {
         Vector256<ushort> x16 = Avx2.ConvertToVector256Int16(x.AsByte()).AsUInt16();
-        Vector256<ushort> a0 = x16 * Vector256.Create((ushort) a);
+        Vector256<ushort> a0 = x16 * a;
 
         Vector256<ushort> offset = Vector256.Create(HalfOffset).AsUInt16();
         Vector256<ushort> a1 = ((a0 + (a0 >> 8) + offset) >> 8).AsUInt16();
@@ -58,11 +57,11 @@ public static partial class CompositionOps
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<uint> ApplyAlpha_Avx512BW(Vector256<uint> x, byte a)
+    private static Vector256<uint> ApplyAlpha_Avx512BW(Vector256<uint> x, Vector512<ushort> a)
     {
         Vector512<ushort> x16 = Avx512BW.ConvertToVector512UInt16(x.AsByte());
-        Vector512<ushort> a0 = x16 * Vector512.Create((ushort) a);
-
+        Vector512<ushort> a0 = x16 * a;
+        
         Vector512<ushort> a1 = (a0 + (a0 >> 8) + Vector512.Create(HalfOffset).AsUInt16()) >> 8;
         Vector256<byte> a2 = Avx512BW.ConvertToVector256Byte(a1);
 

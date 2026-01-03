@@ -26,6 +26,10 @@ public readonly struct IntRect
 
     public int Height => _value.GetElement(3) - _value.GetElement(1);
 
+    public int Right => _value.GetElement(2);
+
+    public int Bottom => _value.GetElement(3);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IntRect FromMinMax(int x1, int y1, int x2, int y2)
     {

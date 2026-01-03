@@ -32,6 +32,8 @@ public readonly struct F24Dot8 : IEquatable<F24Dot8>
 
     public int ToI32() => _value >> 8;
 
+    public double ToF64() => _value / 256.0;
+
     /**
      * Converts double to 24.8 fixed point number. Does not check if a double is
      * small enough to be represented as 24.8 number.
@@ -122,11 +124,11 @@ public readonly struct F24Dot8 : IEquatable<F24Dot8>
     
     public override string ToString()
     {
-        return $"{_value / 256.0:F}";
+        return $"{ToF64():F}";
     }
 
     private string GetDebuggerDisplay()
     {
-        return $"{_value} ({ToString()})";
+        return $"{ToString()} ({_value})";
     }
 }

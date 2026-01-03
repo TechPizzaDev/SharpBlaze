@@ -9,7 +9,7 @@ namespace SharpBlaze;
 public static partial class CompositionOps
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint ApplyAlpha(uint x, byte a)
+    public static uint ApplyAlpha(uint x, byte a)
     {
         if (Unsafe.SizeOf<nint>() == 8)
         {
@@ -27,44 +27,51 @@ public static partial class CompositionOps
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<uint> BlendSourceOver(Vector128<uint> d, uint s, byte a)
+    public static Vector128<uint> BlendSourceOver(Vector128<uint> d, Vector128<uint> s, Vector256<ushort> a)
     {
-        Vector128<uint> mixed = Avx2.IsSupported ? ApplyAlpha_Avx2(d, a) : ApplyAlpha(d, a);
-        return Vector128.Create(s) + mixed;
+        Vector128<uint> mixed = Avx2.IsSupported ? ApplyAlpha_Avx2(d, a) : ApplyAlpha(d, a.GetLower());
+        return s + mixed;
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<uint> BlendSourceOver_Avx512BW(Vector256<uint> d, uint s, byte a)
+    public static Vector256<uint> BlendSourceOver(Vector256<uint> d, Vector256<uint> s, Vector512<ushort> a)
     {
-        return Vector256.Create(s) + ApplyAlpha_Avx512BW(d, a);
+        return s + ApplyAlpha_Avx512BW(d, a);
     }
-
-    internal static void CompositeSpanSourceOver(Span<uint> d, byte alpha, uint color)
+    
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public static void CompositeSpanSourceOver(Span<uint> d, byte alpha, uint color)
     {
         // For opaque colors, use opaque span composition version.
         Debug.Assert(alpha != 255 || (color >> 24) < 255);
 
         uint cba = ApplyAlpha(color, alpha);
         byte a = (byte) (255u - (cba >> 24));
-        
+
         if (Avx512BW.IsSupported)
         {
+            Vector256<uint> v_cba = Vector256.Create(cba);
+            Vector512<ushort> v_a = Vector512.Create((ushort) a);
+
             while (d.Length >= Vector256<uint>.Count)
             {
                 Vector256<uint> dd = Vector256.Create<uint>(d);
-                BlendSourceOver_Avx512BW(dd, cba, a).CopyTo(d);
-                d = d[Vector256<uint>.Count..];
+                BlendSourceOver(dd, v_cba, v_a).CopyTo(d);
+                d = d.Slice(Vector256<uint>.Count);
             }
         }
 
         if (Vector128.IsHardwareAccelerated)
         {
+            Vector128<uint> v_cba = Vector128.Create(cba);
+            Vector256<ushort> v_a = Vector256.Create((ushort) a);
+
             while (d.Length >= Vector128<uint>.Count)
             {
                 Vector128<uint> dd = Vector128.Create<uint>(d);
-                BlendSourceOver(dd, cba, a).CopyTo(d);
-                d = d[Vector128<uint>.Count..];
+                BlendSourceOver(dd, v_cba, v_a).CopyTo(d);
+                d = d.Slice(Vector128<uint>.Count);
             }
         }
 
@@ -80,58 +87,5 @@ public static partial class CompositionOps
                 d[x] = BlendSourceOver(dd, cba, a);
             }
         }
-    }
-
-
-    internal static void CompositeSpanSourceOverOpaque(Span<uint> d, byte alpha, uint color)
-    {
-        Debug.Assert((color >> 24) == 255);
-
-        if (alpha == 255)
-        {
-            // Solid span, write only.
-            d.Fill(color);
-        }
-        else
-        {
-            // Transparent span.
-            CompositeSpanSourceOver(d, alpha, color);
-        }
-    }
-}
-
-public readonly struct SpanBlender : ISpanBlender<uint, byte>
-{
-    public SpanBlender(uint color, FillRule fillRule)
-    {
-        Color = color;
-        FillRule = fillRule;
-    }
-
-    readonly uint Color = 0;
-    readonly FillRule FillRule;
-
-
-    public void CompositeSpan(Span<uint> d, byte alpha)
-    {
-        if (Color >= 0xff000000 && alpha == 255)
-        {
-            // Solid span, write only.
-            d.Fill(Color);
-        }
-        else
-        {
-            // Transparent span.
-            CompositionOps.CompositeSpanSourceOver(d, alpha, Color);
-        }
-    }
-
-    public byte ApplyFillRule(F24Dot8 area)
-    {
-        if (FillRule == FillRule.EvenOdd)
-        {
-            return (byte) RasterizerUtils.AreaToAlphaEvenOdd(area);
-        }
-        return (byte) RasterizerUtils.AreaToAlphaNonZero(area);
     }
 }

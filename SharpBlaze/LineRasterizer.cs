@@ -2,75 +2,71 @@ using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace SharpBlaze;
 
 public abstract class LineRasterizer
 {
-    internal abstract void Rasterize(
-        int localRowIndex,
-        in RasterizableGeometry raster,
-        in Geometry geometry,
-        Span2D<byte> rowView,
+    public abstract IntRect Bounds { get; }
+
+    public abstract void Rasterize(
+        int geometryIndex,
+        IntRect targetRect,
+        ReadOnlySpan<F24Dot8> coversStart,
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable);
 }
 
-public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
-    where TColor : unmanaged
+public abstract class LineRasterizer<TAlpha, TBlender> : LineRasterizer
     where TAlpha : unmanaged, IEqualityOperators<TAlpha, TAlpha, bool>
-    where TBlender : ISpanBlender<TColor, TAlpha>
+    where TBlender : ISpanBlender<TAlpha>
 {
-    protected abstract TBlender CreateBlender(in Geometry geometry);
-    
-    internal override sealed void Rasterize(
-        int localRowIndex,
-        in RasterizableGeometry raster,
-        in Geometry geometry,
-        Span2D<byte> rowView,
+    protected abstract TBlender CreateBlender(int geometryIndex, IntRect targetRect);
+
+    public override sealed void Rasterize(
+        int geometryIndex,
+        IntRect targetRect,
+        ReadOnlySpan<F24Dot8> coversStart,
         Span2D<BitVector> bitVectorTable,
         Span2D<CoverArea> coverAreaTable)
     {
-        // Pointer to backdrop.
-        ReadOnlySpan<F24Dot8> coversStart = raster.GetCoversForRow(localRowIndex);
+        TBlender blender = CreateBlender(geometryIndex, targetRect);
 
-        int height = rowView.Height;
-        Span2D<BitVector> bitVectorView = bitVectorTable.Cut(bitVectorTable.Width, height);
-        Span2D<CoverArea> coverAreaView = coverAreaTable.Cut(coverAreaTable.Width, height);
-
-        TBlender blender = CreateBlender(geometry);
+        int left = targetRect.X;
+        int right = targetRect.Right;
+        int top = targetRect.Y;
+        int height = targetRect.Height;
 
         for (int y = 0; y < height; y++)
         {
-            Span<byte> row = rowView[y];
             F24Dot8 startCover = y < coversStart.Length ? coversStart[y] : F24Dot8.Zero;
 
             RenderOneLine(
-                row,
-                bitVectorView[y],
-                coverAreaView[y],
+                left,
+                right,
+                top + y,
+                bitVectorTable[y],
+                coverAreaTable[y],
                 startCover,
-                blender);
+                ref blender);
         }
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void RenderOneLine(
-        Span<byte> row,
+    public static void RenderOneLine(
+        int left,
+        int right,
+        int y,
         ReadOnlySpan<BitVector> bitVectors,
         ReadOnlySpan<CoverArea> coverAreas,
         F24Dot8 startCover,
-        TBlender blender)
+        ref TBlender blender)
     {
-        Span<TColor> d = MemoryMarshal.Cast<byte, TColor>(row);
-
         // Cover accumulation.
         F24Dot8 cover = startCover;
 
         // Span state.
-        int spanX = 0;
-        int spanEnd = 0;
+        int spanX = left;
+        int spanEnd = left;
         TAlpha spanAlpha = default;
 
         for (int i = 0; i < bitVectors.Length; i++)
@@ -86,8 +82,8 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
                 bitset ^= t;
 
                 // Note that index is in local geometry coordinates.
-                int edgeX = index;
-                int nextEdgeX = edgeX + 1;
+                int edgeX = left + index;
+                int nextX = edgeX + 1;
 
                 // Signed area for pixel at bit index.
                 F24Dot8 area = coverAreas[index].Area + (cover << 9);
@@ -102,27 +98,27 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
                     {
                         if (spanAlpha != default)
                         {
-                            blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
+                            blender.CompositeSpan(spanX, spanEnd, y, spanAlpha);
                         }
 
-                        spanX = nextEdgeX;
+                        spanX = nextX;
                         spanEnd = spanX;
                         spanAlpha = default;
                     }
                     else if (spanAlpha == alpha)
                     {
-                        spanEnd = nextEdgeX;
+                        spanEnd = nextX;
                     }
                     else
                     {
                         // Alpha is not zero, but not equal to previous span alpha.
                         if (spanAlpha != default)
                         {
-                            blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
+                            blender.CompositeSpan(spanX, spanEnd, y, spanAlpha);
                         }
 
                         spanX = edgeX;
-                        spanEnd = nextEdgeX;
+                        spanEnd = nextX;
                         spanAlpha = alpha;
                     }
                 }
@@ -137,11 +133,11 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
                         // Fill span if there is one and reset current span.
                         if (spanAlpha != default)
                         {
-                            blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
+                            blender.CompositeSpan(spanX, spanEnd, y, spanAlpha);
                         }
 
                         spanX = edgeX;
-                        spanEnd = nextEdgeX;
+                        spanEnd = nextX;
                         spanAlpha = alpha;
                     }
                     else
@@ -156,15 +152,15 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
                             if (alpha == gapAlpha)
                             {
                                 // Current pixel alpha matches as well.
-                                spanEnd = nextEdgeX;
+                                spanEnd = nextX;
                             }
                             else
                             {
                                 // Only gap alpha matches current span.
-                                blender.CompositeSpan(d[spanX..edgeX], spanAlpha);
+                                blender.CompositeSpan(spanX, edgeX, y, spanAlpha);
 
                                 spanX = edgeX;
-                                spanEnd = nextEdgeX;
+                                spanEnd = nextX;
                                 spanAlpha = alpha;
                             }
                         }
@@ -172,14 +168,14 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
                         {
                             if (spanAlpha != default)
                             {
-                                blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
+                                blender.CompositeSpan(spanX, spanEnd, y, spanAlpha);
                             }
 
                             // Compose gap.
-                            blender.CompositeSpan(d[spanEnd..edgeX], gapAlpha);
+                            blender.CompositeSpan(spanEnd, edgeX, y, gapAlpha);
 
                             spanX = edgeX;
-                            spanEnd = nextEdgeX;
+                            spanEnd = nextX;
                             spanAlpha = alpha;
                         }
                     }
@@ -192,15 +188,15 @@ public abstract class LineRasterizer<TColor, TAlpha, TBlender> : LineRasterizer
         if (spanAlpha != default)
         {
             // Composite current span.
-            blender.CompositeSpan(d[spanX..spanEnd], spanAlpha);
+            blender.CompositeSpan(spanX, spanEnd, y, spanAlpha);
         }
 
-        if (cover != F24Dot8.Zero && spanEnd < d.Length)
+        if (cover != F24Dot8.Zero && spanEnd < right)
         {
             // Composite anything that goes to the edge of destination image.
             TAlpha alpha = blender.ApplyFillRule(cover << 9);
 
-            blender.CompositeSpan(d[spanEnd..], alpha);
+            blender.CompositeSpan(spanEnd, right, y, alpha);
         }
     }
 }
