@@ -1,10 +1,13 @@
 using System;
+using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
 namespace SharpBlaze;
 
+[DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
 public readonly struct F24Dot8Point
 {
     public readonly F24Dot8 X;
@@ -27,6 +30,18 @@ public readonly struct F24Dot8Point
     public Vector256<int> ToVector256()
     {
         return Vector256.Create(Unsafe.BitCast<F24Dot8Point, long>(this)).AsInt32();
+    }
+
+    public override string ToString()
+    {
+        string separator = NumberFormatInfo.CurrentInfo.NumberGroupSeparator;
+        return $"<{X}{separator} {Y}>";
+    }
+
+    private string GetDebuggerDisplay()
+    {
+        string separator = NumberFormatInfo.CurrentInfo.NumberGroupSeparator;
+        return $"<{X}{separator} {Y}> (<{X.ToBits()}{separator} {Y.ToBits()}>)";
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

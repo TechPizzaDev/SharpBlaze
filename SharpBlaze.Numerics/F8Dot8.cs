@@ -27,7 +27,7 @@ public readonly partial struct F8Dot8
 
     private string GetDebuggerDisplay()
     {
-        return $"{_value} ({ToString()})";
+        return $"{ToString()} ({_value})";
     }
 }
 
