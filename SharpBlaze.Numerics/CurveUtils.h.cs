@@ -117,16 +117,16 @@ public static partial class CurveUtils
     {
         double min = ScalarHelper.MinNative(a, b);
         double max = ScalarHelper.MaxNative(a, b);
-        return value >= min & value <= max; 
+        return value >= min & value <= max;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<double> IsValueBetweenAAndB(Vector128<double> a, Vector128<double> value, Vector128<double> b)
     {
         Vector128<double> min = V128Helper.MinNative(a, b);
         Vector128<double> max = V128Helper.MaxNative(a, b);
-        return 
-            Vector128.GreaterThanOrEqual(value, min) & 
+        return
+            Vector128.GreaterThanOrEqual(value, min) &
             Vector128.LessThanOrEqual(value, max);
     }
 
@@ -185,7 +185,8 @@ public static partial class CurveUtils
         return IsValueBetweenAAndB(p0, p1, p2);
     }
 
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static void InterpolateQuadraticCoordinates(
         ReadOnlySpan<Vector128<double>> src, Span<Vector128<double>> dst, Vector128<double> t)
     {
@@ -195,7 +196,7 @@ public static partial class CurveUtils
         Vector128<double> s0 = src[0];
         Vector128<double> s1 = src[1];
         Vector128<double> s2 = src[2];
-        
+
         Vector128<double> ab = InterpolateLinear(s0, s1, t);
         Vector128<double> bc = InterpolateLinear(s1, s2, t);
 
@@ -218,19 +219,19 @@ public static partial class CurveUtils
             MemoryMarshal.Cast<FloatPoint, Vector128<double>>(dst),
             Vector128.Create(t));
     }
-
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static void InterpolateCubicCoordinates(
         ReadOnlySpan<Vector128<double>> src, Span<Vector128<double>> dst, double amount)
     {
         src = src[..4];
         dst = dst[..7];
-        
+
         Vector128<double> s0 = src[0];
         Vector128<double> s1 = src[1];
         Vector128<double> s2 = src[2];
         Vector128<double> s3 = src[3];
-        
+
         Vector128<double> t = Vector128.Create(amount);
         Vector128<double> ab = InterpolateLinear(s0, s1, t);
         Vector128<double> bc = InterpolateLinear(s1, s2, t);

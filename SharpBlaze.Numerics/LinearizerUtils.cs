@@ -22,19 +22,19 @@ public struct F24Dot8PointX2
         Vector128<double> s1 = p1 * factor;
         return RoundToInt32(s0, s1);
     }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void ClampFromFloat(
         Vector128<double> p0, Vector128<double> p1,
         F24Dot8Point min, F24Dot8Point max,
         Span<F24Dot8Point> result)
     {
         Vector128<int> p01 = FromFloatToV128(p0, p1);
-        
+
         Vector128<int> vMin = min.ToVector128();
         Vector128<int> vMax = max.ToVector128();
         p01 = Clamp(p01, vMin, vMax);
-        
+
         p01.CopyTo(MemoryMarshal.Cast<F24Dot8Point, int>(result));
     }
 }
@@ -58,6 +58,7 @@ public struct F24Dot8PointX3
         return (r01, r22);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static void ClampFromFloat(
         ReadOnlySpan<FloatPoint> p,
         F24Dot8Point min,
@@ -65,7 +66,7 @@ public struct F24Dot8PointX3
         Span<F24Dot8Point> result)
     {
         p = p[..3];
-        
+
         (Vector128<int> p01, Vector128<int> p22) = FromFloatToV128(
             p[0].AsVector128(),
             p[1].AsVector128(),
@@ -110,12 +111,12 @@ public struct F24Dot8PointX4
         p23.CopyTo(dst[4..]);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void ClampFromFloat(
-        Vector128<double> p0, 
-        Vector128<double> p1, 
-        Vector128<double> p2, 
-        Vector128<double> p3, 
+        Vector128<double> p0,
+        Vector128<double> p1,
+        Vector128<double> p2,
+        Vector128<double> p3,
         Vector128<int> max,
         Span<F24Dot8Point> result)
     {
@@ -124,27 +125,29 @@ public struct F24Dot8PointX4
         p23 = Clamp(p23, Vector128<int>.Zero, max);
         FromV128(p01, p23, result);
     }
-    
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static void FromFloat(ReadOnlySpan<FloatPoint> p, Span<F24Dot8Point> result)
     {
         p = p[..4];
-        
+
         (Vector128<int> p01, Vector128<int> p23) = FromFloatToV128(
             p[0].AsVector128(),
             p[1].AsVector128(),
             p[2].AsVector128(),
             p[3].AsVector128());
-        
+
         FromV128(p01, p23, result);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static void ClampFromFloat(
         ReadOnlySpan<FloatPoint> p,
         Vector128<int> max,
         Span<F24Dot8Point> result)
     {
         p = p[..4];
-        
+
         (Vector128<int> p01, Vector128<int> p23) = FromFloatToV128(
             p[0].AsVector128(),
             p[1].AsVector128(),
@@ -255,7 +258,7 @@ public static class LinearizerUtils
     {
         s = s[..3];
         r = r[..5];
-        
+
         F24Dot8Point m0 = (s[0] + s[1]) >> 1;
         F24Dot8Point m1 = (s[1] + s[2]) >> 1;
         F24Dot8Point m2 = (m0 + m1) >> 1;
@@ -277,6 +280,7 @@ public static class LinearizerUtils
      *
      * @param s Source curve defined by four points.
      */
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void SplitCubic(Span<F24Dot8Point> r, ReadOnlySpan<F24Dot8Point> s)
     {
         s = s[..4];
@@ -295,7 +299,7 @@ public static class LinearizerUtils
 
         Vector128<long> s0m0 = UnpackLow(s01.AsInt64(), m01.AsInt64());
         Vector128<long> m2s3 = UnpackHigh(m12.AsInt64(), s23.AsInt64());
-        
+
         Span<long> l = MemoryMarshal.Cast<F24Dot8Point, long>(r);
         s0m0.CopyTo(l);
         m34.AsInt64().CopyTo(l[2..4]);
@@ -304,7 +308,7 @@ public static class LinearizerUtils
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static bool CutMonotonicQuadraticAt(double c0, double c1, double c2, double target, out double t)
     {
         double A = c0 - c1 - c1 + c2;
@@ -319,22 +323,25 @@ public static class LinearizerUtils
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool CutMonotonicQuadraticAtX(ReadOnlySpan<FloatPoint> q, double x, out double t)
     {
         q = q[..3];
-        
+
         return CutMonotonicQuadraticAt(q[0].X, q[1].X, q[2].X, x, out t);
     }
 
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool CutMonotonicQuadraticAtY(ReadOnlySpan<FloatPoint> q, double y, out double t)
     {
         q = q[..3];
-        
+
         return CutMonotonicQuadraticAt(q[0].Y, q[1].Y, q[2].Y, y, out t);
     }
 
-    
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static bool CutMonotonicCubicAt(out double t, DoubleX4 pts)
     {
         const double Tolerance = 1e-7;
@@ -406,12 +413,12 @@ public static class LinearizerUtils
 
         return true;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool CutMonotonicCubicAtY(ReadOnlySpan<FloatPoint> pts, double y, out double t)
     {
         pts = pts[..4];
-        
+
         Unsafe.SkipInit(out DoubleX4 c);
         c[0] = pts[0].Y - y;
         c[1] = pts[1].Y - y;
@@ -426,7 +433,7 @@ public static class LinearizerUtils
     public static bool CutMonotonicCubicAtX(ReadOnlySpan<FloatPoint> pts, double x, out double t)
     {
         pts = pts[..4];
-        
+
         Unsafe.SkipInit(out DoubleX4 c);
         c[0] = pts[0].X - x;
         c[1] = pts[1].X - x;
@@ -444,7 +451,7 @@ public static class LinearizerUtils
     public static bool IsQuadraticFlatEnough(ReadOnlySpan<F24Dot8Point> q)
     {
         q = q[..3];
-        
+
         if (q[0].X == q[2].X &&
             q[0].Y == q[2].Y)
         {
@@ -467,13 +474,13 @@ public static class LinearizerUtils
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static bool IsCubicFlatEnough(ReadOnlySpan<F24Dot8Point> c)
     {
         c = c[..4];
 
         F24Dot8 tolerance = F24Dot8.One >> 1;
-        
+
         Vector128<int> p0 = c[0].ToVector128();
         Vector128<int> p12 = F24Dot8Point.ReadAsVector128(c.Slice(1, 2));
         Vector128<int> p3 = c[3].ToVector128();

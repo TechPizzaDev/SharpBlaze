@@ -89,10 +89,7 @@ public struct FloatPoint : IEquatable<FloatPoint>
     public static FloatPoint operator /(FloatPoint a, double b) => new(a.AsVector128() / b);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(FloatPoint a, FloatPoint b)
-    {
-        return Vector128.EqualsAll(a.AsVector128(), b.AsVector128());
-    }
+    public static bool operator ==(FloatPoint a, FloatPoint b) => Vector128.EqualsAll(a.AsVector128(), b.AsVector128());
 
     public static bool operator !=(FloatPoint a, FloatPoint b) => !(a == b);
 

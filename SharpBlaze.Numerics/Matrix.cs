@@ -134,7 +134,7 @@ public readonly partial struct Matrix
     }
 
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public readonly partial MatrixComplexity DetermineComplexity()
     {
         // TODO: customizable fuzziness?

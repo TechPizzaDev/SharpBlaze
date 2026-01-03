@@ -71,7 +71,7 @@ public static class V128Helper
         {
             return PackedSimd.RoundToNearest(value);
         }
-        
+
         const double IntBoundary = 4503599627370496.0; // 2^52
         Vector128<double> t = CopySign(Vector128.Create(IntBoundary), value);
         return CopySign((value + t) - t, value);
@@ -89,7 +89,7 @@ public static class V128Helper
         {
             return AdvSimd.Arm64.ConvertToInt64RoundToEven(value);
         }
-        
+
 #if NET9_0_OR_GREATER
         return Vector128.ConvertToInt64Native(Vector128.Round(value));
 #else
@@ -106,7 +106,7 @@ public static class V128Helper
         return Vector128.ConditionalSelect(Vector128.Create(-0.0), sign, value);
 #endif
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<double> CopySign(Vector256<double> value, Vector256<double> sign)
     {
@@ -133,7 +133,7 @@ public static class V128Helper
         return Vector128.Narrow(r, r);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static Vector128<int> RoundToInt32(Vector128<double> p0, Vector128<double> p1)
     {
         if (Sse2.IsSupported)
@@ -190,7 +190,7 @@ public static class V128Helper
         }
         return Vector128.ConvertToDouble(Vector128.WidenUpper(value));
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<double> Shuffle(Vector128<double> a, Vector128<double> b, [ConstantExpected] byte control)
     {
