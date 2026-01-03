@@ -238,7 +238,6 @@ public unsafe partial struct Rasterizer<T>
         int count = raster.GetFirstBlockLineCountForRow(localRowIndex);
 
         LineArrayX32Y16Block* v = raster.GetLinesForRow<LineArrayX32Y16Block>(localRowIndex);
-
         while (v != null)
         {
             foreach (LineArrayX32Y16Block.Line line in v->P0P1[..count])
@@ -255,7 +254,6 @@ public unsafe partial struct Rasterizer<T>
         }
     }
 
-
     private static void IterateLinesX16Y16(
         int localRowIndex,
         in RasterizableGeometry raster,
@@ -265,7 +263,6 @@ public unsafe partial struct Rasterizer<T>
         int count = raster.GetFirstBlockLineCountForRow(localRowIndex);
 
         LineArrayX16Y16Block* v = raster.GetLinesForRow<LineArrayX16Y16Block>(localRowIndex);
-
         while (v != null)
         {
             foreach (F8Dot8x4 p0p1 in v->P0P1[..count])
@@ -1408,7 +1405,7 @@ public unsafe partial struct Rasterizer<T>
         // Calculate maximum height. This can only get less than TileH when rendering
         // the last row of the image and image height is not multiple of row height.
         int viewHeight = Math.Min(pY1, imageBounds.Height) - pY0;
-        
+
         int viewWidth = Math.Min((int) rowWidth, imageBounds.Width - pX0);
 
         IntRect targetRect = new(pX0, pY0, viewWidth, viewHeight);

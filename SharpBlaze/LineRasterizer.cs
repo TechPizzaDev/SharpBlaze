@@ -83,7 +83,7 @@ public abstract class LineRasterizer<TAlpha, TBlender> : LineRasterizer
 
                 // Note that index is in local geometry coordinates.
                 int edgeX = left + index;
-                int nextEdgeX = edgeX + 1;
+                int nextX = edgeX + 1;
 
                 // Signed area for pixel at bit index.
                 F24Dot8 area = coverAreas[index].Area + (cover << 9);
@@ -101,13 +101,13 @@ public abstract class LineRasterizer<TAlpha, TBlender> : LineRasterizer
                             blender.CompositeSpan(spanX, spanEnd, y, spanAlpha);
                         }
 
-                        spanX = nextEdgeX;
+                        spanX = nextX;
                         spanEnd = spanX;
                         spanAlpha = default;
                     }
                     else if (spanAlpha == alpha)
                     {
-                        spanEnd = nextEdgeX;
+                        spanEnd = nextX;
                     }
                     else
                     {
@@ -118,7 +118,7 @@ public abstract class LineRasterizer<TAlpha, TBlender> : LineRasterizer
                         }
 
                         spanX = edgeX;
-                        spanEnd = nextEdgeX;
+                        spanEnd = nextX;
                         spanAlpha = alpha;
                     }
                 }
@@ -137,7 +137,7 @@ public abstract class LineRasterizer<TAlpha, TBlender> : LineRasterizer
                         }
 
                         spanX = edgeX;
-                        spanEnd = nextEdgeX;
+                        spanEnd = nextX;
                         spanAlpha = alpha;
                     }
                     else
@@ -152,7 +152,7 @@ public abstract class LineRasterizer<TAlpha, TBlender> : LineRasterizer
                             if (alpha == gapAlpha)
                             {
                                 // Current pixel alpha matches as well.
-                                spanEnd = nextEdgeX;
+                                spanEnd = nextX;
                             }
                             else
                             {
@@ -160,7 +160,7 @@ public abstract class LineRasterizer<TAlpha, TBlender> : LineRasterizer
                                 blender.CompositeSpan(spanX, edgeX, y, spanAlpha);
 
                                 spanX = edgeX;
-                                spanEnd = nextEdgeX;
+                                spanEnd = nextX;
                                 spanAlpha = alpha;
                             }
                         }
@@ -175,7 +175,7 @@ public abstract class LineRasterizer<TAlpha, TBlender> : LineRasterizer
                             blender.CompositeSpan(spanEnd, edgeX, y, gapAlpha);
 
                             spanX = edgeX;
-                            spanEnd = nextEdgeX;
+                            spanEnd = nextX;
                             spanAlpha = alpha;
                         }
                     }

@@ -1,4 +1,5 @@
-using System.Diagnostics;
+using System;
+using System.Runtime.CompilerServices;
 
 namespace SharpBlaze;
 
@@ -23,18 +24,22 @@ public unsafe readonly struct ImageData
      */
     public ImageData(void* data, int width, int height, nint stride, int bytesPerPixel)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(width);
+        ArgumentOutOfRangeException.ThrowIfNegative(height);
+        ArgumentOutOfRangeException.ThrowIfNegative(stride);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bytesPerPixel);
+
+        // Do not assume any specific bpp, but assume it is at least 1 byte per pixel.
+        if ((ulong) (uint) width * (uint) bytesPerPixel > (nuint) stride)
+        {
+            ThrowHelper.ThrowArgumentOutOfRange();
+        }
+
         Data = data;
         Width = width;
         Height = height;
         Stride = stride;
         BytesPerPixel = bytesPerPixel;
-
-        Debug.Assert(width > 0);
-        Debug.Assert(height > 0);
-
-        // Do not assume any specific bpp, but assume it is at least 1 byte
-        // per pixel.
-        Debug.Assert(stride >= (nint) width * bytesPerPixel);
     }
 
     public readonly void* Data;
@@ -44,12 +49,13 @@ public unsafe readonly struct ImageData
     public readonly int BytesPerPixel;
 
     public IntRect Bounds => new(0, 0, Width, Height);
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Span2D<T> GetSpan2D<T>()
         where T : unmanaged
     {
-        ulong width = (uint) Width * (ulong) (uint) BytesPerPixel / (ulong) sizeof(T);
+        ulong width = (uint) Width * (ulong) ((uint) BytesPerPixel / (uint) sizeof(T));
 
-        return new Span2D<T>((T*) Data, checked((int) width), Height, Stride);
+        return new Span2D<T>((T*) Data, (int) width, Height, Stride);
     }
 }
