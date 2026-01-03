@@ -25,18 +25,19 @@ public unsafe class SdlMain : Main, IDisposable
             (int) width,
             (int) height,
             (uint) WindowFlags.Hidden);
-
-        windowSurface = this.sdl.GetWindowSurface(window);
-
-        drawSurface = this.sdl.CreateRGBSurfaceWithFormat(
-            0, (int) width, (int) height, 32, (uint) PixelFormatEnum.Abgr8888);
-
-        sdl.SetSurfaceBlendMode(drawSurface, BlendMode.None);
     }
 
     public int Run()
     {
         sdl.ShowWindow(window);
+
+        windowSurface = sdl.GetWindowSurface(window);
+        int width = 0;
+        int height = 0;
+        sdl.GetWindowSize(window, &width, &height);
+        drawSurface = sdl.CreateRGBSurfaceWithFormat(0, width, height, 32, (uint) PixelFormatEnum.Abgr8888);
+
+        sdl.SetSurfaceBlendMode(drawSurface, BlendMode.None);
 
         bool mouseDown = false;
         int mouseX = 0;
@@ -81,7 +82,7 @@ public unsafe class SdlMain : Main, IDisposable
                         {
                             break;
                         }
-                        
+
                         FloatPoint dd = (scale - mViewData.Scale) / mViewData.Scale;
                         FloatPoint pn = mViewData.CoordinateSystemMatrix.Inverse().Map(ev.Wheel.MouseX, ev.Wheel.MouseY);
 
