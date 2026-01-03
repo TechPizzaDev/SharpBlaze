@@ -221,7 +221,7 @@ public static partial class CurveUtils
 
 
     private static void InterpolateCubicCoordinates(
-        ReadOnlySpan<Vector128<double>> src, Span<Vector128<double>> dst, Vector128<double> t)
+        ReadOnlySpan<Vector128<double>> src, Span<Vector128<double>> dst, double amount)
     {
         src = src[..4];
         dst = dst[..7];
@@ -231,6 +231,7 @@ public static partial class CurveUtils
         Vector128<double> s2 = src[2];
         Vector128<double> s3 = src[3];
         
+        Vector128<double> t = Vector128.Create(amount);
         Vector128<double> ab = InterpolateLinear(s0, s1, t);
         Vector128<double> bc = InterpolateLinear(s1, s2, t);
         Vector128<double> cd = InterpolateLinear(s2, s3, t);
@@ -256,6 +257,6 @@ public static partial class CurveUtils
         InterpolateCubicCoordinates(
             MemoryMarshal.Cast<FloatPoint, Vector128<double>>(src),
             MemoryMarshal.Cast<FloatPoint, Vector128<double>>(dst),
-            Vector128.Create(t));
+            t);
     }
 }
