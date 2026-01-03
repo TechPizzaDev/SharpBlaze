@@ -95,10 +95,7 @@ public readonly ref struct Span2D<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe Span2D(void* data, int width, int height, nint stride)
     {
-        if ((uint) width > (nuint) stride)
-        {
-            ThrowHelper.ThrowArgumentOutOfRange();
-        }
+        Debug.Assert((uint) width <= (nuint) stride);
 
         _data = ref *(T*) data;
         _width = width;
